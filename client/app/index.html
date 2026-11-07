@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <base href="<%= htmlWebpackPlugin.options.baseHref %>" />
+    <title><%= htmlWebpackPlugin.options.title %></title>
+    <script src="<%= htmlWebpackPlugin.options.staticPath %>unsupportedRedirect.js" async></script>
+
+    <link rel="icon" type="image/svg+xml" href="/static/images/bi-dash-mark.svg?v=1">
+  <meta name="theme-color" content="#191c22">
+</head>
+
+  <body>
+    <section>
+      <div id="application-root"></div>
+      <div class="loading-indicator">
+        <div id="css-logo" role="img" aria-label="Loading Bi-Dash"></div>
+        <div id="shadow"></div>
+      </div>
+    </section>
+  </body>
+</html>

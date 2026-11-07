@@ -1,0 +1,103 @@
+/** LESS Plugins **/
+@import 'inc/less-plugins/for';
+
+/** Load Main Bootstrap LESS files **/
+@import '~bootstrap/less/bootstrap';
+@import '~material-design-iconic-font/dist/css/material-design-iconic-font.css';
+
+@import 'inc/variables';
+@import 'inc/mixins';
+@import 'inc/font';
+@import 'inc/print';
+
+@import 'inc/bootstrap-overrides';
+@import 'inc/base';
+@import 'inc/generics';
+@import 'inc/form';
+@import 'inc/button';
+@import 'inc/404';
+@import 'inc/ie-warning';
+@import 'inc/flex';
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #F6F8F9;
+}
+
+.signed-out {
+
+}
+
+hr {
+  border-top-width: 2px;
+  margin: 25px 0;
+}
+
+.tiled {
+  padding: 25px;
+}
+
+.header {
+  margin-top: 25px;
+
+  img {
+    height: 40px;
+  }
+}
+
+.fixed-width-page {
+  width: 500px;
+}
+
+@media (max-width: 767px) {
+  .fixed-width-page {
+    width: 80vw;
+  }
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+
+  img {
+    height: 25px;
+    margin-right: 5px;
+  }
+
+  &:before {
+    content: "";
+    display: inline-block;
+    height: 25px;
+  }
+}
+
+// Bi-Dash sign-in and account screens.
+body.signed-out {
+  background: radial-gradient(ellipse at 20% 15%, #dbeafe 0, transparent 45%), #f4f6fa;
+  color: #334155;
+  border-top: 5px solid #191c22;
+  padding: 28px 0;
+  height: auto; min-height: 100vh;
+  .header { margin-top: 0; }
+  .header img.bi-dash-wordmark { width: 225px; height: 48px; }
+  .bi-dash-tagline { color: #64748b; margin: 16px 0 28px; font-size: 14px; }
+  h3 { font-size: 20px; font-weight: 600; color: #191c22; }
+  .fixed-width-page { width: 440px; max-width: calc(100vw - 32px); }
+  .tiled { border: 1px solid #e1e8f2; border-top: 3px solid #2563eb; border-radius: 14px; padding: 32px; box-shadow: 0 16px 48px #192c5010; }
+  .form-control { border-radius: 6px; height: 42px; }
+  .btn-primary { background: #2563eb; border-color: #2563eb; border-radius: 6px; min-height: 42px; font-weight: 600; }
+  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+  a { color: #2563eb; }
+  input[type="checkbox"] { accent-color: #2563eb; }
+}

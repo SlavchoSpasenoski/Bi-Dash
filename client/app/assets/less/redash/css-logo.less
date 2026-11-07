@@ -1,0 +1,11 @@
+// The same Bi-Dash mark used throughout the product.
+#css-logo {
+  width: 80px;
+  height: 80px;
+  margin: 10px;
+  background: url('../../images/bi-dash-mark.svg') center / contain no-repeat;
+  > div { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-indicator #css-logo, .loading-indicator #shadow { animation: none; }
+}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+  <title>{% block title %}{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <link rel="stylesheet" href="{{ asset_url('server.css') }}">
+
+  
+  
+  
+  {% block head %}{% endblock %}
+  <link rel="icon" type="image/svg+xml" href="/static/images/bi-dash-mark.svg?v=1">
+  <meta name="theme-color" content="#191c22">
+</head>
+<body class="d-flex flex-column justify-content-center align-items-center signed-out">
+
+  <div>
+    <div class="header">
+      <div class="text-center m-b-15">
+        <a href="/"><img class="bi-dash-wordmark" src="/static/images/bi-dash-wordmark.svg" alt="Bi-Dash"></a>
+      </div>
+      <p class="bi-dash-tagline text-center">Your data. A clearer direction.</p>
+      {% if not hide_page_header %}
+        <h3 class="text-center m-t-0 m-b-25">{{ self.title() }}</h3>
+      {% endif %}
+    </div>
+    {% block content %}{% endblock %}
+  </div>
+
+{% block scripts %}{% endblock %}
+
+{% include '_includes/signed_out_tail.html' %}
+
+</body>
+</html>

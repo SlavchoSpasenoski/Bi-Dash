@@ -1,0 +1,1 @@
+Upstream Redash workflows are retained here for reference and are inactive because they target upstream deployment infrastructure and secrets. The Bi-Dash test workflow is saved as ../bi-dash-checks.yml. To enable GitHub Actions later, move that template to .github/workflows/bi-dash.yml with a GitHub credential that has workflow permission. Local tests run without GitHub Actions.

@@ -1,0 +1,3 @@
+Hi {{ user.name }},
+
+You asked for a password reset email, but your Bi-Dash account is disabled and therefore can't reset the password. Please contact your Bi-Dash admin for enabling again your account.

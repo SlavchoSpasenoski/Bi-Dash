@@ -1,0 +1,27 @@
+// Bi-Dash product identity. Semantic success/error colors remain meaningful.
+.desktop-navbar-logo a { display: inline-flex; flex-direction: column; align-items: center; gap: 7px; }
+.bi-dash-nav-name { color: #fff; font-size: 12px; font-weight: 700; letter-spacing: -.3px; white-space: nowrap; }
+.mobile-navbar-logo a { display: inline-flex; align-items: center; gap: 10px; }
+.mobile-navbar-logo .bi-dash-nav-name { font-size: 20px; }
+.desktop-navbar .ant-menu.ant-menu-dark,
+.desktop-navbar-submenu .ant-menu.ant-menu-dark,
+.mobile-navbar-menu.ant-dropdown-menu { background: #191c22; }
+.desktop-navbar .navbar-active-item { background: #25334b; }
+.desktop-navbar a:focus-visible, .mobile-navbar a:focus-visible { outline: 2px solid #facc15; outline-offset: 3px; }
+.bi-dash-welcome {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 28px 32px; margin: 8px 0 28px; border: 1px solid #dbe5f4;
+  border-radius: 16px; background: linear-gradient(115deg, #fff 40%, #eaf1ff);
+  box-shadow: 0 4px 20px #192c5010;
+  h1 { color: #18243a; font-size: 30px; font-weight: 700; letter-spacing: -.8px; margin: 10px 0; }
+  p { color: #64748b; margin: 0; font-size: 14px; }
+}
+.bi-dash-eyebrow { color: #2563eb; font-size: 10px; font-weight: 700; letter-spacing: 2px; }
+.bi-dash-edition { background: #facc15; color: #191c22; padding: 8px 12px; border-radius: 8px; font-weight: 800; white-space: nowrap; }
+.ant-btn.redash-ai-launch { background: #2563eb; border-color: #2563eb; box-shadow: 0 8px 24px #2563eb40; font-weight: 600; }
+.redash-ai-drawer .ant-drawer-header { border-top: 4px solid #facc15; }
+@media (max-width: 600px) {
+  .bi-dash-welcome { padding: 22px 20px; align-items: flex-start; }
+  .bi-dash-welcome h1 { font-size: 24px; }
+  .bi-dash-edition { font-size: 10px; padding: 6px 8px; }
+}
