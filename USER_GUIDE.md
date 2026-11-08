@@ -438,7 +438,7 @@ Start a pilot with one metric and one chart. Expand to more widgets after verifi
 <a id="references"></a>
 ## 18. Installation and further documentation
 
-For a new local Windows installation, follow [README.md](README.md) and [LOCAL_PROJECT.md](LOCAL_PROJECT.md). Docker Desktop with Linux containers and sufficient resources for the selected model are required. The local stack exposes Bi-Dash at `http://localhost:5001`; other installations use the address supplied by their administrator.
+For a fresh Windows, Linux or macOS installation, follow the [Installation Guide](INSTALLATION.md). See [README.md](README.md) and [LOCAL_PROJECT.md](LOCAL_PROJECT.md) for an overview and implementation details. Docker with Linux containers and sufficient resources for the selected model are required. The local stack exposes Bi-Dash at `http://localhost:5001`; other installations use the address supplied by their administrator.
 
 | Document | Purpose |
 | --- | --- |

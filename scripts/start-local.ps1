@@ -14,4 +14,4 @@ Invoke-Compose up -d postgres redis
 Invoke-Compose run --rm server create_db
 Invoke-Compose up -d
 Write-Host 'For a new Ollama volume, install the local model once: docker compose -f compose.local.yaml exec ollama ollama pull qwen2.5-coder:7b'
-Write-Host 'Open http://localhost:5001/setup to create your Redash administrator.'
+Write-Host 'Open http://localhost:5001/setup to create your Bi-Dash administrator.'
