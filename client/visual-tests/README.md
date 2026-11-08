@@ -10,7 +10,7 @@ Files:
 
 - [`examples.ts`](examples.ts) - the example queries and visualizations. To cover a new setting, add a
   visualization (or a query) here and update the baselines.
-- [`seed.setup.ts`](seed.setup.ts) - loads the examples through the Redash API: a SQLite data source,
+- [`seed.setup.ts`](seed.setup.ts) - loads the examples through the Bi-Dash API: a SQLite data source,
   the queries (executed), their visualizations, and one shared dashboard per visualization type named
   "Visualization Examples: &lt;type&gt;". Examples from a previous run are archived first.
 - [`visualizations.spec.ts`](visualizations.spec.ts) - takes a screenshot of every widget.
@@ -20,17 +20,17 @@ Files:
 - [`pages.spec.ts`](pages.spec.ts) - the pages and dialogs to take a screenshot of. To cover another page, add it
   to `PAGES` (and the objects it needs to `pages.setup.ts`).
 - [`stability.spec.ts`](stability.spec.ts) - browser regression tests for date handling and embed URL normalization;
-  these run without a Redash server (`--project stability`).
+  these run without a Bi-Dash server (`--project stability`).
 - [`fixtures/chinook.db`](fixtures/chinook.db) - the [Chinook sample database](https://github.com/lerocha/chinook-database)
   (a digital music store), MIT license.
 
 ## Running
 
-You need a running Redash with a worker (queries are executed when seeding), e.g. `docker compose up -d`,
+You need a running Bi-Dash with a worker (queries are executed when seeding), e.g. `docker compose up -d`,
 started with `REDASH_FEATURE_ALLOW_CUSTOM_JS_VISUALIZATIONS=true` (add it to `.env`): custom JavaScript charts
 are disabled by default, and the examples include one. The seed fails if the setting is off.
 The SQLite file has to be readable by the worker; by default the data source points at
-`/app/client/visual-tests/fixtures/chinook.db`, which is where the repository is in the Redash containers
+`/app/client/visual-tests/fixtures/chinook.db`, which is where the repository is in the Bi-Dash containers
 (override with `VISUAL_TESTS_DB_PATH`).
 
 Page screenshots show everything on the instance (all users, data sources, groups...), so **the page tests need a

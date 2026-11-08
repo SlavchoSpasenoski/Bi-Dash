@@ -2,7 +2,7 @@
 title: Formatting Numbers in Visualizations
 ---
 
-In several Redash visualizations you can control how the numbers are formatted. You control the format by supplying a format string. Below you can find examples for the various format options.
+In several Bi-Dash visualizations you can control how the numbers are formatted. You control the format by supplying a format string. Below you can find examples for the various format options.
 
 ## Numbers
 

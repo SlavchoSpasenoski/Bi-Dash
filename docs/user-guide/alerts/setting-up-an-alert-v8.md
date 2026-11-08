@@ -14,11 +14,11 @@ sidebar:
 
 :::danger
 
-This doc is for Redash V8 and earlier.
+This doc is for Bi-Dash V8 and earlier.
 
 :::
 
-Redash alerts can notify you when your [**Scheduled Queries**](/help/user-guide/querying/scheduling-a-query/) match some arbitrary criteria. Use them to monitor business data or integrated them with tools like Zapier or IFTTT to trigger business processes like user onbarding or support tickets. While Alerts are usually combined with scheduled queries, the Alert criteria will be evaluated every time the query is executed.
+Bi-Dash alerts can notify you when your [**Scheduled Queries**](/help/user-guide/querying/scheduling-a-query/) match some arbitrary criteria. Use them to monitor business data or integrated them with tools like Zapier or IFTTT to trigger business processes like user onbarding or support tickets. While Alerts are usually combined with scheduled queries, the Alert criteria will be evaluated every time the query is executed.
 
 :::caution
 
@@ -65,9 +65,9 @@ The status of your Alert criteria is checked every time the query is executed. A
 
 - `TRIGGERED` means that your query matched the criteria defined in your alert configuration. If you set your alert to trigger when the value of "cats" is greater than 1500 as long as it's above 1500 your alert is triggered.
 - `OK` means that the most recent query execution did not match the criteria defined in your alert. This doesn't mean that the Alert has not been triggered previously. If your "cats" value is now 1470 your alert will show as OK.
-- `UNKNOWN` means Redash does not have enough data to evaluate the alert criteria. You should see this status immediately after creating your Alert until the query has executed. The Alert will also show this status if there was no data in the query result or if the most recent query result doesn't have the configured _Value Column_.
+- `UNKNOWN` means Bi-Dash does not have enough data to evaluate the alert criteria. You should see this status immediately after creating your Alert until the query has executed. The Alert will also show this status if there was no data in the query result or if the most recent query result doesn't have the configured _Value Column_.
 
-Redash sends notifications to your chosen Alert Destinations whenever it detects that the Alert status has changed from `OK` to `TRIGGERED` or vice versa. Consider this example where an Alert is configured on a query that is scheduled to run once daily. The daily status of the Alert appears in the table below. Prior to Monday the alert status was `OK`.
+Bi-Dash sends notifications to your chosen Alert Destinations whenever it detects that the Alert status has changed from `OK` to `TRIGGERED` or vice versa. Consider this example where an Alert is configured on a query that is scheduled to run once daily. The daily status of the Alert appears in the table below. Prior to Monday the alert status was `OK`.
 
 | Day       | Alert Status |
 | --------- | ------------ |
@@ -79,17 +79,17 @@ Redash sends notifications to your chosen Alert Destinations whenever it detects
 | Saturday  | TRIGGERED    |
 | Sunday    | OK           |
 
-By default, Redash would send a notification on Wednesday when the status changed from `OK` to `TRIGGERED` and again on Sunday when it switches back. It will not send alerts on Thursday, Friday, or Saturday unless you specifically configure it to do so because the Alert status did not change between executions on those days.
+By default, Bi-Dash would send a notification on Wednesday when the status changed from `OK` to `TRIGGERED` and again on Sunday when it switches back. It will not send alerts on Thursday, Friday, or Saturday unless you specifically configure it to do so because the Alert status did not change between executions on those days.
 
 ### Setting Rearm Seconds for an Alert
 
-To send notifications more frequently, set the **Rearm seconds** to any nonzero value. This tells Redash to treat a `TRIGGERED` status after the chosen number of seconds as though the status has changed and therefore send a notification.
+To send notifications more frequently, set the **Rearm seconds** to any nonzero value. This tells Bi-Dash to treat a `TRIGGERED` status after the chosen number of seconds as though the status has changed and therefore send a notification.
 
 For example, if the above Alert were configured with **Rearm seconds** equal to `1` a notification would be sent every day that the status was `TRIGGERED` (Wednesday - Saturday) and one on Sunday when the status changed back to `OK`.
 
 :::note
 
-Alert notifications are directly tied to the query executions. If a query is scheduled to execute once per week, and is not executed manually by a Redash user, then you will receive one notification per week at most, regardless of the configured _Rearm seconds_.
+Alert notifications are directly tied to the query executions. If a query is scheduled to execute once per week, and is not executed manually by a Bi-Dash user, then you will receive one notification per week at most, regardless of the configured _Rearm seconds_.
 
 :::
 
@@ -103,7 +103,7 @@ For a query that executes every 24 hours, any _Rearm seconds_ value between 1 an
 
 :::
 
-Imagine you set an Alert on a query that executes every fifteen minutes. You have configured _Rearm seconds_ equal to `3600` (one hour). This guarantees that you will receive a status notification once an hour if the status is `TRIGGERED`. But you will also receive a notification if the status changes. The one hour rearm prevents Redash from sending you a notification every fifteen minutes while the Alert is triggered. So in the below time-line:
+Imagine you set an Alert on a query that executes every fifteen minutes. You have configured _Rearm seconds_ equal to `3600` (one hour). This guarantees that you will receive a status notification once an hour if the status is `TRIGGERED`. But you will also receive a notification if the status changes. The one hour rearm prevents Bi-Dash from sending you a notification every fifteen minutes while the Alert is triggered. So in the below time-line:
 
 | Time     | Alert Status |
 | -------- | ------------ |

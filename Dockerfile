@@ -14,6 +14,7 @@ WORKDIR /frontend
 COPY --chown=redash package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc /frontend/
 COPY --chown=redash viz-lib /frontend/viz-lib
 COPY --chown=redash scripts /frontend/scripts
+COPY --chown=redash LICENSE NOTICE /frontend/
 
 # Use BuildKit cache mount for pnpm store to speed rebuilds
 RUN --mount=type=cache,id=pnpm-store,target=/frontend/.cache/pnpm,uid=1001,gid=1001 \

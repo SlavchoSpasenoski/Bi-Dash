@@ -1,5 +1,6 @@
 client/.tmp/
 node_modules/
+.pnpm-store/
 viz-lib/node_modules/
 .tmp/
 .venv/

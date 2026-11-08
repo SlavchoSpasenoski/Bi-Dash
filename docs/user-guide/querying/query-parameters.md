@@ -39,13 +39,13 @@ Click the gear icon beside each parameter widget to edit its settings:
 
 :::note
 
-Prior to Redash version 7, the parameter settings pane in the Query Editor included a `Global` tickbox, which notified Redash that you intended to use this parameter across multiple widgets in a dashboard. The `Global` tickbox has been replaced since version 6 with the new _Parameter Mapping on Dashboards_ functionality described below.
+Prior to Bi-Dash version 7, the parameter settings pane in the Query Editor included a `Global` tickbox, which notified Bi-Dash that you intended to use this parameter across multiple widgets in a dashboard. The `Global` tickbox has been replaced since version 6 with the new _Parameter Mapping on Dashboards_ functionality described below.
 
 :::
 
 :::danger
 
-For security reasons, a Redash user must have [Full Access](/help/user-guide/users/permissions-groups/) permission to the data source to use Text-type Query Parameters. Other types such as Date, Date Range, Number or Dropdown list are available to all users.
+For security reasons, a Bi-Dash user must have [Full Access](/help/user-guide/users/permissions-groups/) permission to the data source to use Text-type Query Parameters. Other types such as Date, Date Range, Number or Dropdown list are available to all users.
 
 :::
 
@@ -100,13 +100,13 @@ Because dynamic dates and date ranges are calculated in the front-end, they aren
 
 ### Dropdown Lists
 
-If you want to restrict the scope of possible parameter values when running a query, you can use Redash's `Dropdown List` parameter type. When selected from the parameter settings panel, a text box appears where you can enter your allowed values, each one separated by a new line. Dropdown lists are `Text` parameters under the hood, so if you want to use dates/datetimes in your dropdown, you should enter them in the format your data source requires.
+If you want to restrict the scope of possible parameter values when running a query, you can use Bi-Dash's `Dropdown List` parameter type. When selected from the parameter settings panel, a text box appears where you can enter your allowed values, each one separated by a new line. Dropdown lists are `Text` parameters under the hood, so if you want to use dates/datetimes in your dropdown, you should enter them in the format your data source requires.
 
 #### Query Based Dropdown List
 
 Dropdown lists can also be tied to the results of an existing query. Just click `Query Based Dropdown List` under **Type** in the settings panel. Search for your target query in the **Query to load dropdown values from** bar. Performance will degrade if your target query returns a large number of records.
 
-If your target query returns more than one column, Redash uses the _first_ one. If your target query returns `name` and `value` columns, Redash populates the parameter selection widget with the `name` column but executes the query with the associated `value`.
+If your target query returns more than one column, Bi-Dash uses the _first_ one. If your target query returns `name` and `value` columns, Bi-Dash populates the parameter selection widget with the `name` column but executes the query with the associated `value`.
 
 For example, suppose this query:
 
@@ -123,11 +123,11 @@ returned this data:
 | 1002  | Jane Doe     |
 | 1003  | Bobby Tables |
 
-Redash's dropdown list widget would look like this:
+Bi-Dash's dropdown list widget would look like this:
 
 <img src="/assets/images/docs/gitbook/dropdown-list-name-value.png"  alt="The widget shows John Smith, Jane Doe and Bobby Tables">
 
-But when Redash executes the query, the value passed to the database would be 1001, 1002 or 1003.
+But when Bi-Dash executes the query, the value passed to the database would be 1001, 1002 or 1003.
 
 #### Serialized Multi-Select
 
@@ -192,7 +192,7 @@ Yes, with one exception. If a query uses a Text type parameter it cannot be embe
 
 :::note
 
-Prior to Version 8 of Redash, parameters were not allowed in embedded visualizations. In a future version, all types of parameters will be allowed on publicly shared dashboards and visualizations. Our hosted platform always runs the latest available version of the app.
+Prior to upstream engine Version 8, parameters were not allowed in embedded visualizations. Supported parameter types depend on the deployed engine and sharing mode. Bi-Dash does not operate a hosted platform.
 
 :::
 
@@ -226,7 +226,7 @@ You can also access the parameter mapping interface by clicking the vertical ell
 
 - **Keyword** is the string literal for this parameter in the underlying query. This is useful for debugging if your dashboard does not return expected results.
 
-- **Default Value** is what Redash will use if no other value is specified. To change this from the query screen, execute the query with your desired parameter value and click the **Save** button.
+- **Default Value** is what Bi-Dash will use if no other value is specified. To change this from the query screen, execute the query with your desired parameter value and click the **Save** button.
 
 - **Value Source** is where you choose your preferred mapping. Click the pencil glyph to open the mapper settings.
 

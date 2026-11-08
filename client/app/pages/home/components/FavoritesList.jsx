@@ -6,6 +6,7 @@ import Link from "@/components/Link";
 import LoadingOutlinedIcon from "@ant-design/icons/LoadingOutlined";
 
 import { Dashboard } from "@/services/dashboard";
+import { currentUser } from "@/services/auth";
 import { Query } from "@/services/query";
 
 export function FavoriteList({ title, resource, itemUrl, emptyState }) {
@@ -72,7 +73,7 @@ export function DashboardAndQueryFavoritesList() {
               }
             />
           </div>
-          <div className="col-sm-6 m-t-20">
+          {currentUser.hasPermission("view_query") && <div className="col-sm-6 m-t-20">
             <FavoriteList
               title="Favorite Queries"
               resource={Query}
@@ -86,7 +87,7 @@ export function DashboardAndQueryFavoritesList() {
                 </p>
               }
             />
-          </div>
+          </div>}
         </div>
       </div>
     </div>

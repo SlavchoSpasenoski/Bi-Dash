@@ -2,7 +2,7 @@
 title: CSV Files
 ---
 
-Redash can read CSV files and Excel spreadsheets from any accessible URL.
+Bi-Dash can read CSV files and Excel spreadsheets from any accessible URL.
 
 :::note
 

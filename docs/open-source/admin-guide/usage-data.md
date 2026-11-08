@@ -1,40 +1,7 @@
 ---
-title: Anonymous Usage Data Sharing (Optional)
+title: Optional Usage Data
 ---
 
-Starting from Redash version `8-beta.2` we will give you an option to share anonymous aggregated
-usage data when Redash does a version check. This is opt-in, but we encourage you to join as it
-helps us better direct future product efforts.
+Bi-Dash inherits an optional aggregate usage-data feature. An administrator controls it through **Settings → General → Anonymous Usage Data Sharing**. Its recipient is the upstream service at `https://version.redash.io/subscribe`; it is not a Bi-Dash-operated endpoint. Rebranding the interface does not change that recipient.
 
-The information we will be sending is:
-
-- Number of users, queries, dashboards, alerts, widgets and visualizations.
-- Types of data sources, alert destinations and visualizations.
-
-An example JSON payload that is being sent to us:
-
-```
-{
-    "current_version": "8-beta.2",
-    "usage": {
-        "users_count": 1,
-        "queries_count": 4,
-        "dashboards_count": 1,
-        "widgets_count": 1,
-        "textbox_count": 0,
-        "alerts_count": 0,
-        "data_sources": {
-            "pg": 1,
-            "redshift": 1
-        },
-        "visualization_types": {
-            "TABLE": 4,
-            "COUNTER": 5
-        },
-        "destination_types": {
-            'slack': 1,
-            'webhook': 2
-        }
-    }
-}
-```
+The inherited payload contains aggregate installation counts and configured component types. Review `redash/tasks/general.py` in the deployed revision for the exact payload. This setting is separate from AI requests, which send prompts, schemas and configured context to the explicitly selected AI provider.

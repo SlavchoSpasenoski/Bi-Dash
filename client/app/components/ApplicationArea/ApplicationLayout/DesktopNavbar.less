@@ -167,6 +167,10 @@
         a {
           color: rgba(255, 255, 255, 0.8);
 
+          // Ant Menu stretches link pseudo-elements across the whole item.
+          // These inline notice links must each retain their own click target.
+          &::before { display: none; }
+
           &:hover,
           &:active,
           &:focus,

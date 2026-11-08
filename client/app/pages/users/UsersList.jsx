@@ -91,6 +91,7 @@ class UsersList extends React.Component {
   ];
 
   listColumns = [
+    Columns.custom((text, user) => user.role || "editor", { title: "Role", field: "role" }),
     Columns.custom.sortable((text, user) => <UserPreviewCard user={user} withLink />, {
       title: "Name",
       field: "name",

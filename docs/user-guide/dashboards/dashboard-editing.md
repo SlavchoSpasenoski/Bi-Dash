@@ -22,7 +22,7 @@ Search existing queries or pick a recent one from the pre-populated list:
 
 ### Dashboard URLs
 
-When you create a dashboard, Redash automatically assigns it an `id` number and a URL `slug`. The slug is based on the name of the dashboard. For example a dashboard named "Account Overview" could have this URL:
+When you create a dashboard, Bi-Dash automatically assigns it an `id` number and a URL `slug`. The slug is based on the name of the dashboard. For example a dashboard named "Account Overview" could have this URL:
 
 `https://redash.app/dashboards/251-account-overview`
 
@@ -65,7 +65,7 @@ When queries have filters you need to apply filters at the dashboard level as we
 
 ## Managing Dashboard Permissions
 
-By default, dashboards can only be modified by the user who created them and members of the Admin group. But Redash includes experimental support to share edit permissions with non-Admin users. An Admin in your organization needs to enable it first. Open your organization settings and check the "Enable experimental multiple owners support"
+By default, dashboards can only be modified by the user who created them and members of the Admin group. But Bi-Dash includes experimental support to share edit permissions with non-Admin users. An Admin in your organization needs to enable it first. Open your organization settings and check the "Enable experimental multiple owners support"
 
 ![](/assets/images/docs/gitbook/experimental-owners-support.png)
 
@@ -87,7 +87,7 @@ If you want this to happen periodically you can activate Automatic Dashboard Ref
 
 :::note
 
-Automatic Dashboard Refresh occurs as part of the Redash frontend application. Your refresh schedule is only in-effect as long as a logged-in user has the dashboard open in their browser. To guarantee that your queries are executed regularly (which is important for alerts), you should use a [Scheduled Query](/help/user-guide/querying/scheduling-a-query/) instead.
+Automatic Dashboard Refresh occurs as part of the Bi-Dash frontend application. Your refresh schedule is only in-effect as long as a logged-in user has the dashboard open in their browser. To guarantee that your queries are executed regularly (which is important for alerts), you should use a [Scheduled Query](/help/user-guide/querying/scheduling-a-query/) instead.
 
 :::
 

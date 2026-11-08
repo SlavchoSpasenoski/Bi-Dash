@@ -29,6 +29,8 @@ import "./queries/VisualizationEmbed";
 import "./query-snippets/QuerySnippetsList";
 
 import "./settings/OrganizationSettings";
+import "./settings/AiSettings";
+import "./settings/AccessPolicy";
 
 import "./users/UsersList";
 import "./users/UserProfile";

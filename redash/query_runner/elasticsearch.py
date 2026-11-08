@@ -319,7 +319,7 @@ class BaseElasticSearch(BaseQueryRunner):
 
                 result_rows.append(row)
         else:
-            raise Exception("Redash failed to parse the results it got from Elasticsearch.")
+            raise Exception("Bi-Dash failed to parse the results it got from Elasticsearch.")
 
     def test_connection(self):
         try:

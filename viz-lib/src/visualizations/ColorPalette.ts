@@ -84,6 +84,7 @@ export const ColorPaletteArray = values(ColorPalette);
 export default ColorPalette;
 
 export const AllColorPalettes = {
+  "Bi-Dash": ColorPalette,
   Redash: ColorPalette,
   Viridis: Viridis,
   "Tableau 10": Tableau,
@@ -91,6 +92,7 @@ export const AllColorPalettes = {
 };
 
 export const AllColorPaletteArrays = {
+  "Bi-Dash": ColorPaletteArray,
   Redash: ColorPaletteArray,
   Viridis: values(Viridis),
   "Tableau 10": values(Tableau),
@@ -98,6 +100,7 @@ export const AllColorPaletteArrays = {
 };
 
 export const ColorPaletteTypes = {
+  "Bi-Dash": "discrete",
   Redash: "discrete",
   Viridis: "continuous",
   "Tableau 10": "discrete",

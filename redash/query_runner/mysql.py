@@ -215,7 +215,10 @@ class Mysql(BaseSQLQueryRunner):
         try:
             connection = self._connection()
             thread_id = connection.thread_id()
-            t = threading.Thread(target=self._run_query, args=(query, user, connection, r, ev))
+            from rq import get_current_job
+            job = get_current_job()
+            ai_read_only = bool(job and getattr(job, "meta", {}).get("ai_read_only"))
+            t = threading.Thread(target=self._run_query, args=(query, user, connection, r, ev, ai_read_only))
             t.start()
             while not ev.wait(1):
                 pass
@@ -226,9 +229,12 @@ class Mysql(BaseSQLQueryRunner):
 
         return r.data, r.error
 
-    def _run_query(self, query, user, connection, r, ev):
+    def _run_query(self, query, user, connection, r, ev, ai_read_only=False):
+        cursor = None
         try:
             cursor = connection.cursor()
+            if ai_read_only:
+                cursor.execute("START TRANSACTION READ ONLY")
             logger.debug("MySQL running query: %s", query)
             cursor.execute(query)
 

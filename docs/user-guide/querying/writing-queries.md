@@ -66,7 +66,7 @@ All queries in your organization are visible to all logged-in users.
 
 ### Archiving a Query
 
-You can't delete queries in Redash. But you can archive them. Archiving is like deleting, except **direct links to the query still work.** To archive a query, open the vertical ellipsis menu at the top-right of the query editor and click Archive.
+You can't delete queries in Bi-Dash. But you can archive them. Archiving is like deleting, except **direct links to the query still work.** To archive a query, open the vertical ellipsis menu at the top-right of the query editor and click Archive.
 
 ![](/assets/images/docs/gitbook/archive_query.png)
 
@@ -78,7 +78,7 @@ If you need to create a copy of an existing query (created by you or someone els
 
 ### Managing Query Permissions
 
-By default, saved queries can only be modified by the user who created them and members of the Admin group. But Redash includes experimental support to share edit permissions with non-Admin users. An Admin in your organization needs to enable it first. Open your organization settings and check the "Enable experimental multiple owners support"
+By default, saved queries can only be modified by the user who created them and members of the Admin group. But Bi-Dash includes experimental support to share edit permissions with non-Admin users. An Admin in your organization needs to enable it first. Open your organization settings and check the "Enable experimental multiple owners support"
 
 ![](/assets/images/docs/gitbook/experimental-owners-support.png)
 

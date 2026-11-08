@@ -48,6 +48,9 @@ def _should_refresh_query(query):
             query.data_source.pause_reason,
         )
         return False
+    elif query.user is None or query.user.is_disabled or not query.user.has_permission("schedule_query"):
+        logger.debug("Skipping refresh of %s because its owner cannot schedule queries.", query.id)
+        return False
     else:
         return True
 

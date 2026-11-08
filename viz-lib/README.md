@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/npm/v/@redash/viz)
 
-`@redash/viz` is a library containing the visualizations used by [Redash](https://redash.io).
+`@redash/viz` is a library containing the visualizations used by [Bi-Dash](https://redash.io).
 
 ## Installation
 

@@ -4,7 +4,7 @@ title: Visualization Types
 
 ## Visualization Types
 
-Redash supports several different types of visualizations - A Table is the
+Bi-Dash supports several different types of visualizations - A Table is the
 default view.
 
 ### Boxplot

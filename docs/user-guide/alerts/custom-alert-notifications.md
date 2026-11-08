@@ -13,7 +13,7 @@ sidebar:
   order: 5
 ---
 
-Redash alerts can notify you when your queries match some arbitrary criteria. If you wish to modify the notification message, click the "Edit" button at the top of the alert page.
+Bi-Dash alerts can notify you when your queries match some arbitrary criteria. If you wish to modify the notification message, click the "Edit" button at the top of the alert page.
 
 Next to the setting labeled "Template", click the dropdown and select "Custom template".
 A box will appear, consisting of input fields for subject and body.
@@ -43,4 +43,4 @@ The preview is useful for verifying that template variables get rendered correct
 
 :::
 
-To return to the default Redash message templates, reselect "Default template" at any time.
+To return to the default Bi-Dash message templates, reselect "Default template" at any time.

@@ -1,3 +1,4 @@
+import hashlib
 import signal
 import sys
 import time
@@ -18,19 +19,90 @@ from redash.utils import gen_query_hash, utcnow
 from redash.worker import get_job_logger
 
 logger = get_job_logger(__name__)
-TIMEOUT_MESSAGE = "Query exceeded Redash query execution time limit."
+TIMEOUT_MESSAGE = "Query exceeded Bi-Dash query execution time limit."
 
 
-def _job_lock_id(query_hash, data_source_id):
-    return "query_hash_job:%s:%s" % (data_source_id, query_hash)
+def _job_lock_id(query_hash, data_source_id, scope=None):
+    key = "query_hash_job:%s:%s" % (data_source_id, query_hash)
+    return key + ":" + scope if scope else key
 
 
-def _unlock(query_hash, data_source_id):
-    redis_connection.delete(_job_lock_id(query_hash, data_source_id))
+def _unlock(query_hash, data_source_id, scope=None):
+    redis_connection.delete(_job_lock_id(query_hash, data_source_id, scope))
 
 
-def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query=None, metadata={}):
+def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query=None, metadata=None):
+    from redash.access_policy import query_limits
+    from redash.ai_dashboard import SUPPORTED_SOURCES, validate_readonly_sql
+
+    metadata = dict(metadata or {})
+    metadata.pop("ai_read_only", None)
+    saved_query_id = metadata.get("query_id")
+    if saved_query_id not in (None, "adhoc"):
+        saved = models.Query.query.filter_by(id=saved_query_id, org_id=data_source.org_id).first()
+        if saved and (saved.options or {}).get("ai_generated"):
+            if data_source.type not in SUPPORTED_SOURCES:
+                raise QueryExecutionError("Automatic AI report execution supports PostgreSQL and MySQL/MariaDB.")
+            try:
+                validate_readonly_sql(query)
+            except ValueError as error:
+                raise QueryExecutionError(str(error)) from error
+            metadata["ai_read_only"] = True
+            metadata["query_timeout_seconds"] = 60
+
+    user = None if is_api_key or user_id is None else models.User.get_by_id(user_id)
+    public_owner = None
+    if is_api_key and metadata and metadata.get("query_id") not in (None, "adhoc"):
+        public_owner = models.Query.get_by_id_and_org(metadata["query_id"], data_source.org).user
+        if public_owner.is_disabled or not public_owner.has_permission("execute_query"):
+            raise QueryExecutionError("This report's owner can no longer refresh it.")
+    if user is not None and (user.is_disabled or not user.has_permission("execute_query")):
+        raise QueryExecutionError("Your role cannot execute queries.")
+    if scheduled_query and user is not None and not user.has_permission("schedule_query"):
+        raise QueryExecutionError("Scheduling is disabled for this user.")
+    limits = query_limits(user, data_source.org)
+    if public_owner is not None:
+        owner_limits = query_limits(public_owner, data_source.org)
+        if owner_limits:
+            for field in ("query_timeout_seconds", "max_concurrent_queries"):
+                limits[field] = min(limits[field], owner_limits[field])
+    if limits is None:
+        return _enqueue_query(query, data_source, user_id, is_api_key, scheduled_query, metadata)
+    actor_id = public_owner.id if public_owner is not None else user_id
+    quota_scope = hashlib.sha256(str(actor_id).encode()).hexdigest()[:24]
+    scope = (quota_scope + ":api:" + hashlib.sha256(str(user_id).encode()).hexdigest()[:24]) if is_api_key else quota_scope
+    key = f"access:queries:{data_source.org_id}:{quota_scope}"
+    metadata["access_scope"] = scope
+    metadata["query_timeout_seconds"] = min(limits["query_timeout_seconds"], metadata.get("query_timeout_seconds", 3600))
+    # The distributed lock makes simultaneous requests share the same admission limit.
+    with redis_connection.lock(key + ":lock", timeout=15, blocking_timeout=5):
+        active = []
+        for job_id in redis_connection.smembers(key):
+            try:
+                existing = Job.fetch(job_id, connection=rq_redis_connection)
+                if existing.get_status() in (JobStatus.QUEUED, JobStatus.STARTED, JobStatus.DEFERRED, JobStatus.SCHEDULED):
+                    active.append(existing)
+                else:
+                    redis_connection.srem(key, job_id)
+            except (NoSuchJobError, InvalidJobOperation):
+                redis_connection.srem(key, job_id)
+        query_hash = gen_query_hash(query)
+        shared_id = redis_connection.get(_job_lock_id(query_hash, data_source.id, scope))
+        for existing in active:
+            if shared_id and existing.id == (shared_id.decode() if isinstance(shared_id, bytes) else shared_id):
+                return existing
+        if len(active) >= limits["max_concurrent_queries"]:
+            raise QueryExecutionError("Query limit reached. Wait for a running or queued query to finish.")
+        job = _enqueue_query(query, data_source, user_id, is_api_key, scheduled_query, metadata)
+        if job:
+            redis_connection.sadd(key, job.id)
+        return job
+
+
+def _enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query=None, metadata=None):
+    metadata = dict(metadata or {})
     query_hash = gen_query_hash(query)
+    lock_id = _job_lock_id(query_hash, data_source.id, metadata.get("access_scope"))
     logger.info("Inserting job for %s with metadata=%s", query_hash, metadata)
     try_count = 0
     job = None
@@ -40,8 +112,8 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
 
         pipe = redis_connection.pipeline()
         try:
-            pipe.watch(_job_lock_id(query_hash, data_source.id))
-            job_id = pipe.get(_job_lock_id(query_hash, data_source.id))
+            pipe.watch(lock_id)
+            job_id = pipe.get(lock_id)
             if job_id:
                 logger.info("[%s] Found existing job: %s", query_hash, job_id)
                 job_complete = None
@@ -51,7 +123,7 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
                     job = Job.fetch(job_id, connection=rq_redis_connection)
                     job_exists = True
                     status = job.get_status()
-                    job_complete = status in [JobStatus.FINISHED, JobStatus.FAILED]
+                    job_complete = status in [JobStatus.FINISHED, JobStatus.FAILED, JobStatus.STOPPED, JobStatus.CANCELED]
                     job_cancelled = job.is_cancelled
 
                     if job_complete:
@@ -66,7 +138,7 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
 
                 if lock_is_irrelevant:
                     logger.info("[%s] %s, removing lock", query_hash, message)
-                    redis_connection.delete(_job_lock_id(query_hash, data_source.id))
+                    redis_connection.delete(lock_id)
                     job = None
 
             if not job:
@@ -80,6 +152,9 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
                     scheduled_query_id = None
 
                 time_limit = settings.dynamic_settings.query_time_limit(scheduled_query, user_id, data_source.org_id)
+                role_timeout = metadata.get("query_timeout_seconds")
+                if role_timeout:
+                    time_limit = min(time_limit, role_timeout) if time_limit and time_limit > 0 else role_timeout
                 metadata["Queue"] = queue_name
 
                 queue = Queue(queue_name, connection=rq_redis_connection)
@@ -95,6 +170,7 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
                         "scheduled": scheduled_query_id is not None,
                         "query_id": metadata.get("query_id"),
                         "user_id": user_id,
+                        "ai_read_only": metadata.get("ai_read_only", False),
                     },
                 }
 
@@ -105,7 +181,7 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
 
                 logger.info("[%s] Created new job: %s", query_hash, job.id)
                 pipe.set(
-                    _job_lock_id(query_hash, data_source.id),
+                    lock_id,
                     job.id,
                     settings.JOB_EXPIRY_TIME,
                 )
@@ -180,11 +256,16 @@ class QueryExecutor:
         self.data_source = self._load_data_source()
         self.query_id = metadata.get("query_id")
         self.user = _resolve_user(user_id, is_api_key, metadata.get("query_id"))
+        if self.user is not None and not self.user.is_api_user():
+            # Permissions and runner limits must remain available after session.close().
+            self.user.org
         self.query_model = (
             models.Query.query.get(self.query_id)
             if self.query_id and self.query_id != "adhoc"
             else None
         )  # fmt: skip
+        if self.query_model is not None and self.user is not None and self.user.is_api_user():
+            self.query_model.user.org
 
         # Close DB connection to prevent holding a connection for a long time while the query is executing.
         models.db.session.close()
@@ -195,6 +276,24 @@ class QueryExecutor:
             models.scheduled_queries_executions.update(self.query_model.id)
 
     def run(self):
+        if self.metadata.get("ai_read_only"):
+            from redash.ai_dashboard import SUPPORTED_SOURCES, validate_readonly_sql
+            if self.data_source.type not in SUPPORTED_SOURCES:
+                raise QueryExecutionError("This connector does not support automatic AI report execution.")
+            try:
+                validate_readonly_sql(self.query)
+            except ValueError as error:
+                raise QueryExecutionError(str(error)) from error
+        if self.user is not None and self.user.is_api_user() and self.query_model is not None:
+            owner = self.query_model.user
+            if owner.is_disabled or not owner.has_permission("execute_query"):
+                raise QueryExecutionError("The report owner can no longer refresh this report.")
+        if self.user is not None and not self.user.is_api_user():
+            if self.user.is_disabled or not self.user.has_permission("execute_query"):
+                raise QueryExecutionError("This user can no longer execute queries.")
+            if self.is_scheduled_query and not self.user.has_permission("schedule_query"):
+                raise QueryExecutionError("Scheduling is disabled for this user.")
+        models.db.session.close()
         signal.signal(signal.SIGINT, signal_handler)
         started_at = time.time()
 
@@ -225,7 +324,7 @@ class QueryExecutor:
             error,
         )
 
-        _unlock(self.query_hash, self.data_source.id)
+        _unlock(self.query_hash, self.data_source.id, self.metadata.get("access_scope"))
 
         if error is not None and data is None:
             result = QueryExecutionError(error)

@@ -2,7 +2,7 @@
 title: Query Snippets
 ---
 
-Copy and Paste are a big part of composing database queries. Because it's much easier to duplicate prior work than to write it from scratch. This is particularly true for common `JOIN` statements or complex `CASE` expressions. As your list of queries in Redash grows, however, it can be difficult to remember which queries contain the statement you need right now. Enter Query Snippets.
+Copy and Paste are a big part of composing database queries. Because it's much easier to duplicate prior work than to write it from scratch. This is particularly true for common `JOIN` statements or complex `CASE` expressions. As your list of queries in Bi-Dash grows, however, it can be difficult to remember which queries contain the statement you need right now. Enter Query Snippets.
 
 Query Snippets are segments of queries that your whole team can share and trigger via auto complete. You create them at `Settings` -> `Query Snippets`.
 
@@ -16,7 +16,7 @@ JOIN organizations org ON org.id = ${1:table}.org_id
 
 ## Insertion Points
 
-`${1:table}` is an insertion point with placeholder text. When Redash renders the snippet, the dollar sign `$` and curly braces `{}` will be stripped away and the word `table` will be highlighted for the user to replace.
+`${1:table}` is an insertion point with placeholder text. When Bi-Dash renders the snippet, the dollar sign `$` and curly braces `{}` will be stripped away and the word `table` will be highlighted for the user to replace.
 
 :::note
 
@@ -26,7 +26,7 @@ You can use the placeholder text as a desirable default value for the user to ov
 
 You designate insertion points by wrapping an integer tab order with a single dollar sign and curly braces `${}`. A text placeholder preceded by a colon `:` is optional but useful for users unfamiliar with your snippet.
 
-When Redash renders this snippet:
+When Bi-Dash renders this snippet:
 
     AND (invoices.complete IS NULL OR invoices.complete <> '${2}')
     AND (invoices.canceled IS NULL OR invoices.canceled <> '${1}')

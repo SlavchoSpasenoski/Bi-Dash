@@ -349,6 +349,7 @@ def session(org_slug=None):
             "name": current_user.name,
             "email": current_user.email,
             "groups": current_user.group_ids,
+            "role": current_user.role,
             "permissions": current_user.permissions,
         }
 

@@ -12,7 +12,7 @@ sidebar:
   order: 1
 ---
 
-Redash alerts notify you when a field returned by a [**Scheduled
+Bi-Dash alerts notify you when a field returned by a [**Scheduled
 Query**](/help/user-guide/querying/scheduling-a-query/) meets a
 threshold. Use them to monitor your business. Or integrate them with tools like
 Zapier or IFTTT to kickoff workflows such as user onboarding or support tickets.
@@ -21,7 +21,7 @@ execution.
 
 :::caution
 
-For information on alerts prior to Redash V9, see our
+For information on alerts prior to Bi-Dash V9, see our
 [**Legacy Alerts doc**](setting-up-an-alert-v8).
 
 :::
@@ -73,7 +73,7 @@ Use the settings panel to configure your alert.
 
 :::note
 
-If a target query returns multiple records, Redash Alerts only see the first
+If a target query returns multiple records, Bi-Dash Alerts only see the first
 one. As you change the Value Column setting, the current value of that field in
 the top row is shown beneath it.
 
@@ -125,7 +125,7 @@ To resume notifications again, click the vertical ellipsis menu and choose _Unmu
   meet the _Condition_ and _Threshold_ you configured. This doesn't mean that
   the Alert was not triggered previously. If your "cats" value is now 1470 your
   alert will show as OK.
-- `UNKNOWN` means Redash does not have enough data to evaluate the alert
+- `UNKNOWN` means Bi-Dash does not have enough data to evaluate the alert
   criteria. You will see this status immediately after creating your Alert until
   the query has executed. You will also see this status if there was no data in
   the query result or if the most recent query result doesn't include the _Value
@@ -133,7 +133,7 @@ To resume notifications again, click the vertical ellipsis menu and choose _Unmu
 
 ## Notification Frequency
 
-Redash sends notifications to your chosen Alert Destinations whenever it detects
+Bi-Dash sends notifications to your chosen Alert Destinations whenever it detects
 that the Alert status has changed from `OK` to `TRIGGERED` or vice versa.
 Consider this example where an Alert is configured on a query that is scheduled
 to run once daily. The daily status of the Alert appears in the table below.
@@ -149,7 +149,7 @@ Prior to Monday the alert status was `OK`.
 | Saturday  | TRIGGERED    |
 | Sunday    | OK           |
 
-If the notification frequency is set to _Just Once_, Redash would send a
+If the notification frequency is set to _Just Once_, Bi-Dash would send a
 notification on Wednesday when the status changed from `OK` to `TRIGGERED` and
 again on Sunday when it switches back. It will not send alerts on Thursday,
 Friday, or Saturday unless you specifically configure it to do so because the

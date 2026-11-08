@@ -1,13 +1,1 @@
-<svg width="274" height="199" viewBox="0 0 274 199" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path opacity="0.5" d="M57.9111 49.2668L202.769 30" stroke="#F2F2F2" stroke-width="59" stroke-linecap="round"/>
-<path opacity="0.5" d="M39.2842 92.7371L244.24 64.886" stroke="#F2F2F2" stroke-width="59" stroke-linecap="round"/>
-<path opacity="0.5" d="M30 136.299L232.813 107.734" stroke="#F2F2F2" stroke-width="59" stroke-linecap="round"/>
-<path opacity="0.5" d="M86.4541 169.149L234.166 150.596" stroke="#F2F2F2" stroke-width="59" stroke-linecap="round"/>
-<path d="M167.829 69.1349H96.458L117.605 51.9531H183.028L167.829 69.1349Z" fill="#C0D5FF"/>
-<path d="M171.133 70.4566H92.4933V85.6559V143.149H171.133V70.4566Z" fill="#E8F4FF"/>
-<path d="M190.298 48.6489L171.133 70.4566L186.993 94.9076L192.28 89.9514L206.818 73.7608L190.298 48.6489Z" fill="#E8F4FF"/>
-<path d="M171.133 70.4566V143.149L192.28 118.037V89.9514L186.993 94.9076L171.133 70.4566Z" fill="#E8F4FF"/>
-<path d="M92.4933 70.4566L81.9199 89.9514L92.4933 85.6559V70.4566Z" fill="#E8F4FF"/>
-<path d="M92.4933 70.4566H171.133M92.4933 70.4566L118.927 48.6489H190.298M92.4933 70.4566L81.9199 89.9514L92.4933 85.6559M92.4933 70.4566V85.6559M171.133 70.4566V143.149M171.133 70.4566L190.298 48.6489M171.133 70.4566L186.993 94.9076L192.28 89.9514M171.133 143.149H92.4933V85.6559M171.133 143.149L192.28 118.037V89.9514M190.298 48.6489L206.818 73.7608L192.28 89.9514" stroke="black" stroke-width="3" stroke-linejoin="round"/>
-<path d="M117.605 89.6208H147.343" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" role="img" aria-label="Bi-Dash no query results"><!-- Original Bi-Dash contributions (c) 2026 Slavcho Spasenoski. BSD-2-Clause; see LICENSE and NOTICE. --><ellipse cx="180" cy="218" rx="128" ry="9" fill="#E4ECF8"/><rect x="50" y="46" width="240" height="152" rx="14" fill="white" stroke="#C5D6F0" stroke-width="3"/><path d="M50 85h240m-169 0v113m81-113v113m-152-77h190m-190 38h166" stroke="#DCE7F7" stroke-width="3"/><circle cx="268" cy="165" r="37" fill="#EDF4FF" stroke="#2563EB" stroke-width="5"/><path d="m295 192 25 25" stroke="#2563EB" stroke-width="8" stroke-linecap="round"/><path d="M254 165h28" stroke="#FACC15" stroke-width="6" stroke-linecap="round"/></svg>

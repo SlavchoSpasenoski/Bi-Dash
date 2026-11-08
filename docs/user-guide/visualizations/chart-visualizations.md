@@ -2,7 +2,7 @@
 title: Chart Visualizations
 ---
 
-Redash bundles together charts that use X & Y axes into the **Chart** visualization type, which can take eight different forms. Because the forms are similar, you can often switch seamlessly between them to find the one that best conveys your meaning. In the animation below, all eight charts were built from the same SQL query result:
+Bi-Dash bundles together charts that use X & Y axes into the **Chart** visualization type, which can take eight different forms. Because the forms are similar, you can often switch seamlessly between them to find the one that best conveys your meaning. In the animation below, all eight charts were built from the same SQL query result:
 
 <video src="/assets/images/docs/gifs/visualization/chart-examples.mp4" controls muted loop playsinline width="100%"></video>
 
@@ -28,7 +28,7 @@ The **Series** tab is powerful. It lets you change your data aliases, z-index be
 
 ## Grouping
 
-The **Group By** setting can generate multiple traces against the same X and Y axes. It does this by grouping records into distinct traces instead of drawing one line. Almost every time you see multiple colors of line or bar in a Redash chart, it's because the query results included a grouping column.
+The **Group By** setting can generate multiple traces against the same X and Y axes. It does this by grouping records into distinct traces instead of drawing one line. Almost every time you see multiple colors of line or bar in a Bi-Dash chart, it's because the query results included a grouping column.
 
 As shown in the below example, the grouping column is used to sort `(x,y)` pairs together.
 
@@ -46,7 +46,7 @@ Use the **Group By** column for melted data sets. Use multiple Y-columns for piv
 
 ## Stacking
 
-Redash can "stack" your Y axis values on top of one another. The name name is borrowed from [Stacked Bar Charts], but it can be useful with area charts as well. The below image shows the same data, unstacked on the left and stacked on the right.
+Bi-Dash can "stack" your Y axis values on top of one another. The name name is borrowed from [Stacked Bar Charts], but it can be useful with area charts as well. The below image shows the same data, unstacked on the left and stacked on the right.
 
 ![](/assets/images/docs/gitbook/stacked_vs_not_stacked.png)
 
@@ -62,7 +62,7 @@ You can use the **Series** tab of the Visualization Editor to control the order 
 
 ## Error Bars
 
-For certain chart forms, Redash can draw error bars around your data points using values from your query result. A few things are always true of error bars:
+For certain chart forms, Bi-Dash can draw error bars around your data points using values from your query result. A few things are always true of error bars:
 
 1. Error bars are always symmetrical. The distance above and below a given `(x,y)` pair is always the same.
 2. Errors are the same color as their target trace
@@ -97,7 +97,7 @@ Scatter plots are necessary for visualizations where some groups appear just onc
 
 ### Multiple Records per X-axis value
 
-Redash can make some crazy shapes if your query returns two or more rows with the same **X axis** value. This often happens in SQL if you unintentionally `JOIN` a table with a one-to-many relationship.
+Bi-Dash can make some crazy shapes if your query returns two or more rows with the same **X axis** value. This often happens in SQL if you unintentionally `JOIN` a table with a one-to-many relationship.
 
 ![](/assets/images/docs/gitbook/error_double_entries.png)
 
@@ -107,15 +107,15 @@ In this example a vertical line is drawn because there are two records for 1 Jan
 
 ### Unordered X-axis records
 
-Redash is smart enough to figure out most common **X axis** scales: timestamps, linear, and logarithms. But if it can't parse your X column into an ordered series, it falls back to treating each X value as a "category". This can have mixed results:
+Bi-Dash is smart enough to figure out most common **X axis** scales: timestamps, linear, and logarithms. But if it can't parse your X column into an ordered series, it falls back to treating each X value as a "category". This can have mixed results:
 
 ![](/assets/images/docs/gitbook/charted_redash_logo__broken.png)
 
-If you see shapes you don't expect you can check whether your X axis has been sorted on the **X Axis** tab of the Visualization Editor. Just toggle the _Sort Values_ option. If _Sort Values_ is disabled then Redash retains the ordering of the source query.
+If you see shapes you don't expect you can check whether your X axis has been sorted on the **X Axis** tab of the Visualization Editor. Just toggle the _Sort Values_ option. If _Sort Values_ is disabled then Bi-Dash retains the ordering of the source query.
 
 ![](/assets/images/docs/gitbook/charted_redash_logo__working.png)
 
-These two charts come from the same base data. The only difference is whether or not Redash sorted the X axis values.
+These two charts come from the same base data. The only difference is whether or not Bi-Dash sorted the X axis values.
 
 [group by]: #Grouping
 [grouping]: #Grouping

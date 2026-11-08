@@ -10,6 +10,7 @@ from rq.job import JobStatus
 from rq.timeouts import JobTimeoutException
 
 from redash import models
+from redash.access_policy import can_view_sql
 from redash.models.parameterized_query import ParameterizedQuery
 from redash.permissions import has_access, view_only
 from redash.serializers.query_result import (
@@ -146,6 +147,12 @@ def serialize_query(
 
     if with_visualizations:
         d["visualizations"] = [serialize_visualization(vis, with_query=False) for vis in query.visualizations]
+
+    if not can_view_sql(current_user):
+        for key in ("query", "query_hash", "api_key", "schedule"):
+            d.pop(key, None)
+    elif not current_user.has_permission("admin") and current_user.id != query.user_id:
+        d.pop("api_key", None)
 
     return d
 
@@ -300,6 +307,7 @@ def serialize_job(job):
         JobStatus.CANCELED: 5,
         JobStatus.DEFERRED: 6,
         JobStatus.SCHEDULED: 7,
+        JobStatus.STOPPED: 4,
     }
 
     job_status = job.get_status()
@@ -315,7 +323,7 @@ def serialize_job(job):
         error = "Query cancelled by user."
         status = 4
     elif isinstance(job.result, Exception):
-        error = str(job.result)
+        error = str(job.result) if can_view_sql(current_user) else "Report refresh failed. Contact an editor."
         status = 4
     elif isinstance(job.result, dict) and "error" in job.result:
         error = job.result["error"]

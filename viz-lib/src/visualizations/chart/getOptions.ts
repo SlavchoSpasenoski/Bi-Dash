@@ -17,7 +17,7 @@ const DEFAULT_OPTIONS = {
   sizemode: "diameter",
   coefficient: 1,
   piesort: true,
-  color_scheme: "Redash",
+  color_scheme: "Bi-Dash",
   lineShape: "linear",
 
   // showDataLabels: false, // depends on chart type
@@ -43,6 +43,8 @@ export default function getOptions(options: any) {
     },
     options
   );
+
+  if (result.color_scheme === "Redash") result.color_scheme = "Bi-Dash";
 
   // Backward compatibility
   if (["normal", "percent"].indexOf(result.series.stacking) >= 0) {

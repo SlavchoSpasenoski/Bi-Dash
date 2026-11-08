@@ -1,8 +1,13 @@
 ---
-title: Setting up a Redash Instance
+title: Setting up a Bi-Dash Instance
 sidebar:
   order: 1
 ---
+
+:::note[Bi-Dash deployment]
+These inherited engine instructions include upstream image names and legacy versions. For this fork, use README.md and LOCAL_PROJECT.md in the Bi-Dash repository, including compose.local.yaml and scripts/start-local.ps1. Do not replace an existing Bi-Dash installation with an upstream image when following historical upgrade steps.
+:::
+
 
 ## Create an Instance
 
@@ -58,7 +63,7 @@ Now proceed to “[Setup](#setup-redash-instance-setup)”.
 
 To get started on GCE, run the following commands in your [Cloud Shell](https://console.cloud.google.com/compute/instances?cloudshell=true).
 
-First, you need to add the Redash image to your account:
+First, you need to add the Bi-Dash image to your account:
 
 ```
 $ gcloud compute images create "redash-8-0-0" --source-uri gs://redash-images/redash.8.0.0-b32245-1.tar.gz
@@ -86,11 +91,11 @@ Note that the script assumes you are running it on a "clean" machine. If you’r
 
 ### <a name="docker"></a> Docker
 
-For every Redash release we also create updated [Docker image](https://hub.docker.com/r/redash/redash). Our image follows best practices and can be used in any container orchestation platforms like Kubernetes, ECS or just simply with Docker Compose (which we use in our images).
+For every Bi-Dash release we also create updated [Docker image](https://hub.docker.com/r/redash/redash). Our image follows best practices and can be used in any container orchestation platforms like Kubernetes, ECS or just simply with Docker Compose (which we use in our images).
 
 :::caution
 
-If you do not use one of our cloud images, you must manually set up Redash's [secret keys](/help/open-source/admin-guide/secrets/):
+If you do not use one of our cloud images, you must manually set up Bi-Dash's [secret keys](/help/open-source/admin-guide/secrets/):
 
 1. Create a `.env` in the same folder as your `compose.yaml` file.
 2. Write any sensitive environment variables in bash syntax:
@@ -107,13 +112,13 @@ Do not commit this file to version control.
 
 For development environment setup, please refer to the [developer guide](/help/open-source/dev-guide/) (which includes Docker specific instructions as well).
 
-To run Redash you need several instances of Redash (API server and background workers to run queries) along with Redis and PostgreSQL. If you don't want or can't use our images or [Setup Script](https://github.com/getredash/setup), you can refer to the [Docker Compose configuration](https://github.com/getredash/setup/blob/master/data/compose.yaml) to understand what services you need to define.
+To run Bi-Dash you need several instances of Bi-Dash (API server and background workers to run queries) along with Redis and PostgreSQL. If you don't want or can't use our images or [Setup Script](https://github.com/getredash/setup), you can refer to the [Docker Compose configuration](https://github.com/getredash/setup/blob/master/data/compose.yaml) to understand what services you need to define.
 
 ## <a name="setup-redash-instance-setup"></a> Setup
 
-Once you created the instance with either the image or the script, you should have a running Redash instance with everything you need to get started. Redash should be available using the server IP or DNS name you assigned to it. You can point your browser to this address.
+Once you created the instance with either the image or the script, you should have a running Bi-Dash instance with everything you need to get started. Bi-Dash should be available using the server IP or DNS name you assigned to it. You can point your browser to this address.
 
-Before you can continue, it will ask you to create your admin account. Once this is done, you can start using Redash.
+Before you can continue, it will ask you to create your admin account. Once this is done, you can start using Bi-Dash.
 
 ![Initial Setup Screen](/assets/images/docs/redash_initial_setup.png)
 
@@ -127,7 +132,7 @@ To make your setup more complete, there are a few more steps that you need to ma
 
 ### Mail Configuration
 
-For the system to be able to send emails (user invites, password resets, when alerts trigger and more), you need to configure Redash with the mail server you use. Mail server configuration is done using Envrionment Variables. If you’re using one of our images, you can do this by editing the `/opt/redash/env` file.
+For the system to be able to send emails (user invites, password resets, when alerts trigger and more), you need to configure Bi-Dash with the mail server you use. Mail server configuration is done using Envrionment Variables. If you’re using one of our images, you can do this by editing the `/opt/redash/env` file.
 
 The relevant configuration variables are (note that not all of them are required):
 
@@ -139,7 +144,7 @@ The relevant configuration variables are (note that not all of them are required
 - `REDASH_MAIL_PASSWORD` (default: None)
 - `REDASH_MAIL_DEFAULT_SENDER` (Email address to send from)
 
-Also you need to set the value of `REDASH_HOST`, which is the base address of your Redash instance (the DNS name or IP) with the protocol, so for example: `https://demo.redash.io`.
+Also you need to set the value of `REDASH_HOST`, which is the base address of your Bi-Dash instance (the DNS name or IP) with the protocol, so for example: `https://demo.redash.io`.
 
 Once you updated the configuration, restart all services (`docker-compose up -d`, running `docker-compose restart` won't be enough as it won't read changes to env file). To test email configuration, you can run `docker-compose run --rm server manage send_test_mail`.
 
@@ -152,13 +157,13 @@ If you want to use Google OAuth to authenticate users, you need to create a Goog
 - `REDASH_GOOGLE_CLIENT_ID` (Google OAuth Client ID)
 - `REDASH_GOOGLE_CLIENT_SECRET` (Google OAuth Client Secret)
 
-Once updated, restart the web server (`docker-compose up -d server`). Once enabled, Redash will use Google OAuth to authenticate _existing_ user accounts. To enable automatic user creation who belong to a specific domain name, you can add this domain (or more) in the setting page:
+Once updated, restart the web server (`docker-compose up -d server`). Once enabled, Bi-Dash will use Google OAuth to authenticate _existing_ user accounts. To enable automatic user creation who belong to a specific domain name, you can add this domain (or more) in the setting page:
 
 ![](/assets/images/docs/redash_google_oauth_domain.png)
 
 ### Other Configuration Options
 
-Redash uses environment variables for configuration. For a full list of environment variables, see the [settings article](/help/open-source/admin-guide/env-vars-settings/).
+Bi-Dash uses environment variables for configuration. For a full list of environment variables, see the [settings article](/help/open-source/admin-guide/env-vars-settings/).
 
 ### HTTPS
 

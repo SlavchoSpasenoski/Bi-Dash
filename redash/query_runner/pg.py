@@ -270,11 +270,18 @@ class PostgreSQL(BaseSQLQueryRunner):
 
     def run_query(self, query, user):
         connection = self._get_connection()
-        _wait(connection, timeout=10)
-
-        cursor = connection.cursor()
 
         try:
+            _wait(connection, timeout=10)
+            cursor = connection.cursor()
+            from rq import get_current_job
+            job = get_current_job()
+            if job and job.timeout and job.timeout > 0:
+                cursor.execute("SET statement_timeout = %s", (int(job.timeout * 1000),))
+                _wait(connection)
+            if job and getattr(job, "meta", {}).get("ai_read_only"):
+                cursor.execute("BEGIN READ ONLY")
+                _wait(connection)
             cursor.execute(query)
             _wait(connection)
 

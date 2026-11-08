@@ -132,6 +132,8 @@ const config = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "client/app/assets/robots.txt" },
+        { from: "LICENSE", to: "licenses/LICENSE.txt" },
+        { from: "NOTICE", to: "licenses/NOTICE.txt" },
         { from: "client/app/assets/images/bi-dash-wordmark.svg", to: "images/bi-dash-wordmark.svg" },
         { from: "client/app/unsupported.html" },
         { from: "client/app/unsupportedRedirect.js" },

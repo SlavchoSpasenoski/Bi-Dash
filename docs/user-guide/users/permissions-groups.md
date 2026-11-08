@@ -1,38 +1,13 @@
 ---
-title: Permissions & Groups
+title: Roles, Permissions & Groups
 ---
 
-Redash's permissions model based on groups and associated data sources. Group
-membership defines the actions a user is allowed to take (although currently
-there's no UI to edit group action permissions), and which data sources they
-have access to (for this we have UI).
+Bi-Dash combines Admin, Editor and Reader roles with group-based data-source access. Administrators configure the policy in **Settings → Roles & Access** and may apply stricter query limits in a user's profile.
 
-### How does it work?
+- **Admin:** manages users, roles, data sources and organization settings.
+- **Editor:** creates and edits queries and dashboards on permitted sources. The default limit is 60 seconds and two running or queued queries. Scheduling, public sharing and archival depend on the administrator's policy.
+- **Reader:** views available saved results and can browse, sort and download them when exports are allowed. Readers cannot view SQL, edit reports or execute queries.
 
-Each user belongs to one or more groups. By default, each user joins the
-Default group. The common data sources should be associated with the Default
-group.
+Each user belongs to groups. Each source grants Full or View Only access to selected groups. A role does not automatically grant access to an otherwise inaccessible source. Role restrictions remain in force even if a legacy group grants broader actions. A dashboard can contain widgets from different sources; inaccessible widgets do not disclose their data.
 
-Each data source will be associated with one or more groups. Each connection
-to a group will define, whether this group has **Full access** to this data
-source (view existing queries and run new ones) or **View Only access** ,
-which allows only viewing existing queries and results.
-
-Any dashboard can contain visualizations from any data source (as long as the
-creating user has access to them). When a user who doesn’t have access to a
-visualization (because he doesn’t have access to the data source) opens a
-dashboard, he'll see where a visualization would be but won't be able to see
-any details. The screenshot shown below shows a Dashboard Widget with a
-visualization the user doesn’t have access to.
-
-![](/assets/images/docs/gitbook/restricted-widget.png)
-
-If a user has access to at least one widget on a dashboard, they'll be able to
-see the dashboard in the list of all dashboards.
-
-### What if I want to limit the user to only some tables?
-
-The idea is to leverage your database’s security model and hence create a user
-with access to the tables/columns you want to give access to. Create a data
-source that's using this user and then associate it with a group of users who
-need this level of access.
+Newly invited users can be assigned a role; SSO users default to Reader. Consult **ACCESS_CONTROL.md** in the Bi-Dash repository for compatibility rules, source-specific cancellation behavior, quotas and configuration details.

@@ -26,7 +26,7 @@ function visualizationWidgetMenuOptions({ widget, canEditDashboard, onParameters
   const canViewQuery = currentUser.hasPermission("view_query");
   const canEditParameters = canEditDashboard && !isEmpty(invoke(widget, "query.getParametersDefs"));
   const widgetQueryResult = widget.getQueryResult();
-  const isQueryResultEmpty = !widgetQueryResult || !widgetQueryResult.isEmpty || widgetQueryResult.isEmpty();
+  const isQueryResultEmpty = !currentUser.hasPermission("download_results") || !widgetQueryResult || !widgetQueryResult.isEmpty || widgetQueryResult.isEmpty();
 
   const downloadLink = (fileType) => widgetQueryResult.getLink(widget.getQuery().id, fileType);
   const downloadName = (fileType) => widgetQueryResult.getName(widget.getQuery().name, fileType);

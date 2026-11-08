@@ -4,7 +4,7 @@ title: Amazon CloudWatch
 
 ## Setup
 
-Redash connects to CloudWatch using the `boto3` client. According to their [documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html) before you can query with Redash...
+Bi-Dash connects to CloudWatch using the `boto3` client. According to their [documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html) before you can query with Bi-Dash...
 
 > [Y]ou should set up authentication credentials. Credentials for your AWS account can be found in the IAM Console. You can create or use an existing user. Go to manage access keys and generate a new set of keys.
 
@@ -16,7 +16,7 @@ These instructions assume you are familiar with the CloudWatch ad-hoc query lang
 
 ![CloudWatch Schema Example](/assets/images/docs/gitbook/cloudwatch-schema.png)
 
-Your query text must written in [YAML syntax](https://yaml.org/start.html) (not SQL). It should be an array of `MetricDataQuery` objects under a key called `MetricsDataQueries`. When you execute the query Redash converts this array to one or more `get_metric_data()` calls.
+Your query text must written in [YAML syntax](https://yaml.org/start.html) (not SQL). It should be an array of `MetricDataQuery` objects under a key called `MetricsDataQueries`. When you execute the query Bi-Dash converts this array to one or more `get_metric_data()` calls.
 
 Here's an example that sends two `MetricDataQuery` objects.
 
@@ -67,7 +67,7 @@ These instructions assume you are familiar with the CloudWatch Logs Insights ad-
 | `queryString`   | string                |
 | `limit`         | integer               |
 
-Your query _must_ include either a `logGroupName` or `logGroupNames`. When you execute the query Redash converts this object into a `start_query()` call. Here is an example query:
+Your query _must_ include either a `logGroupName` or `logGroupNames`. When you execute the query Bi-Dash converts this object into a `start_query()` call. Here is an example query:
 
 ```
 startTime: '2020-01-01 00:00'

@@ -1,9 +1,34 @@
 .ant-btn.redash-ai-launch { position: fixed; right: 24px; bottom: 24px; z-index: 1000; border-radius: 24px; box-shadow: 0 4px 20px #0002; }
 .redash-ai-drawer .ant-drawer-content-wrapper { max-width: 100vw; }
-.redash-ai-panel { display: flex; flex-direction: column; gap: 12px; height: 100%; }
-.redash-ai-messages { flex: 1; min-height: 180px; overflow-y: auto; padding: 4px; }
-.redash-ai-message { margin: 12px 0; padding: 14px; background: #f3f5f8; border-radius: 12px; }
+.redash-ai-drawer .ant-drawer-body { padding: 20px 28px; display: flex; }
+.redash-ai-panel { display: flex; flex-direction: column; gap: 10px; height: 100%; width: 100%; min-height: 0; font-size: 16px; line-height: 1.65; }
+.redash-ai-panel > :not(.redash-ai-messages) { flex-shrink: 0; }
+.redash-ai-panel > .ant-alert { font-size: 13px; }
+.redash-ai-intro { margin: 0; color: #526075; }
+.redash-ai-status { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: #526075; }
+.redash-ai-context .ant-collapse-header { padding-left: 0 !important; }
+.redash-ai-context .ant-collapse-content-box { padding: 0 !important; }
+.redash-ai-messages { flex: 1; min-height: 100px; overflow-y: auto; padding: 4px; }
+.redash-ai-composer { display: flex; flex-direction: column; gap: 8px; background: white; }
+.redash-ai-message { margin: 16px 0; padding: 20px; background: #f3f5f8; border-radius: 12px; }
 .redash-ai-message.user { background: #e8f3ff; }
-.redash-ai-message pre { white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; border: 0; padding: 8px 0 0; margin: 0; font: inherit; }
+.redash-ai-message pre { white-space: pre-wrap; overflow-wrap: anywhere; background: transparent; border: 0; padding: 12px 0; margin: 0; font: inherit; line-height: 1.75; }
 .redash-ai-empty { color: #697386; padding: 24px 8px; }
-.redash-ai-actions { display: flex; justify-content: space-between; }
+.redash-ai-prompt-label { font-size: 18px; font-weight: 600; margin: 8px 0 0; }
+textarea.ant-input.redash-ai-prompt { font-size: 17px; line-height: 1.75; padding: 16px; border-radius: 12px; min-height: 180px; resize: vertical; }
+.redash-ai-shortcut { color: #697386; font-size: 12px; }
+.redash-ai-actions { display: flex; justify-content: space-between; padding-bottom: 8px; }
+.redash-ai-builder { overflow-y: auto; flex: 1; min-height: 0; padding: 4px 4px 20px; }
+.redash-ai-panel > .redash-ai-builder { flex-shrink: 1; }
+.redash-ai-draft-result { margin-top: 20px; padding: 16px; border: 1px solid #d9e4f5; border-radius: 12px; }
+.redash-ai-draft-result li { margin: 10px 0; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .redash-ai-drawer .ant-drawer-body { padding: 16px; }
+  .redash-ai-message { padding: 14px; }
+  .redash-ai-messages { min-height: 80px; }
+  textarea.ant-input.redash-ai-prompt { font-size: 16px; min-height: 150px; }
+}
+@media (max-height: 700px) {
+  .redash-ai-panel { height: auto; min-height: 100%; }
+  .redash-ai-messages { max-height: 240px; flex: auto; }
+}

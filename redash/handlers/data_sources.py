@@ -185,6 +185,9 @@ class DataSourceSchemaResource(BaseResource):
                 return {"schema": cached_schema}
 
         job = get_schema.delay(data_source.id, refresh)
+        job.meta.update({"org_id": self.current_org.id, "user_id": self.current_user.id,
+                         "data_source_id": data_source.id, "schema": True})
+        job.save_meta()
 
         return serialize_job(job)
 

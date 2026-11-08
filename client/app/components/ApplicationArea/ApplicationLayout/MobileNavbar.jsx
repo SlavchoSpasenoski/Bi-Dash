@@ -8,7 +8,7 @@ import Menu from "antd/lib/menu";
 import Link from "@/components/Link";
 import { Auth, currentUser } from "@/services/auth";
 import settingsMenu from "@/services/settingsMenu";
-import logoUrl from "@/assets/images/bi-dash-mark.svg";
+import logoUrl from "@/assets/images/bi-dash-mark-dark.svg";
 
 import "./MobileNavbar.less";
 

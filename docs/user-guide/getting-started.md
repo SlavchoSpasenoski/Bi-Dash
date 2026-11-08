@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Getting started with Redash is easy and takes only a few minutes -
+description: Getting started with Bi-Dash is easy and takes only a few minutes -
   connect a data source, write a query, add a visualization, create a dashboard
   and invite your colleagues!
 keywords:
@@ -22,7 +22,7 @@ The first thing you'll want to do is connect a data source ([see supported data 
 
 :::note
 
-If you’re using the Hosted Redash service and your data source is behind a firewall, you need to **allow access from the IP address `52.71.84.157`** in your database firewall/Security Groups.
+If your data source is behind a firewall, allow the actual outbound IP address of your Bi-Dash deployment. This project does not provide a hosted service or a fixed shared IP. Confirm the current address with your network provider.
 
 :::
 
@@ -42,7 +42,7 @@ Once you've connected a data source, it's time to write a query: **click on "Cre
 
 ## 3. Add Visualizations
 
-By default, your query results (data) will appear in a simple table. Visualizations are much better to help you digest complex information, so let's visualize your data. Redash supports [multiple types of
+By default, your query results (data) will appear in a simple table. Visualizations are much better to help you digest complex information, so let's visualize your data. Bi-Dash supports [multiple types of
 visualizations](/help/user-guide/visualizations/visualization-types/) so you should find one that suits your needs.
 
 Click the “New Visualization” button just above the results to select the perfect visualization for your needs. You can view more detailed instructions [here](/help/user-guide/visualizations/visualizations-how-to/).
@@ -57,9 +57,9 @@ You can combine visualizations and text into thematic & powerful dashboards. Add
 
 ## 5. Invite Colleagues
 
-Redash is better together.
+Bi-Dash is better together.
 
-Admins, to start enjoying the collaborative nature of Redash you'll want to invite your team!
+Admins, to start enjoying the collaborative nature of Bi-Dash you'll want to invite your team!
 
 Users can view team member's queries for inspiration (or debugging 😉), fork them to create similar queries of their own, view & create dashboards, and share insights with others via Email, Slack, Mattermost or HipChat.
 
@@ -67,7 +67,7 @@ Users can only be invited by admins - to invite a new user go to `Settings`>`Use
 
 ![](/assets/images/docs/gitbook/add-user.png)
 
-Then, fill in their name and email. They'll get an invite via email and be required to set up a Redash account.
+Then, fill in their name and email. They'll get an invite via email and be required to set up a Bi-Dash account.
 
 To add a user to an existing group, go to `Setting`>`Groups`, select the group and add users by typing their name:
 

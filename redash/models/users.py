@@ -135,6 +135,7 @@ class User(TimestampMixin, db.Model, BelongsToOrgMixin, UserMixin, PermissionsCh
         d = {
             "id": self.id,
             "name": self.name,
+            "role": self.role,
             "email": self.email,
             "profile_image_url": profile_image_url,
             "groups": self.group_ids,
@@ -171,8 +172,19 @@ class User(TimestampMixin, db.Model, BelongsToOrgMixin, UserMixin, PermissionsCh
 
     @property
     def permissions(self):
-        # TODO: this should be cached.
-        return list(itertools.chain(*[g.permissions for g in Group.query.filter(Group.id.in_(self.group_ids))]))
+        from redash.access_policy import effective_permissions, policy_for
+
+        groups = list(itertools.chain(*[g.permissions for g in Group.query.filter(Group.id.in_(self.group_ids))]))
+        role = (self.details or {}).get("role") or ("admin" if "admin" in groups else "editor")
+        return effective_permissions(role, groups, policy_for(self.org))
+
+    @property
+    def role(self):
+        role = (self.details or {}).get("role")
+        if role in ("admin", "editor", "reader"):
+            return role
+        groups = Group.query.filter(Group.id.in_(self.group_ids))
+        return "admin" if any("admin" in g.permissions for g in groups) else "editor"
 
     @classmethod
     def get_by_org(cls, org):
@@ -412,7 +424,7 @@ class ApiUser(UserMixin, PermissionsCheckMixin):
 
     @property
     def permissions(self):
-        return ["view_query"]
+        return ["view_query", "view_results", "download_results"]
 
     @staticmethod
     def has_access(obj, access_type):

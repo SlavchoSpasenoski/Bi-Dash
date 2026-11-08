@@ -65,7 +65,7 @@ export function readDocs() {
       if (d.isDirectory()) walk(p)
       else if (/\.mdx?$/.test(d.name) && !d.name.startsWith('_') && d.name !== 'README.md') {
         const src = fs.readFileSync(p, 'utf8')
-        const fm = YAML.parse(src.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '') ?? {}
+        const fm = YAML.parse(src.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '') ?? {}
         const rel = path.relative(DOCS_DIR, p)
         out.push({ id: docId(rel), rel, title: fm.title, order: fm.sidebar?.order })
       }

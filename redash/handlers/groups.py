@@ -100,6 +100,10 @@ class GroupMemberListResource(BaseResource):
 class GroupMemberResource(BaseResource):
     @require_admin
     def delete(self, group_id, user_id):
+        from redash.handlers.access_policy import lock_administrator
+        lock_administrator(self.current_org, self.current_user)
+        if int(user_id) == self.current_user.id:
+            abort(400, message="Ask another administrator to change your group membership.")
         user = models.User.get_by_id_and_org(user_id, self.current_org)
         user.group_ids.remove(int(group_id))
         models.db.session.commit()

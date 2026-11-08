@@ -1,12 +1,12 @@
 ---
-title: Inviting Users to Use Redash
+title: Inviting Users to Use Bi-Dash
 ---
 
 Users can be invited by Admins only - to invite a new user go to `Settings`>`Users` and click on `New User`.
 
 ![](/assets/images/docs/gitbook/invite-user.png)
 
-Next, you'll fill in their name and email. They'll get an invite via email and be required to set up a Redash account.
+Next, you'll fill in their name and email. They'll get an invite via email and be required to set up a Bi-Dash account.
 
 ![](/assets/images/docs/gitbook/invite-user-2.png)
 

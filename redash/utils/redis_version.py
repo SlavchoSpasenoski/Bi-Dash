@@ -27,6 +27,6 @@ def check_redis_version(connection):
     if parse_version(version) < MINIMUM_REDIS_VERSION:
         minimum = ".".join(str(part) for part in MINIMUM_REDIS_VERSION)
         raise UnsupportedRedisVersion(
-            f"Redash requires Redis {minimum} or later, but the Redis server it's connected to "
+            f"Bi-Dash requires Redis {minimum} or later, but the Redis server it's connected to "
             f"is running Redis {version}. Please upgrade Redis."
         )

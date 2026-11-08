@@ -4,15 +4,20 @@ sidebar:
   order: 1
 ---
 
+:::note[Bi-Dash deployment]
+These inherited engine instructions include upstream image names and legacy versions. For this fork, use README.md and LOCAL_PROJECT.md in the Bi-Dash repository, including compose.local.yaml and scripts/start-local.ps1. Do not replace an existing Bi-Dash installation with an upstream image when following historical upgrade steps.
+:::
+
+
 :::caution
 
 These instructions are for users of our new Docker-based instance. If you run our older instances (or the old bootstrap script) check the [legacy guide](/help/open-source/admin-guide/how-to-upgrade-legacy/).
 
 :::
 
-We recommended you upgrade your Redash instance to the latest release so you can benefit from new features and bug fixes. This document assumes you used our images to set up your instance of Redash.
+We recommended you upgrade your Bi-Dash instance to the latest release so you can benefit from new features and bug fixes. This document assumes you used our images to set up your instance of Bi-Dash.
 
-For best results you should upgrade Redash by one semantic version at a time. To move from V6 to V10, for example, you should upgrade V6 to V7 to V8 to V10.
+For best results you should upgrade Bi-Dash by one semantic version at a time. To move from V6 to V10, for example, you should upgrade V6 to V7 to V8 to V10.
 
 During each migration, check the [releases page](https://github.com/getredash/redash/releases) for any special notices or breaking changes in the next version.
 
@@ -34,16 +39,16 @@ Below is a table of recent docker release images for your reference:
 
 :::caution
 
-If you are currently running an instance of Redash prior to V7, **do not upgrade directly to V8**. Upgrade semantically to V7 _first_. Read more about this on our forum [here](https://discuss.redash.io/t/database-migration-using-incorrect-key-for-encryption/4833).
+If you are currently running an instance of Bi-Dash prior to V7, **do not upgrade directly to V8**. Upgrade semantically to V7 _first_. Read more about this on our forum [here](https://discuss.redash.io/t/database-migration-using-incorrect-key-for-encryption/4833).
 
 :::
 
 ## Upgrade Process
 
-1. Make sure to backup your data. You need to backup Redash's PostgreSQL database (the database Redash stores metadata in, not the ones you might be querying) and your `.env` file (if it exists). The data in Redis is transient.
+1. Make sure to backup your data. You need to backup Bi-Dash's PostgreSQL database (the database Bi-Dash stores metadata in, not the ones you might be querying) and your `.env` file (if it exists). The data in Redis is transient.
 2. Change directory to `/opt/redash`.
-3. Update `/opt/redash/compose.yaml` Redash image reference to the one you want to upgrade to.
-4. Stop Redash services: `docker compose stop server scheduler scheduled_worker adhoc_worker` (you might need to list additional services if you updated your configuration)
+3. Update `/opt/redash/compose.yaml` Bi-Dash image reference to the one you want to upgrade to.
+4. Stop Bi-Dash services: `docker compose stop server scheduler scheduled_worker adhoc_worker` (you might need to list additional services if you updated your configuration)
 5. Apply migration (if necessary): `docker compose run --rm server manage db upgrade`
 6. Start services: `docker compose up -d`
 

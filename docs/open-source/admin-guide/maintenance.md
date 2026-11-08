@@ -14,7 +14,7 @@ sidebar:
 
 The supervisor config can be found in: `/etc/supervisor/conf.d/redash.conf` if you're using the new images that install Supervisor with a system packages. Otherwise, you can find it at `/opt/redash/supervisord/supervisord.conf`.
 
-There, you can see the names of Redash's processes (`redash_celery`, `redash_server` and `redash_celery_scheduled`), as well as the location of their logs. If no logs location is present, then the logs will be written to `/var/logs/supervisor`.
+There, you can see the names of Bi-Dash's processes (`redash_celery`, `redash_server` and `redash_celery_scheduled`), as well as the location of their logs. If no logs location is present, then the logs will be written to `/var/logs/supervisor`.
 
 ## Restart
 
@@ -32,7 +32,7 @@ In case you are handling a problem, and you need to stop the currently running q
 
 ## Changing the Number of Workers
 
-By default, Celery will start a worker per CPU core. Because most of Redash’s tasks are IO bound, the real limit for number of workers you can use depends on the amount of memory your machine has. It’s recommended to increase number of workers, to support more concurrent queries.
+By default, Celery will start a worker per CPU core. Because most of Bi-Dash’s tasks are IO bound, the real limit for number of workers you can use depends on the amount of memory your machine has. It’s recommended to increase number of workers, to support more concurrent queries.
 
 1. Open the supervisord configuration file: `/opt/redash/supervisord/supervisord.conf`
 2. Edit the `[program:redash_celery]` section and add to the _command_ value, the param “-c” with the number of concurrent workers you need.
@@ -40,7 +40,7 @@ By default, Celery will start a worker per CPU core. Because most of Redash’s 
 
 ## DB
 
-### Backup Redash’s DB:
+### Backup Bi-Dash’s DB:
 
 Uncompressed backup: `sudo -u redash pg_dump > backup_filename.sql`
 
@@ -54,7 +54,7 @@ See current version:
 
 ## Monitoring
 
-Redash ships by default with a HTTP handler that gives you useful information about the health of your application. The endpoint is `/status.json` and requires a super admin API key to be given if you’re not already logged in. This API key can be obtained from the dedicated tab in your profile.
+Bi-Dash ships by default with a HTTP handler that gives you useful information about the health of your application. The endpoint is `/status.json` and requires a super admin API key to be given if you’re not already logged in. This API key can be obtained from the dedicated tab in your profile.
 
 You’ll find below an example output of this endpoint:
 

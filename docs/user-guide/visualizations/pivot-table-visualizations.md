@@ -4,7 +4,7 @@ title: How to make a pivot table
 
 ## Intro
 
-Redash's pivot table visualization can aggregate records from a query result into a new tabular display. It's similar to `PIVOT` or `GROUP BY` statements in SQL. But the visualization is configured with drag-and-drop fields instead of SQL code.
+Bi-Dash's pivot table visualization can aggregate records from a query result into a new tabular display. It's similar to `PIVOT` or `GROUP BY` statements in SQL. But the visualization is configured with drag-and-drop fields instead of SQL code.
 
 ## Step 1: Write a query
 
@@ -28,6 +28,6 @@ Here are some examples using the grade data above:
 
 :::caution
 
-Pivot table performance can degrade if your query result is too big. The exact size threshold will depend on the computer and browser from which you access Redash. But in general, performance is best below 50,000 _fields_. That could mean 10,000 records with 5 fields each. Or 1,000 records with 50 fields each.
+Pivot table performance can degrade if your query result is too big. The exact size threshold will depend on the computer and browser from which you access Bi-Dash. But in general, performance is best below 50,000 _fields_. That could mean 10,000 records with 5 fields each. Or 1,000 records with 50 fields each.
 
 :::

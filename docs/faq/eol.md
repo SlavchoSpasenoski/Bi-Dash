@@ -4,6 +4,11 @@ sidebar:
   order: 3
 ---
 
+:::note[Historical upstream notice]
+This page concerns the former hosted Redash service. Bi-Dash did not operate that service and is not announcing a shutdown. Dates, company statements and links below are preserved as upstream history.
+:::
+
+
 ## What is happening?
 
 We are shutting down the hosted Redash service at app.redash.io, effective

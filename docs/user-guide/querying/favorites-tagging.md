@@ -2,13 +2,13 @@
 title: Favorites & Tagging
 ---
 
-Redash users write a lot of queries and dashboards! Favorites and Tagging are here to make finding them easy as your collection of queries and dashboards grows from a few hundred to a few thousand.
+Bi-Dash users write a lot of queries and dashboards! Favorites and Tagging are here to make finding them easy as your collection of queries and dashboards grows from a few hundred to a few thousand.
 
 <img src="/assets/images/docs/gitbook/favorites-example.png" width="100%">
 
 ## Favorites
 
-You can favorite a dashboard or query by clicking the star to the left of its title anywhere in Redash. The star will turn yellow to indicate success. Your favorites are displayed at several places in Redash. They appear on the homepage, in the navbar dropdown menus and as filters in the query or dashboard list views.
+You can favorite a dashboard or query by clicking the star to the left of its title anywhere in Bi-Dash. The star will turn yellow to indicate success. Your favorites are displayed at several places in Bi-Dash. They appear on the homepage, in the navbar dropdown menus and as filters in the query or dashboard list views.
 
 ## Tagging
 
@@ -16,7 +16,7 @@ You can tag queries and queries by subject matter, location, user or any paramet
 
 :::note
 
-It's important to have predictable taxonomy for your tags. Consistency in this area makes using Redash an even nicer experience and helps bring new users onboard. So we recommend that your team have an internal discussion about the tag hierarchy that will be most benefecial to your organization.
+It's important to have predictable taxonomy for your tags. Consistency in this area makes using Bi-Dash an even nicer experience and helps bring new users onboard. So we recommend that your team have an internal discussion about the tag hierarchy that will be most benefecial to your organization.
 
 :::
 

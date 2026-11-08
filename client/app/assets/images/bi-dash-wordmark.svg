@@ -1,3 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" role="img" aria-label="Bi-Dash"><g><rect width="64" height="64" rx="18" fill="#2563EB"/>
-<path fill="#fff" fill-rule="evenodd" d="M17 14h15c9 0 14 4 14 10 0 4-2 7-5 8 4 1 7 4 7 9 0 7-6 11-15 11H17V14zm9 8v7h6c4 0 5-1 5-4s-2-3-5-3h-6zm0 15v7h7c4 0 6-1 6-4 0-2-2-3-6-3h-7z"/>
-<rect x="43" y="12" width="12" height="5" rx="2.5" fill="#FACC15"/></g><text x="80" y="45" font-family="Segoe UI,Arial,sans-serif" font-size="44" font-weight="700" letter-spacing="-1.7" fill="#191C22">Bi-Dash</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" role="img" aria-label="Bi-Dash"><path fill="#2563EB" d="M8 38 18 32V54H8Z M26 26 36 20V54H26Z M44 14 54 8V44L44 50Z"/><path fill="#FACC15" d="M42 54H58V60H42Z"/><text x="78" y="47" fill="#191C22" font-family="Segoe UI,Arial,sans-serif" font-size="43" font-weight="650" letter-spacing="-1.7">Bi-Dash</text></svg>

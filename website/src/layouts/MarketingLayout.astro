@@ -10,7 +10,8 @@ interface Props {
   description?: string
 }
 const { title, description } = Astro.props
-const url = `https://redash.io${Astro.url.pathname}`
+const url = new URL(Astro.url.pathname, Astro.site || Astro.url.origin).href
+const upstreamArchive = !/^\/(?:$|product\/?$|about\/?$|privacy\/?$|terms\/?$|help(?:\/|$))/.test(Astro.url.pathname)
 ---
 
 <!doctype html>
@@ -35,13 +36,11 @@ const url = `https://redash.io${Astro.url.pathname}`
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={url} />
-    <meta property="og:image" content="https://redash.io/assets/images/social-facebook-1200x630.png" />
+    <meta property="og:image" content="/assets/images/bi-dash-social.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@getredash" />
-    <meta name="twitter:creator" content="@getredash" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content="https://redash.io/assets/images/social-twitter-600x314.png" />
+    <meta name="twitter:image" content="/assets/images/bi-dash-social.png" />
     <link rel="canonical" href={url} />
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
     <IframeBridge />
@@ -49,6 +48,7 @@ const url = `https://redash.io${Astro.url.pathname}`
     <slot name="head" />
   </head>
   <body>
+    {upstreamArchive && <aside style="position:relative;z-index:2000;background:#fff4cc;color:#191c22;padding:18px;margin-top:80px">Historical upstream Redash material. These quotations, customers and case studies describe the upstream product; they are not Bi-Dash endorsements.</aside>}
     <slot />
     <script>
       // Navbar behaviour, previously React state in components/Header.jsx:

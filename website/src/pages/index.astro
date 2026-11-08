@@ -1,17 +1,8 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro'
-import Page from '../react/pages/Index.jsx'
+import Header from '../react/components/Header.jsx'
+import Footer from '../react/components/Footer.jsx'
 ---
-
-<MarketingLayout
-  title="Redash helps you make sense of your data"
-  description="Use Redash to connect to any data source (PostgreSQL, MySQL, Redshift, BigQuery, MongoDB and many others), query, visualize and share your data to make your company data driven."
->
-  <Page />
-  <script>
-    // Show the intro video's controls on hover (React state on the Gatsby site).
-    const video = document.getElementById('main-video')
-    video?.addEventListener('mouseenter', () => video.setAttribute('controls', 'controls'))
-    video?.addEventListener('mouseleave', () => video.removeAttribute('controls'))
-  </script>
+<MarketingLayout title="Your data. A clearer direction." description="Bi-Dash: a self-hosted business intelligence workspace with flexible AI.">
+<Header /><main class="container" style="padding-top:120px;padding-bottom:80px;min-height:65vh"><h1>Your data. A clearer direction.</h1><img src="/assets/images/bi-dash-wordmark.svg" alt="Bi-Dash" width="300" height="64" /><p>Connect data, explore with SQL and create editable dashboard drafts from a prompt.</p><p>Use local Ollama or your own hosted-provider API key. Manage Admin, Editor and Reader access with configurable query timeouts.</p><p><a href="https://github.com/SlavchoSpasenoski/Bi-Dash">Get Bi-Dash</a> · <a href="/help/">Read the documentation</a></p></main><Footer />
 </MarketingLayout>

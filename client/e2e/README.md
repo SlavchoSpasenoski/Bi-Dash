@@ -1,6 +1,6 @@
 # End-to-end tests
 
-Tests that drive Redash through its UI in a real browser (Playwright), against a running server with a worker
+Tests that drive Bi-Dash through its UI in a real browser (Playwright), against a running server with a worker
 and a scheduler. They cover what a user does: logging in, data sources, the query editor and parameters, every
 visualization type and its editor, dashboards, sharing and embeds, schedules, alerts and their destinations,
 users, groups and permissions, settings, search and the list pages.
@@ -32,7 +32,7 @@ behaviour (what is rendered, what was saved, which file was downloaded, which em
 
 ## Running
 
-The tests need Redash plus a few services to query and observe: two demo databases, a mail catcher and the HTTP
+The tests need Bi-Dash plus a few services to query and observe: two demo databases, a mail catcher and the HTTP
 fixture. [`.ci/compose.e2e.yaml`](../../.ci/compose.e2e.yaml) has all of them:
 
 ```bash
@@ -63,12 +63,12 @@ on one that already has other data. They never edit or delete what they did not 
 
 | Variable                                      | Default                             | What                                                      |
 | --------------------------------------------- | ----------------------------------- | --------------------------------------------------------- |
-| `E2E_BASE_URL`                                | `http://localhost:5000`             | Redash, as the browser reaches it                          |
+| `E2E_BASE_URL`                                | `http://localhost:5000`             | Bi-Dash, as the browser reaches it                          |
 | `E2E_EMAIL` / `E2E_PASSWORD`                  | `admin@redash.io` / `password`      | The admin (created by the first-run test when missing)     |
 | `E2E_MAIL_URL`                                | `http://localhost:1080`             | The mail catcher's web API                                 |
 | `E2E_HTTP_URL`                                | `http://localhost:8000`             | The HTTP fixture, as the test runner reaches it            |
-| `E2E_POSTGRES_HOST` / `E2E_MYSQL_HOST`        | `e2e-postgres` / `e2e-mysql`        | The demo databases, as Redash reaches them                 |
-| `E2E_HTTP_INTERNAL_URL`                       | `http://e2e-http:8000`              | The HTTP fixture, as Redash reaches it                     |
+| `E2E_POSTGRES_HOST` / `E2E_MYSQL_HOST`        | `e2e-postgres` / `e2e-mysql`        | The demo databases, as Bi-Dash reaches them                 |
+| `E2E_HTTP_INTERNAL_URL`                       | `http://e2e-http:8000`              | The HTTP fixture, as Bi-Dash reaches it                     |
 | `E2E_PORT` / `E2E_MAIL_PORT` / `E2E_HTTP_PORT`| `5000` / `1080` / `8000`            | Host ports published by the compose file                   |
 | `E2E_INSTALL_GROUPS`                          | `main`                              | Python dependency groups of the image (see MySQL below)    |
 | `E2E_WORKERS`                                 | `3`                                 | Parallel test files                                        |
@@ -78,7 +78,7 @@ Things to know:
 
 - **MySQL** tests are skipped when the server has no MySQL driver. The driver is in the `all_ds` dependency
   group: build with `E2E_INSTALL_GROUPS=main,all_ds` to run them.
-- **`@internet`** tests fetch a public URL through the JSON and CSV data sources, because Redash refuses to query
+- **`@internet`** tests fetch a public URL through the JSON and CSV data sources, because Bi-Dash refuses to query
   private addresses (which another test asserts).
 - **`@slow`** tests wait for the scheduler (scheduled refreshes, alert state changes, dashboard auto-refresh) and
   take minutes.
@@ -87,7 +87,7 @@ Things to know:
 
 ## Console and server errors
 
-Every test fails if the page throws an uncaught exception or Redash answers with an HTTP 5xx, even when its own
+Every test fails if the page throws an uncaught exception or Bi-Dash answers with an HTTP 5xx, even when its own
 assertions pass. A test that expects one says so with `guard.allowPageErrors(...)` or
 `guard.allowServerErrors(...)`. Console errors are attached to the report.
 

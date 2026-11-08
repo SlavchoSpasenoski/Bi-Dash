@@ -4,7 +4,7 @@ title: Elasticsearch
 
 :::danger
 
-The Redash ES connector was a community contribution from several years ago.
+The Bi-Dash ES connector was a community contribution from several years ago.
 There are many bugs and it needs to be rewritten. Work was started, but
 currently blocked as we don't have the resources to test the new implementation.
 We're happy for assistance if someone wants to help (see
@@ -12,7 +12,7 @@ We're happy for assistance if someone wants to help (see
 
 :::
 
-Redash supports two flavors of Elasticsearch queries, Lucene/string style
+Bi-Dash supports two flavors of Elasticsearch queries, Lucene/string style
 queries (like Kibana) and the more elaborate JSON based queries. For the first
 one create a data source of type `Kibana` and for the later create data source
 of type `Elasticsearch`.
@@ -87,6 +87,6 @@ of type `Elasticsearch`.
 
 ## A note on authentication
 
-Redash has two data sources available for Elasticsearch. You need to use the
+Bi-Dash has two data sources available for Elasticsearch. You need to use the
 Amazon Elasticsearch service source if you're using IAM based authentication.
 Otherwise, use the standard data source.

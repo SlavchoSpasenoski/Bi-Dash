@@ -2,7 +2,7 @@
 
 `TestOIDCFlow` in `test_authentication.py` starts a loopback identity provider
 and exercises Authlib discovery, token exchange, JWKS signature validation,
-nonce validation, UserInfo, and an authenticated Redash API request. It also
+nonce validation, UserInfo, and an authenticated Bi-Dash API request. It also
 checks invalid signatures, expired tokens, wrong issuers/audiences/nonces,
 replayed callbacks, mismatched UserInfo subjects, and rejected accounts.
 
@@ -12,8 +12,8 @@ Run it using the normal backend test database and Redis configuration:
 pytest tests/test_authentication.py -k OIDC
 ```
 
-For browser verification, use a **disposable local Redash database**. Configure
-these settings before starting Redash, and allow `example.com` in the
+For browser verification, use a **disposable local Bi-Dash database**. Configure
+these settings before starting Bi-Dash, and allow `example.com` in the
 organization's OIDC domains:
 
 ```sh
@@ -25,7 +25,7 @@ python tests/oidc_provider.py --issuer http://localhost:16485 &
 oidc_provider_pid=$!
 ```
 
-Start Redash from this same shell so it inherits the exported settings. Stop
+Start Bi-Dash from this same shell so it inherits the exported settings. Stop
 the provider after verification with `kill "$oidc_provider_pid"`.
 
 The provider accepts password `test-only` for these fixture accounts:
@@ -38,7 +38,7 @@ The provider accepts password `test-only` for these fixture accounts:
 | `outsider@other.com` | Disallowed domain; login must fail |
 
 Make `verified@example.com` an administrator in the disposable database to
-exercise the settings test. With Redash running on `localhost:5001`, run:
+exercise the settings test. With Bi-Dash running on `localhost:5001`, run:
 
 ```sh
 CYPRESS_OIDC_ISSUER=http://localhost:16485 pnpm exec cypress run \

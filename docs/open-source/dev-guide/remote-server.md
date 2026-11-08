@@ -2,7 +2,7 @@
 title: Using a Remote Server and Installing Locally only the Frontend Dependencies
 ---
 
-If you want to work only on the frontend side of Redash, and have a Redash
+If you want to work only on the frontend side of Bi-Dash, and have a Bi-Dash
 instance deployed already (running version 1.0.0 or newer), you can use this
 instance as your API server and run locally only the webpack dev-server.
 
@@ -17,5 +17,5 @@ The setup in this case is very simple:
 5. Start webpack dev-server:
    `REDASH_BACKEND="URL of your redash server" yarn start`.
 
-The `REDASH_BACKEND=""` part of the command sets the URL of your remote Redash
+The `REDASH_BACKEND=""` part of the command sets the URL of your remote Bi-Dash
 server.

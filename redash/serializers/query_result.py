@@ -2,6 +2,7 @@ import csv
 import io
 
 import xlsxwriter
+from flask_login import current_user
 from dateutil.parser import isoparse as parse_date
 from funcy import project, rpartial
 
@@ -77,7 +78,12 @@ def serialize_query_result(query_result, is_api_user):
         publicly_needed_keys = ["data", "retrieved_at"]
         return project(query_result.to_dict(), publicly_needed_keys)
     else:
-        return query_result.to_dict()
+        result = query_result.to_dict()
+        from redash.access_policy import can_view_sql
+        if not can_view_sql(current_user):
+            result.pop("query", None)
+            result.pop("query_hash", None)
+        return result
 
 
 def serialize_query_result_to_dsv(query_result, delimiter):

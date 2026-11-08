@@ -28,6 +28,9 @@ class BaseResource(Resource):
     def dispatch_request(self, *args, **kwargs):
         kwargs.pop("org_slug", None)
 
+        from redash.access_policy import enforce_resource_policy
+        enforce_resource_policy(current_user, type(self).__name__, request.method)
+
         return super(BaseResource, self).dispatch_request(*args, **kwargs)
 
     @property

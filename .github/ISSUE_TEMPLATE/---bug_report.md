@@ -7,12 +7,12 @@ about: Report reproducible software issues so we can improve
 
 We use GitHub only for bug reports 🐛
 
-Anything else should be a discussion: https://github.com/getredash/redash/discussions/ 👫
+Anything else should be a discussion: https://github.com/SlavchoSpasenoski/Bi-Dash/issues 👫
 
-🚨For support, help & questions use https://github.com/getredash/redash/discussions/categories/q-a
-💡For feature requests & ideas use https://github.com/getredash/redash/discussions/categories/ideas
+🚨For support, help & questions use https://github.com/SlavchoSpasenoski/Bi-Dash/issues
+💡For feature requests & ideas use https://github.com/SlavchoSpasenoski/Bi-Dash/issues
 
-**Found a security vulnerability?** Please email security@redash.io to report any security vulnerabilities. We will acknowledge receipt of your vulnerability and strive to send you regular updates about our progress. If you're curious about the status of your disclosure please feel free to email us again. If you want to encrypt your disclosure email, you can use this PGP key.
+**Found a security vulnerability?** Follow SECURITY.md in this repository. Do not post sensitive details publicly.
 
 -->
 
@@ -29,6 +29,6 @@ Any other info e.g. Why do you consider this to be a bug? What did you expect to
 
 ### Technical details:
 
-* Redash Version:
+* Bi-Dash Version:
 * Browser/OS:
-* How did you install Redash:
+* How did you install Bi-Dash:

@@ -4,7 +4,7 @@ title: API
 
 ## API Authentication
 
-All the API calls support authentication with an API key. Redash has two types
+All the API calls support authentication with an API key. Bi-Dash has two types
 of API keys:
 
 - User API Key: has the same permissions as the user who owns it. Can be found on a user profile page.
@@ -14,7 +14,7 @@ Whenever possible we recommend using a Query API key.
 
 ## Accessing with Python
 
-We provide a light wrapper around the Redash API called `redash-toolbelt`. It's a work-in-progress. The source code is hosted on [Github](https://github.com/getredash/redash-toolbelt). The `examples` folder in that repo includes useful demos, such as:
+We provide a light wrapper around the Bi-Dash API called `redash-toolbelt`. It's a work-in-progress. The source code is hosted on [Github](https://github.com/getredash/redash-toolbelt). The `examples` folder in that repo includes useful demos, such as:
 
 - [Poll for Fresh Query Results (including parameters)](https://github.com/getredash/redash-toolbelt/blob/master/redash_toolbelt/examples/refresh_query.py)
 - [Refresh an entire Dashboard](https://github.com/getredash/redash-toolbelt/blob/master/redash_toolbelt/examples/refresh_dashboard.py)
@@ -24,11 +24,11 @@ We provide a light wrapper around the Redash API called `redash-toolbelt`. It's 
 
 :::danger
 
-Below is an incomplete list of Redash's API endpoints as of V9. These may change in future versions of Redash.
+Below is an incomplete list of Bi-Dash's API endpoints as of V9. These may change in future versions of Bi-Dash.
 
 :::
 
-Each endpoint is appended to your Redash base URL. For example:
+Each endpoint is appended to your Bi-Dash base URL. For example:
 
 - `https://app.redash.io/<slug>`
 - `https://redash.example.com`

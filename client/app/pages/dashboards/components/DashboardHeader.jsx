@@ -13,7 +13,7 @@ import EditInPlace from "@/components/EditInPlace";
 import PlainButton from "@/components/PlainButton";
 import { DashboardTagsControl } from "@/components/tags-control/TagsControl";
 import getTags from "@/services/getTags";
-import { clientConfig } from "@/services/auth";
+import { clientConfig, currentUser } from "@/services/auth";
 import { policy } from "@/services/policy";
 import recordEvent from "@/services/recordEvent";
 import { durationHumanize } from "@/lib/utils";
@@ -195,7 +195,7 @@ function DashboardControl({ dashboardConfiguration, headerExtra }) {
   const showRefreshButton = true;
   const showFullscreenButton = !dashboard.is_draft;
   const canShareDashboard = isDashboardOwnerOrAdmin && !dashboard.is_draft;
-  const showShareButton = !clientConfig.disablePublicUrls && (dashboard.publicAccessEnabled || canShareDashboard);
+  const showShareButton = currentUser.hasPermission("share_dashboard") && !clientConfig.disablePublicUrls && (dashboard.publicAccessEnabled || canShareDashboard);
   const showMoreOptionsButton = canEditDashboard;
 
   const unarchiveDashboard = () => {

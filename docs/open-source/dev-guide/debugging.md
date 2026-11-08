@@ -1,8 +1,8 @@
 ---
-title: Debugging a Redash Server on Docker Using Visual Studio Code
+title: Debugging a Bi-Dash Server on Docker Using Visual Studio Code
 ---
 
-If you've followed [Docker Based Developer Installation Guide](https://github.com/getredash/redash/wiki/Local-development-setup), your Redash server is running inside a Docker container and cannot be debugged directly. If you wish to debug server code, you will need to use remote debugging.
+If you've followed [Docker Based Developer Installation Guide](https://github.com/getredash/redash/wiki/Local-development-setup), your Bi-Dash server is running inside a Docker container and cannot be debugged directly. If you wish to debug server code, you will need to use remote debugging.
 
 ## Initial Setup
 

@@ -25,7 +25,7 @@ title: Axibase Time Series Database
 
 ## Create Data Source
 
-1. Login into Redash web interface.
+1. Login into Bi-Dash web interface.
 2. Open the New Data Source page, select 'Axibase Time Series Database' as type.
 3. Complete the following fields on the configuration form:
 
@@ -34,7 +34,7 @@ title: Axibase Time Series Database
 +----------------------------+---------------+----------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 |          Username          |      ---      |   Yes    |                                                                                                            User name.                                                                                                            |
 |          Password          |      ---      |   Yes    |                                                                                                          User password.                                                                                                          |
-|        Metric Limit        |      5000     |    No    |                                    Maximum number of ATSD [metrics](https://github.com/axibase/atsd-docs/blob/master/api/meta/metric/list.md#query-parameters) displayed as tables in Redash.                                    |
+|        Metric Limit        |      5000     |    No    |                                    Maximum number of ATSD [metrics](https://github.com/axibase/atsd-docs/blob/master/api/meta/metric/list.md#query-parameters) displayed as tables in Bi-Dash.                                    |
 |       Metric Filter        |      ---      |    No    |                                          Include metrics that match an [expression filter](https://github.com/axibase/atsd-docs/blob/master/api/meta/metric/list.md#query-parameters).                                           |
 | Metric Minimum Insert Date |      ---      |    No    | Include metrics with [last insert date](https://github.com/axibase/atsd-docs/blob/master/api/meta/metric/list.md#query-parameters) equal to or greater than the specified date. ISO date format and endtime syntax is supported. |
 |          Protocol          |      http     |   Yes    |                                                                                                       Connection protocol.                                                                                                       |

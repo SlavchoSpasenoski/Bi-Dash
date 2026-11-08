@@ -2,15 +2,15 @@
 title: JSON API's
 ---
 
-Sometimes you need to visualize data not contained in an RDBMS or NOSQL data store, but available from some HTTP API. For those times, Redash provides the `JSON` data source (first introduced in Redash v8).
+Sometimes you need to visualize data not contained in an RDBMS or NOSQL data store, but available from some HTTP API. For those times, Bi-Dash provides the `JSON` data source (first introduced in Bi-Dash v8).
 
-Redash treats all incoming data from the `JSON` data source as text; so you should be prepared to use [table formatting](/help/user-guide/visualizations/table-visualizations/) when rendering the data.
+Bi-Dash treats all incoming data from the `JSON` data source as text; so you should be prepared to use [table formatting](/help/user-guide/visualizations/table-visualizations/) when rendering the data.
 
 ## JSON Data Source Type
 
 Use the `JSON` Data Source to query arbitrary JSON API's. Setup is easy because no authentication is needed. Any RESTful JSON API will handle authentication through HTTP headers. So just create a new Data Source of type `JSON` and name it whatever you like ("JSON" is a good choice).
 
-Redash will detect data types supported by JSON (like numbers, strings, booleans), but others (mostly date/timestamp) will be treated as strings (unless specified in ISO-8601 format).
+Bi-Dash will detect data types supported by JSON (like numbers, strings, booleans), but others (mostly date/timestamp) will be treated as strings (unless specified in ISO-8601 format).
 
 ### Usage
 
@@ -91,7 +91,7 @@ You can pass additional keys to modify various HTTP options:
 
 :::caution
 
-The `URL` data source type is deprecated since Redash v8. You can still use existing data sources created with this type, but you can't create new ones. We recommend migrating to the JSON data source type.
+The `URL` data source type is deprecated since Bi-Dash v8. You can still use existing data sources created with this type, but you can't create new ones. We recommend migrating to the JSON data source type.
 
 :::
 

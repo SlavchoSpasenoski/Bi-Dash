@@ -1,3 +1,5 @@
-The illustrations shared in this folder are covered by the CC-BY-SA-NC-ND License v4.0 (or newer). You are allowed to use them when using unmodified versions of the Redash source code for non-commercial purposes (meaning for yourself), but you are not allowed to use for any other use or to distribute them as part of your software or fork of Redash.
+# Bi-Dash empty-state artwork
 
-For any questions, please contact us.
+The SVGs in this directory are replacement vector illustrations created for Bi-Dash. Original Bi-Dash contributions © 2026 Slavcho Spasenoski, to the extent protected by applicable copyright law. They use the repository BSD 2-Clause license.
+
+The restricted upstream originals are not included here. Their historical license notice is preserved in UPSTREAM_ARTWORK_NOTICE.md; do not reintroduce those originals without appropriate permission.

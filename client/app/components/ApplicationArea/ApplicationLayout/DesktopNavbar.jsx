@@ -8,7 +8,7 @@ import CreateDashboardDialog from "@/components/dashboards/CreateDashboardDialog
 import { useCurrentRoute } from "@/components/ApplicationArea/Router";
 import { Auth, currentUser } from "@/services/auth";
 import settingsMenu from "@/services/settingsMenu";
-import logoUrl from "@/assets/images/bi-dash-mark.svg";
+import logoUrl from "@/assets/images/bi-dash-mark-dark.svg";
 
 import DesktopOutlinedIcon from "@ant-design/icons/DesktopOutlined";
 import CodeOutlinedIcon from "@ant-design/icons/CodeOutlined";
@@ -189,7 +189,7 @@ export default function DesktopNavbar() {
             </PlainButton>
           </Menu.Item>
           <Menu.Divider />
-          <Menu.Item key="version" role="presentation" disabled className="version-info">
+          <Menu.Item key="version" role="presentation" className="version-info">
             <VersionInfo />
           </Menu.Item>
         </Menu.SubMenu>

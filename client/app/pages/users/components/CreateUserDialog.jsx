@@ -10,6 +10,11 @@ import { useUniqueId } from "@/lib/hooks/useUniqueId";
 const formFields = [
   { required: true, name: "name", title: "Name", type: "text", autoFocus: true },
   { required: true, name: "email", title: "Email", type: "email" },
+  { required: true, name: "role", title: "Role", type: "select", initialValue: "reader", options: [
+    { value: "reader", name: "Reader · Report results only" },
+    { value: "editor", name: "Editor · Build reports" },
+    { value: "admin", name: "Admin · Full access" },
+  ] },
 ];
 
 function CreateUserDialog({ dialog }) {

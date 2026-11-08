@@ -18,15 +18,15 @@ REDASH_ADDITIONAL_QUERY_RUNNERS: "redash.query_runner.python"
 
 Now you can create a Python data source from **Settings > Data Sources**.
 
-- **Modules to import prior to running the script** lets you define which modules that were installed by `pip` on the host server may be import in Redash queries.
-- **AdditionalModulesPaths** is a comma-separated list of absolute paths _on the Redash server_ to Python modules that should be available when querying from Redash. This is useful for private modules that are not available from `pip`.
-- **AdditionalBuiltins** Redash allows twenty-five of Python's built-in functions by default. You can specify additional built-ins here.
+- **Modules to import prior to running the script** lets you define which modules that were installed by `pip` on the host server may be import in Bi-Dash queries.
+- **AdditionalModulesPaths** is a comma-separated list of absolute paths _on the Bi-Dash server_ to Python modules that should be available when querying from Bi-Dash. This is useful for private modules that are not available from `pip`.
+- **AdditionalBuiltins** Bi-Dash allows twenty-five of Python's built-in functions by default. You can specify additional built-ins here.
 
 These are the default built-ins: `abs`, `all`, `any`, `bool`, `complex`, `dict`, `divmod`, `enumerate`, `filter`, `float`, `int`, `len`, `list`, `map`, `max`, `min`, `next`, `reversed`, `round`, `set`, `slice`, `sorted`, `str`, `sum`, `tuple`
 
 ## Writing Queries
 
-Redash builds the result table by inspecting the final state of your script execution for a variable named `result`.
+Bi-Dash builds the result table by inspecting the final state of your script execution for a variable named `result`.
 
 `result` is a dictionary with two keys: `columns` and `rows`.
 
@@ -98,7 +98,7 @@ result = {
 
 ```
 
-If you execute the above snippet in Redash it will return this table:
+If you execute the above snippet in Bi-Dash it will return this table:
 
 | date       | day_number | value | total |
 | ---------- | ---------- | ----- | ----- |

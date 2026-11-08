@@ -22,7 +22,7 @@ etc.). Hit "Save" to apply your changes or "Cancel" to leave no trace.
 
 ## Embedding Visualizations
 
-It's easy to embed Redash visualizations. Just click the elipsis button beneath
+It's easy to embed Bi-Dash visualizations. Just click the elipsis button beneath
 any visualization to show further options and select `Embed Elsewhere`.
 
 <img src="/assets/images/docs/gitbook/embed-viz.png" width="60%">
@@ -48,8 +48,8 @@ variable `?no-cache` to the end of your PNG embed link.
 You can append query string variables to your embed URLs:
 
 - `?hide_parameters` hides any parameter selection widgets
-- `?hide_header` hides the branded Redash header and query title
-- `?hide_link` hides the link back to Redash
+- `?hide_header` hides the branded Bi-Dash header and query title
+- `?hide_link` hides the link back to Bi-Dash
 - `?hide_timestamp` hides the timestamp
 
 ### Downloading A Visualization as an Image File

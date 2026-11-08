@@ -4,7 +4,7 @@ title: Databricks
 
 ## Setup
 
-Redash can connect to both Databricks clusters and SQL Endpoints. Consult the [Databricks Documentation](https://docs.databricks.com/integrations/bi/jdbc-odbc-bi.html#get-server-hostname-port-http-path-and-jdbc-url) for how to obtain the **Host**, **HTTP Path**, and an **Access Token** for your endpoint.
+Bi-Dash can connect to both Databricks clusters and SQL Endpoints. Consult the [Databricks Documentation](https://docs.databricks.com/integrations/bi/jdbc-odbc-bi.html#get-server-hostname-port-http-path-and-jdbc-url) for how to obtain the **Host**, **HTTP Path**, and an **Access Token** for your endpoint.
 
 ![Databricks Data Source Setup Screen](/assets/images/docs/databricks-setup-screen.png)
 

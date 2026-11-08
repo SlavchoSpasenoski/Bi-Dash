@@ -84,7 +84,7 @@ export default function PieColorsSettings({ options, data, onOptionsChange }: an
           data-test="ColorScheme"
           onChange={(val: any) => onOptionsChange({ color_scheme: val })}
         >
-          {Object.keys(AllColorPalettes).map((option) => (
+          {Object.keys(AllColorPalettes).filter((name) => name !== "Redash").map((option) => (
             // @ts-expect-error ts-migrate(2339) FIXME: Property 'Option' does not exist on type '({ class... Remove this comment to see the full error message
             <Select.Option data-test={`ColorOption${option}`} key={option} value={option}>
               {option}

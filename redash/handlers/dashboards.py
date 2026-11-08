@@ -185,7 +185,7 @@ class DashboardResource(BaseResource):
         response = DashboardSerializer(dashboard, with_widgets=True, user=self.current_user).serialize()
 
         api_key = models.ApiKey.get_by_object(dashboard)
-        if api_key:
+        if api_key and self.current_user.has_permission("share_dashboard"):
             response["public_url"] = url_for(
                 "redash.public_dashboard",
                 token=api_key.api_key,

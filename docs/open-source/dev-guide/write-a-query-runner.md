@@ -4,7 +4,7 @@ title: Writing a New Query Runner
 
 ## Intro
 
-Redash already connects to [many](/help/data-sources/querying/supported-data-sources/) databases and REST APIs. To add support for a new data source type in Redash, you need to implement a Query Runner for it. A Query Runner is a Python class. This doc page shows the process of writing a new Query Runner. It uses the Firebolt Query Runner as an example.
+Bi-Dash already connects to [many](/help/data-sources/querying/supported-data-sources/) databases and REST APIs. To add support for a new data source type in Bi-Dash, you need to implement a Query Runner for it. A Query Runner is a Python class. This doc page shows the process of writing a new Query Runner. It uses the Firebolt Query Runner as an example.
 
 Start by creating a new `firebolt.py` file in the `/redash/query_runner` directory and implement the `BaseQueryRunner` class:
 
@@ -52,7 +52,7 @@ Values for these settings are accessible as a dictionary on the `self.configurat
 
 ### File uploads
 
-When a user creates an instance of your data source, Redash stores the configuration in its metadata database. Some data sources will require users to upload a file (for example an SSL certificate or key file). To handle this, define the property with a name ending in `File` of type `string`. For example:
+When a user creates an instance of your data source, Bi-Dash stores the configuration in its metadata database. Some data sources will require users to upload a file (for example an SSL certificate or key file). To handle this, define the property with a name ending in `File` of type `string`. For example:
 
 ```python
     "properties": {
@@ -60,7 +60,7 @@ When a user creates an instance of your data source, Redash stores the configura
     }
 ```
 
-The Redash front-end renders any property of type `string` whose name ends with `File` as a file-upload picker component. When saved, the contents of the file will be encrypted and saved to the metadata database as bytes. In your Query Runner code, you can read the value of `self.configuration['someFile']` into one of Python's built-in `tempfile` library fixtures. From there you can handle these bytes as you would any file stored on disk. You can see an example of this in the PostgreSQL Query Runner code.
+The Bi-Dash front-end renders any property of type `string` whose name ends with `File` as a file-upload picker component. When saved, the contents of the file will be encrypted and saved to the metadata database as bytes. In your Query Runner code, you can read the value of `self.configuration['someFile']` into one of Python's built-in `tempfile` library fixtures. From there you can handle these bytes as you would any file stored on disk. You can see an example of this in the PostgreSQL Query Runner code.
 
 ## Executing the query
 
@@ -100,9 +100,9 @@ This is the minimum required code. Here's what it does:
 
 1. Connect to the the configured Firebolt endpoint or use the `DEFAULT_API_URL` which is imported from the official Firebolt Python API client.
 2. Run the query.
-3. Transform the results into the format Redash [expects](/help/data-sources/querying/json-api/#Required-Data-Structure).
+3. Transform the results into the format Bi-Dash [expects](/help/data-sources/querying/json-api/#Required-Data-Structure).
 
-## Mapping Column Types to Redash Types
+## Mapping Column Types to Bi-Dash Types
 
 Note these lines:
 
@@ -118,7 +118,7 @@ The return value of the `run_query` method is a tuple of the JSON encoded result
 
 ## Fetching Database Schema
 
-Up to this point, we've shown the minimum required to run a query. If you also want Redash to show the database schema and enable autocomplete, you need to implement the `get_schema` method:
+Up to this point, we've shown the minimum required to run a query. If you also want Bi-Dash to show the database schema and enable autocomplete, you need to implement the `get_schema` method:
 
 ```python
 def get_schema(self, get_stats=False):
@@ -153,7 +153,7 @@ The implementation of `get_schema` is specific to the data source you’re addin
 
 ### Including Column Types in the Schema Browser
 
-If you want the Redash schema browser to also show column types, you can adjust your `get_schema` method so that the `columns` key contains an array of dictionaries with the keys `name` and `type`.
+If you want the Bi-Dash schema browser to also show column types, you can adjust your `get_schema` method so that the `columns` key contains an array of dictionaries with the keys `name` and `type`.
 
 Here is an example without column types:
 
@@ -190,7 +190,7 @@ Here is an example that includes column types:
 ]
 ```
 
-Note that the column type string is meant only to assist query authors. If it is present in the output of `get_schema` Redash trusts it and does not compare it to the type information returned by `run_query`. It is possible, therefore, that the type shown in the schema browser is different from the column type at the database. We recommend testing manually against a known schema to ensure that the correct types appear in the schema browser.
+Note that the column type string is meant only to assist query authors. If it is present in the output of `get_schema` Bi-Dash trusts it and does not compare it to the type information returned by `run_query`. It is possible, therefore, that the type shown in the schema browser is different from the column type at the database. We recommend testing manually against a known schema to ensure that the correct types appear in the schema browser.
 
 ## Adding Test Connection Support
 
@@ -203,7 +203,7 @@ class Firebolt(BaseQueryRunner):
 
 ## Supporting Auto Limit for SQL Databases
 
-The Redash front-end includes a tick box to automatically limit query results. This helps avoid overloading the Redash web app with large result sets. For most SQL style databases, you can automatically add auto limit support by inheriting `BaseSQLQueryRunner` instead of `BaseQueryRunner`.
+The Bi-Dash front-end includes a tick box to automatically limit query results. This helps avoid overloading the Bi-Dash web app with large result sets. For most SQL style databases, you can automatically add auto limit support by inheriting `BaseSQLQueryRunner` instead of `BaseQueryRunner`.
 
 ```python
 from redash.query_runner import BaseSQLQueryRunner, register
@@ -281,4 +281,4 @@ You can see the full pull request for the Firebolt query runner [here](https://g
 
 ## Summary
 
-A Redash Query runner is a Python class that, at minimum, implements a `run_query` method that returns results in the format Redash expects. Configurable data source settings are defined by the `configuration_schema` class method which returns a JSON schema. You may optionally implement a connection test, schema fetching, and automatic limits. You can enable your data source by adding it to the `default_query_runners` list in settings, or by setting the `ADDITIONAL_QUERY_RUNNERS` environment variable.
+A Bi-Dash Query runner is a Python class that, at minimum, implements a `run_query` method that returns results in the format Bi-Dash expects. Configurable data source settings are defined by the `configuration_schema` class method which returns a JSON schema. You may optionally implement a connection test, schema fetching, and automatic limits. You can enable your data source by adding it to the `default_query_runners` list in settings, or by setting the `ADDITIONAL_QUERY_RUNNERS` environment variable.

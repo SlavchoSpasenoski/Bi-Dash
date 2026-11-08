@@ -1,15 +1,15 @@
-# Redash Docs
+# Bi-Dash Docs
 
-This folder is the source of the Redash docs at https://redash.io/help/.
+This folder contains the Bi-Dash guide adapted from upstream Redash documentation. The upstream site at https://redash.io/help/ is independent; it does not publish this fork. Current Bi-Dash-specific behavior is documented in the root README, AI_DASHBOARDS.md and ACCESS_CONTROL.md.
 The site that renders it lives in [`/website`](../website).
 
 ## Writing docs
 
 - Every Markdown file is a page: `docs/user-guide/alerts/setting-up-an-alert.md`
-  is served at `https://redash.io/help/user-guide/alerts/setting-up-an-alert/`.
+  is served below your configured site origin at `/help/user-guide/alerts/setting-up-an-alert/`.
   A folder's `index.md` is the folder's own page (category pages list their
   articles automatically).
-- **Don't rename or move published pages.** The Redash app and many external
+- **Don't rename or move published pages.** The Bi-Dash app and many external
   sites link to these URLs. If you must, add a redirect in
   `website/public/_redirects`.
 - Frontmatter:
@@ -32,11 +32,7 @@ The site that renders it lives in [`/website`](../website).
 
 ## Versions
 
-`master` is published at `/help/next/` as the unreleased docs. `/help/` shows the
-latest release, so changes appear there when they're released. If a fix also
-applies to the current release (a typo, a wrong instruction), mention it in the
-pull request: maintainers cherry-pick it onto the release branch. See
-[website/README.md](../website/README.md#docs-versions).
+The inherited site supports versioned documentation builds. This fork does not publish to the upstream domain. Configure the site origin and release references for your deployment before using its multi-version publishing script.
 
 ## Previewing
 

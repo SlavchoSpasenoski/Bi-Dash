@@ -2,29 +2,29 @@
 title: Creating a Zap in Zapier for New Query Results
 ---
 
-You can connect Redash to Zapier and trigger an action every time a new line is
+You can connect Bi-Dash to Zapier and trigger an action every time a new line is
 added to your query results - for example, a Slack bot that announces every time
 a new order came in. The best way is to have a scheduled query that refreshes
 frequently so the notification you get is in real-time.
 
-Here's a short example of connecting Redash to Zapier and creating a new Zap:
+Here's a short example of connecting Bi-Dash to Zapier and creating a new Zap:
 
 1. Use
    [this invitation](https://zapier.com/developer/invite/32785/4910e4da7931a8f3a2124ebd85cc352b/)
-   link for the beta Redash trigger app (create an account if needed) and click
+   link for the beta Bi-Dash trigger app (create an account if needed) and click
    "Make a Zap" right next to your account area at the top of the page.
-2. Choose a trigger app - in this case, Redash (it won't be available to you
+2. Choose a trigger app - in this case, Bi-Dash (it won't be available to you
    unless you have received and opened the invitation).
 3. Choose a trigger - for now, we have only "New Query Results" in there, this
    means the Zap will get triggered everytime a new line is added to the results
    set of your query. The free Zapier account supports checking for new results
    every 15 minutes so you should schedule the query to refresh according to the
    frequency in Zapier.
-4. Connect your Redash account to Zapier:
-   1. Full domain of your Redash account (Something like:
+4. Connect your Bi-Dash account to Zapier:
+   1. Full domain of your Bi-Dash account (Something like:
       `https://app.redash.io/myorg/` or `https://redash.myorg.com/` (note the
       slash at the end))
-   2. Your User ID - go to Redash settings and hover over your username on the
+   2. Your User ID - go to Bi-Dash settings and hover over your username on the
       **Users** tab. The number in the URL just after /users/ is your User ID,
       i.e. `https://app.redash.io/myorg/users/{user id}`.
 

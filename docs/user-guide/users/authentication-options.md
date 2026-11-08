@@ -14,13 +14,13 @@ Only admins can view and change authentication settings. Some authentication opt
 
 ## Password Login
 
-By default, Redash authenticates users with an email address and password. This is called _Password Login_ on the **Settings > General** tab. After you enable an alternative authentication method you can disable password login.
+By default, Bi-Dash authenticates users with an email address and password. This is called _Password Login_ on the **Settings > General** tab. After you enable an alternative authentication method you can disable password login.
 
 :::note
 
-Redash stores hashes of user passwords that were created through its default password configuration. The first time a user authenticates through SAML or Google Login, a user record is created but no password hash is stored. This is called Just-in-Time (JIT) provisioning. These users can _only_ log-in through the third-party authentication service.
+Bi-Dash stores hashes of user passwords that were created through its default password configuration. The first time a user authenticates through SAML or Google Login, a user record is created but no password hash is stored. This is called Just-in-Time (JIT) provisioning. These users can _only_ log-in through the third-party authentication service.
 
-If you use Password Login and subsequently enable Google OAuth or SAML 2.0, it's possible that a user with one email address has two passwords to log-in to Redash: their Google or SAML password, and their original Redash password.
+If you use Password Login and subsequently enable Google OAuth or SAML 2.0, it's possible that a user with one email address has two passwords to log-in to Bi-Dash: their Google or SAML password, and their original Bi-Dash password.
 
 We recommend disabling Password Login if all users are expected to authenticate through Google OAuth or SAML as it will reduce confusion.
 
@@ -28,49 +28,49 @@ We recommend disabling Password Login if all users are expected to authenticate 
 
 ## Google Login (OAuth)
 
-You can configure Redash to allow any user with a Google account from the domain(s) you designate to login to Redash. If they don't have an account yet, one will be automatically created.
+You can configure Bi-Dash to allow any user with a Google account from the domain(s) you designate to login to Bi-Dash. If they don't have an account yet, one will be automatically created.
 
 Follow these steps to change the environment variables and UI settings to enable Google Login:
 
-1. Register your instance of Redash with your Google org by visiting the [cloud console](https://console.cloud.google.com/apis/credentials). You must [create a developers project](/help/open-source/admin-guide/google-developer-account-setup/) if you have not already. Then follow the **Create Credentials** flow.
+1. Register your instance of Bi-Dash with your Google org by visiting the [cloud console](https://console.cloud.google.com/apis/credentials). You must [create a developers project](/help/open-source/admin-guide/google-developer-account-setup/) if you have not already. Then follow the **Create Credentials** flow.
 2. Set the **Authorized Redirect URL(s)** to `http(s)://${REDASH_BASEURL}/oauth/google_callback`.
 3. During setup you will obtain a client id and a client secret. Use these to set the `REDASH_GOOGLE_CLIENT_ID` and `REDASH_GOOGLE_CLIENT_SECRET` environment variables.
-4. Restart your Redash instance.
+4. Restart your Bi-Dash instance.
 
 :::note
 
-Step 5 below is optional. As of step 4, only visitors with an existing Redash account can sign-in using the Google Login flow. As with Password Login, visitors without an account cannot log-in unless they receive an invitation from an admin.
+Step 5 below is optional. As of step 4, only visitors with an existing Bi-Dash account can sign-in using the Google Login flow. As with Password Login, visitors without an account cannot log-in unless they receive an invitation from an admin.
 
-By following step 5, you may configure Redash to allow any user from a specified domain to log-in. An account will automatically be created for them if one does not already exist.
+By following step 5, you may configure Bi-Dash to allow any user from a specified domain to log-in. An account will automatically be created for them if one does not already exist.
 
 :::
 
-5. Visit **Settings > General**. Complete the _Allowed Google Apps Domains_ box with the domains that should be able to log-in to your Redash instance.
+5. Visit **Settings > General**. Complete the _Allowed Google Apps Domains_ box with the domains that should be able to log-in to your Bi-Dash instance.
 
 ## SAML 2.0
 
-Redash can authenticate users with any IDP that supports the SAML 2.0 protocol thanks to the `pysaml` library.
+Bi-Dash can authenticate users with any IDP that supports the SAML 2.0 protocol thanks to the `pysaml` library.
 
 ### Configuring Your IDP
 
-Your IDP will require a callback URL where users will be redirected after they authenticate. This URL will be at `/saml/callback?org_slug=<org_name>`. The organization name is `default` unless you changed it while setting up your Redash instance.
+Your IDP will require a callback URL where users will be redirected after they authenticate. This URL will be at `/saml/callback?org_slug=<org_name>`. The organization name is `default` unless you changed it while setting up your Bi-Dash instance.
 
 Also, you should map user fields `FirstName`, `LastName`, and `RedashGroups` (optional).
 
-Redash uses emailAddress as its NameIDFormat.
+Bi-Dash uses emailAddress as its NameIDFormat.
 
 :::note
 
 By default any user created with SAML/SSO will join the default group. It's
 possible to configure the SAML provider to pass what groups the user should join
-by setting the `RedashGroups` parameter. If you use OneLogin's predefined Redash
+by setting the `RedashGroups` parameter. If you use OneLogin's predefined upstream Redash
 application, it will always pass this parameter, meaning that even for existing
 users, it will override their current groups memberships. Hence you need to make
 sure it's up to date.
 
 :::
 
-### Configuring Redash
+### Configuring Bi-Dash
 
 On the **Settings > General** tab you can specify whether SAML is enabled and if so whether it's _Static_ or _Dynamic_. What's the difference?
 
@@ -82,18 +82,18 @@ However, other IDP's do not provide this metadata URL, and the alternative is to
 
 Specific instructions for Okta, Auth0, and self-hosted SAML appear below.
 
-Redash asks for three configuration fields:
+Bi-Dash asks for three configuration fields:
 
 - **SAML Metadata URL** is a URL to an XML file that contains metadata `pysaml` needs to negotiate a connection.
-- **SAML Entity ID** should be the URL to your Redash instance.
+- **SAML Entity ID** should be the URL to your Bi-Dash instance.
 - **SAML NameID Format** is the NameID Format provided by your IDP. You can usually find it in the metadata .xml file
 
 #### Static SAML
 
 Static configuration requires these fields:
 
-- **SAML Single Sign-on URL** is the URL at your IDP where users will be redirected when they click the _SAML Login_ button in Redash.
-- **SAML Entity ID** should be the URL to your Redash instance.
+- **SAML Single Sign-on URL** is the URL at your IDP where users will be redirected when they click the _SAML Login_ button in Bi-Dash.
+- **SAML Entity ID** should be the URL to your Bi-Dash instance.
 - **SAML x509 cert** will be provided by your IDP.
 
 ### Self-Hosted SAML
@@ -106,7 +106,7 @@ Static configuration requires these fields:
 
 ### Okta
 
-It takes just a couple of minutes to setup Redash with Okta over the SAML 2.0
+It takes just a couple of minutes to setup Bi-Dash with Okta over the SAML 2.0
 protocol. Start in your Okta control panel by clicking the button to add a new
 application. Choose `Web` as the platform. The sign-on method is `SAML 2.0`. On
 the next screen Okta has fields for a few URLs:
@@ -126,7 +126,7 @@ slug for your organization.
 
 :::
 
-If you are using a self-hosted version of Redash, you will need to use the URL
+If you are using a self-hosted version of Bi-Dash, you will need to use the URL
 `https://<Your Self-Hosted Domain>/saml/callback?org_slug=default`
 
 After you fill in these URLs, set the Name Id format to `EmailAddress`. The
@@ -138,27 +138,27 @@ and then save your changes:
 | FirstName | user.firstName |
 | LastName  | user.lastName  |
 
-Next you will provide Okta's information to Redash. Navigate to the `Settings`
-tab under the Redash settings menu. Toggle the `SAML Enabled` option. Three
+Next you will provide Okta's information to Bi-Dash. Navigate to the `Settings`
+tab under the Bi-Dash settings menu. Toggle the `SAML Enabled` option. Three
 fields will appear. For the `SAML Metadata URL`, look under the **Sign On** tab
 of your Okta settings for a link called "Identity Provider Metadata" and paste
-the link into Redash. This link will point to an XML document on Okta's server.
+the link into Bi-Dash. This link will point to an XML document on Okta's server.
 
 To get the `SAML Entity ID`, click the "View Setup Instructions" button in
 Okta's **Sign On** tab. Paste the "Identity Provider Single Sign-On URL" into
-Redash's `SAML Entity ID` field.
+Bi-Dash's `SAML Entity ID` field.
 
 Lastly, look for the "IDP metadata" on the setup instructions page in Okta. The
 "IDP metadata" is a blob of XML that contains a key called `<md:NameIDFormat>`.
-Paste its contents into Redash's `SAML NameID Format` box. For example:
+Paste its contents into Bi-Dash's `SAML NameID Format` box. For example:
 `urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress`
 
-Your changes on this screen will save automatically. Now you can login to Redash
+Your changes on this screen will save automatically. Now you can login to Bi-Dash
 using your Okta credentials.
 
-You can now log in to Redash using Okta SSO.
+You can now log in to Bi-Dash using Okta SSO.
 
-#### Managing Redash Groups with Okta attribute statements
+#### Managing Bi-Dash Groups with Okta attribute statements
 
 Follow the below steps in order to configure Okta so that it passes the `RedashGroups` attribute:
 
@@ -216,7 +216,7 @@ You can also control attributes on the Okta Group level by removing the Scope fr
 }
 ```
 
-Within Redash, use the following config:
+Within Bi-Dash, use the following config:
 
 - SAML Metadata URL:
   `https://[YOUR_TENANT_HOSTNAME]/samlp/metadata/[CONNECTION_ID]`

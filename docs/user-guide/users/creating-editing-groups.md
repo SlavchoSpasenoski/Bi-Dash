@@ -2,7 +2,7 @@
 title: Group Management
 ---
 
-Users of Redash can be members of one or more groups. Each new user is added to the `Default` group automatically. Members of `Admin` can create new groups, add and remove members from groups, and disable users from accessing Redash entirely. Each group can be connected to specific data sources. Read more about group permissions [here](/help/user-guide/users/permissions-groups/).
+Users of Bi-Dash can be members of one or more groups. Each new user is added to the `Default` group automatically. Members of `Admin` can create new groups, add and remove members from groups, and disable users from accessing Bi-Dash entirely. Each group can be connected to specific data sources. Read more about group permissions [here](/help/user-guide/users/permissions-groups/).
 
 ## Creating & Editing Groups
 
@@ -32,7 +32,7 @@ Admins can add a user to the `Disabled` group from the `Settings` screen. Find t
 
 ![](/assets/images/docs/gitbook/disable-user.png)
 
-Disabled users cannot login to Redash. You can re-enable a disabled user by finding them on the `Disabled` tab.
+Disabled users cannot login to Bi-Dash. You can re-enable a disabled user by finding them on the `Disabled` tab.
 
 :::note
 

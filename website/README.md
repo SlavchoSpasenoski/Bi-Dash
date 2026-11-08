@@ -1,20 +1,22 @@
-# redash.io
+# Bi-Dash documentation site
 
-The Redash website: marketing pages and the docs at `/help/`.
+The Bi-Dash website: marketing pages and the docs at `/help/`.
 Built with [Astro](https://astro.build) and [Starlight](https://starlight.astro.build),
-deployed to Cloudflare as static files.
+ready to build as static files. This fork is not published at redash.io. Configure BIDASH_SITE_URL before deployment.
 
 - **Docs content lives in [`/docs`](../docs)**: see its README for
   how to write docs. This folder is the site that renders it.
 - Marketing pages (`src/react/`) are the React components of the previous
   Gatsby site (getredash/website), rendered to static HTML at build time with
   no client-side React. Their Bootstrap 3 styles are in `src/styles/scss/`.
-  They're kept pixel-identical to the old site until the redesign.
+  Current product pages use the Bi-Dash identity; retained customer stories are labeled as historical upstream material.
 
 ## Development
 
+The current site was validated with Node 24 and pnpm 10.30.3 on Linux: 131 pages built successfully. The native Windows Astro/Vite content loader encountered a CommonJS `require` error in a dependency during validation; use Linux/WSL for the documentation build. This does not affect the Dockerized Bi-Dash application. The sidebar parser accepts both LF and Windows CRLF documentation files.
+
 `website/` is its own pnpm workspace with its own lockfile, separate from the
-Redash app in the repository root.
+Bi-Dash app in the repository root.
 
 ```sh
 cd website
@@ -42,7 +44,7 @@ pnpm check:redirects    # after a build: no old URL may break (see below)
 
 ## URLs and redirects
 
-URLs must not break. The Redash app links to docs pages and anchors
+URLs must not break. The Bi-Dash app links to docs pages and anchors
 (`client/app/components/HelpTrigger.jsx`), as do old installs we can't update.
 `pnpm check:redirects` verifies against the build that each of these resolves
 to a page in at most one redirect:
@@ -55,7 +57,7 @@ to a page in at most one redirect:
 When you move a page, add a rule to `public/_redirects` pointing to the final
 URL, and update older rules that pointed to the old one.
 
-**In-app help drawer.** The Redash app shows `/help/` pages in an iframe.
+**In-app help drawer.** The Bi-Dash app shows `/help/` pages in an iframe.
 Pages must stay frameable (`public/_headers`) and keep posting `iframe_url`
 messages to the parent (`src/components/IframeBridge.astro`). The old
 capitalised heading anchors (`#Value-Source-Options`) are kept by

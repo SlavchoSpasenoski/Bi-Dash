@@ -60,6 +60,7 @@ function convertUserInfo(user) {
   return {
     id: user.id,
     name: user.name,
+    role: user.role,
     email: user.email,
     profileImageUrl: user.profile_image_url,
     apiKey: user.api_key,

@@ -1,7 +1,12 @@
+// Copyright (c) 2026 Slavcho Spasenoski. Original Bi-Dash contributions.
+// SPDX-License-Identifier: BSD-2-Clause
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, Button, Drawer, Input, Spin } from "antd";
+import { Alert, Button, Collapse, Drawer, Input, Radio, Spin } from "antd";
+import { currentUser } from "@/services/auth";
+import Link from "@/components/Link";
 import { axios } from "@/services/axios";
 import "./index.less";
+import DashboardBuilder from "./DashboardBuilder";
 
 export default function AiAssistant() {
   const [open, setOpen] = useState(false);
@@ -14,17 +19,26 @@ export default function AiAssistant() {
   const [provider, setProvider] = useState(null);
   const [model, setModel] = useState("");
   const [copied, setCopied] = useState(null);
+  const [hasContext, setHasContext] = useState(false);
+  const [destination, setDestination] = useState("");
+  const [mode, setMode] = useState("chat");
   const bottom = useRef(null);
   useEffect(() => {
     if (open) {
+      setEnabled(null);
       axios
         .get("api/ai/chat")
         .then((data) => {
           setEnabled(data.enabled);
           setProvider(data.provider);
           setModel(data.model);
+          setHasContext(data.has_context);
+          setDestination(data.destination);
         })
-        .catch(() => setError("AI assistant is unavailable for this account."));
+        .catch(() => {
+          setEnabled(false);
+          setError("AI assistant is unavailable. Check your permissions and AI Configuration.");
+        });
     }
   }, [open]);
   useEffect(() => {
@@ -57,6 +71,8 @@ export default function AiAssistant() {
     }
   }
 
+  if (!currentUser.hasPermission("use_ai")) return null;
+
   return (
     <>
       <Button className="redash-ai-launch" type="primary" onClick={() => setOpen(true)}>
@@ -67,25 +83,34 @@ export default function AiAssistant() {
         title="✦ Bi-Dash AI Assistant"
         open={open}
         onClose={() => setOpen(false)}
-        width={560}
+        width={880}
       >
         <div className="redash-ai-panel">
-          <p>Ask questions, draft SQL, or explore visualization ideas.</p>
+          <Radio.Group value={mode} disabled={busy} onChange={(event) => setMode(event.target.value)}
+            optionType="button" options={[{ value: "chat", label: "Ask AI" }, { value: "dashboard", label: "Build dashboard" }]} />
+          {mode === "dashboard" ? <DashboardBuilder extraContext={schema} onBusyChange={setBusy} onOpenDraft={() => setOpen(false)} /> : <>
           <Alert
             type="info"
             showIcon
             message="Review generated SQL before running it."
-            description={provider === "ollama"
-              ? "Messages and schema are processed by Ollama on this computer. Queries are never executed by this assistant."
-              : provider === "openai"
-                ? "Messages and the schema you enter are sent to OpenAI. Queries are never executed by this assistant."
-                : "Queries are never executed by this assistant."}
+            description={destination
+              ? `Messages and context are sent to ${destination}. Queries are never executed by this assistant.`
+              : "Queries are never executed by this assistant."}
           />
-          {provider === "ollama" && <small>Local AI · {model} · No API key required</small>}
+          {provider && <div className="redash-ai-status">
+            <span>{provider === "ollama" ? "Ollama" : provider} · {model}</span>
+            <span>{hasContext ? "Saved organization context applied" : "No saved organization context"}</span>
+            {currentUser.isAdmin && <Link href="settings/ai">AI settings</Link>}
+          </div>}
           {enabled === false && (
             <Alert type="warning" message="The selected AI provider is not configured. Check the server settings." />
           )}
-          <label htmlFor="ai-schema">Schema context (optional)</label>
+          <Collapse ghost className="redash-ai-context">
+            <Collapse.Panel header="Extra context for this conversation (optional)" key="context">
+              <p>Saved organization context is included automatically.
+                {currentUser.isAdmin && <> <Link href="settings/ai-context">Manage saved context</Link></>}
+              </p>
+              <label htmlFor="ai-schema">Additional schema or details</label>
           <Input.TextArea
             id="ai-schema"
             value={schema}
@@ -95,6 +120,8 @@ export default function AiAssistant() {
             disabled={busy}
             placeholder="Example: orders(id, customer_id, total, created_at). Include SQL dialect."
           />
+            </Collapse.Panel>
+          </Collapse>
           <div className="redash-ai-messages" role="log" aria-label="AI conversation" aria-live="polite">
             {!messages.length && (
               <p className="redash-ai-empty">
@@ -116,14 +143,16 @@ export default function AiAssistant() {
             {busy && <Spin tip="Thinking…" />}
             <div ref={bottom} />
           </div>
+          <div className="redash-ai-composer">
           {error && <Alert type="error" message={error} closable onClose={() => setError("")} />}
-          <label htmlFor="ai-prompt">Your message</label>
+          <label className="redash-ai-prompt-label" htmlFor="ai-prompt">What would you like to analyze?</label>
           <Input.TextArea
             id="ai-prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             maxLength={8000}
-            rows={3}
+            rows={6}
+            className="redash-ai-prompt"
             disabled={busy}
             placeholder="Describe what you want to analyze…"
             onKeyDown={(e) => {
@@ -133,6 +162,7 @@ export default function AiAssistant() {
               }
             }}
           />
+          <small className="redash-ai-shortcut">Ctrl / ⌘ + Enter to send · Conversation clears when the page reloads</small>
           <div className="redash-ai-actions">
             <Button
               disabled={busy || !messages.length}
@@ -148,6 +178,8 @@ export default function AiAssistant() {
               Send
             </Button>
           </div>
+          </div>
+          </>}
         </div>
       </Drawer>
     </>

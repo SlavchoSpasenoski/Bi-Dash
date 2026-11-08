@@ -31,7 +31,7 @@ def create():
 
 @click.group(cls=FlaskGroup, create_app=create)
 def manager():
-    """Management script for Redash"""
+    """Management script for Bi-Dash"""
 
 
 manager.add_command(database.manager, "database")
@@ -46,7 +46,7 @@ manager.add_command(run_command, "runserver")
 
 @manager.command()
 def version():
-    """Displays Redash version."""
+    """Displays Bi-Dash version."""
     print(__version__)
 
 
@@ -57,7 +57,7 @@ def status():
 
 @manager.command()
 def check_settings():
-    """Show the settings as Redash sees them (useful for debugging)."""
+    """Show the settings as Bi-Dash sees them (useful for debugging)."""
     for name, item in current_app.config.items():
         print("{} = {}".format(name, item))
 
@@ -75,7 +75,7 @@ def send_test_mail(email=None):
     if email is None:
         email = settings.MAIL_DEFAULT_SENDER
 
-    mail.send(Message(subject="Test Message from Redash", recipients=[email], body="Test message."))
+    mail.send(Message(subject="Test Message from Bi-Dash", recipients=[email], body="Test message."))
 
 
 @manager.command("shell")

@@ -291,6 +291,7 @@ def create_and_login_user(org, name, email, picture=None):
             is_invitation_pending=False,
             _profile_image_url=picture,
             group_ids=[org.default_group.id],
+            details={"role": "reader"},
         )
         models.db.session.add(user_object)
         models.db.session.commit()

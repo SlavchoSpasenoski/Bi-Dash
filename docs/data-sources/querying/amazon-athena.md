@@ -66,7 +66,7 @@ buckets, but please note that we have separate permissions for the bucket (
 
 ## Create Athena Data Source
 
-In Redash, in the New Data Source page select "Athena" as the data source type
+In Bi-Dash, in the New Data Source page select "Athena" as the data source type
 and fill out the details using the information from the previous step:
 
 - **AWS Access Key** and **AWS Secret Key** are the ones from the previous step.

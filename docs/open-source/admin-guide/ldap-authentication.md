@@ -2,7 +2,7 @@
 title: LDAP/AD Authentication
 ---
 
-Starting from Redash v3, there is direct support for LDAP/AD authentication. To
+Starting from Bi-Dash v3, there is direct support for LDAP/AD authentication. To
 set it up you will need to install the `ldap3` Python package (version `2.2.4`,
 GPL licensed) and add the relevant configuration values (see below). Once you
 done both, you need to restart the application service.
@@ -14,7 +14,7 @@ configuration):
 
 - `REDASH_LDAP_LOGIN_ENABLED`: When `true` LDAP login will be enabled at
   `ldap/login` endpoint. **[Required]** \* If `REDASH_PASSWORD_LOGIN_ENABLED` is
-  `false`, users will be prevented from logging in to Redash using Redash's
+  `false`, users will be prevented from logging in to Bi-Dash using Bi-Dash's
   authentication and will instead automatically be redirected to the LDAP login
   endpoint.
 - `REDASH_LDAP_URL`: The URL of the LDAP/AD host. This includes port. Ex:
@@ -49,6 +49,6 @@ FROM redash/redash:latest
 RUN pip install ldap3
 ```
 
-If you're using Docker Compose to run Redash, you can replace
+If you're using Docker Compose to run Bi-Dash, you can replace
 `image: redash/redash:latest` with `build: .` assuming the custom Dockerfile is
 in the same directory.

@@ -1,8 +1,8 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro'
-import Page from '../react/pages/About.jsx'
+import Header from '../react/components/Header.jsx'
+import Footer from '../react/components/Footer.jsx'
 ---
-
-<MarketingLayout title="Redash is an Open Source company" description="Meet our team and get to know the story behind Redash">
-  <Page />
+<MarketingLayout title="About Bi-Dash" description="Bi-Dash: a self-hosted business intelligence workspace with flexible AI.">
+<Header /><main class="container" style="padding-top:120px;padding-bottom:80px;min-height:65vh"><h1>About Bi-Dash</h1><p>Bi-Dash is a self-hosted business intelligence workspace customized by Slavcho Spasenoski, with AI dashboard creation, flexible providers and role-based access.</p><p>It is derived from the open-source Redash project. Bi-Dash does not claim upstream customer endorsements or ownership of the inherited codebase.</p></main><Footer />
 </MarketingLayout>

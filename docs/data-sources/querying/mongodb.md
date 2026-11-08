@@ -28,9 +28,9 @@ usually required on shared hosts like MLab.
 
 :::note
 
-Redash V10 adds the _Username_ and _Password_ fields. The intention is to allow users to keep MongoDB passwords secret in the data source configuration. Previously this was not possible as the password would have to be embedded into the _Connection String_, which was available in plaintext in the UI and REST API.
+Bi-Dash V10 adds the _Username_ and _Password_ fields. The intention is to allow users to keep MongoDB passwords secret in the data source configuration. Previously this was not possible as the password would have to be embedded into the _Connection String_, which was available in plaintext in the UI and REST API.
 
-As of Redash V10, if a user supplies the Username and/or Password config field(s), Redash will use them to override whatever is set in the connection string when creating the PyMongo client. This allows for existing, pre-patch MongoDB sources to still function, while allowing new/modified MongoDB sources to have secret credentials
+As of Bi-Dash V10, if a user supplies the Username and/or Password config field(s), Bi-Dash will use them to override whatever is set in the connection string when creating the PyMongo client. This allows for existing, pre-patch MongoDB sources to still function, while allowing new/modified MongoDB sources to have secret credentials
 
 :::
 
@@ -46,9 +46,9 @@ We've had issues with users connecting to MongoDB Atlas free tier accounts becau
 
 This usually happens when your MongoDB server is using self signed certificates. You can either switch to a properly signed certificate or just add the `ssl_cert_reqs=CERT_NONE` option to your Connection String.
 
-Write your MongoDB query as a JSON object. During execution, Redash will convert it into either a [`db.collection.find()`](https://docs.mongodb.com/manual/reference/method/db.collection.find/) call or a [`db.collection.aggregate()`](https://docs.mongodb.com/manual/reference/method/db.collection.aggregate/) call. Here's how your JSON object is mapped and sent to MongoDB:
+Write your MongoDB query as a JSON object. During execution, Bi-Dash will convert it into either a [`db.collection.find()`](https://docs.mongodb.com/manual/reference/method/db.collection.find/) call or a [`db.collection.aggregate()`](https://docs.mongodb.com/manual/reference/method/db.collection.aggregate/) call. Here's how your JSON object is mapped and sent to MongoDB:
 
-| MongoDB Token                  | Where to write in Redash                              |
+| MongoDB Token                  | Where to write in Bi-Dash                              |
 | ------------------------------ | ----------------------------------------------------- |
 | `db`                           | On the data source setup screen                       |
 | `collection`                   | Add a `collection` key in your query object           |
@@ -68,18 +68,18 @@ The values you use for each key are passed unmodified as as parameters to MongoD
 #### Simple Query Example
 
     {
-    	"collection": "my_collection",
-    	"query": {
-    		"type": 1
-    	},
-    	"fields": {
-    		"_id": 1,
-    		"name": 2
-    	},
-    	"sort": [{
-    		"name": "date",
-    		"direction": -1
-    	}]
+        "collection": "my_collection",
+        "query": {
+            "type": 1
+        },
+        "fields": {
+            "_id": 1,
+            "name": 2
+        },
+        "sort": [{
+            "name": "date",
+            "direction": -1
+        }]
     }
 
 An equivalent query in Javascript would be written: `db.my_collection.find({"type": 1}, {"_id": 1, "name": 2}).sort([{"name": "date","direction": -1}])`
@@ -87,8 +87,8 @@ An equivalent query in Javascript would be written: `db.my_collection.find({"typ
 #### Count Query Example
 
     {
-    	"collection": "my_collection",
-    	"count": true
+        "collection": "my_collection",
+        "count": true
     }
 
 #### Aggregation
@@ -98,25 +98,25 @@ Aggregation uses a syntax similar to the one used in PyMongo. However, to suppor
 Aggregation query example:
 
     {
-    	"collection": "things",
-    	"aggregate": [{
-    		"$unwind": "$tags"
-    	}, {
-    		"$group": {
-    			"_id": "$tags",
-    			"count": {
-    				"$sum": 1
-    			}
-    		}
-    	}, {
-    		"$sort": [{
-    			"name": "count",
-    			"direction": -1
-    		}, {
-    			"name": "_id",
-    			"direction": -1
-    		}]
-    	}]
+        "collection": "things",
+        "aggregate": [{
+            "$unwind": "$tags"
+        }, {
+            "$group": {
+                "_id": "$tags",
+                "count": {
+                    "$sum": 1
+                }
+            }
+        }, {
+            "$sort": [{
+                "name": "count",
+                "direction": -1
+            }, {
+                "name": "_id",
+                "direction": -1
+            }]
+        }]
     }
 
 #### MongoDB Extended JSON Support
@@ -124,22 +124,22 @@ Aggregation query example:
 We support [MongoDB Extended JSON](https://docs.mongodb.com/manual/reference/mongodb-extended-json/) along with our own extension - `$humanTime`:
 
     {
-    	"collection": "date_test",
-    	"query": {
-    		"lastModified": {
-    			"$gt": {
-    				"$humanTime": "3 years ago"
-    			}
-    		}
-    	},
-    	"limit": 100
+        "collection": "date_test",
+        "query": {
+            "lastModified": {
+                "$gt": {
+                    "$humanTime": "3 years ago"
+                }
+            }
+        },
+        "limit": 100
     }
 
 It accepts a human-readable string like the above (“3 years ago”, “yesterday”, etc) or timestamps.
 
 :::note
 
-The `$humanTime` function is also needed when using [Query Parameters](/help/user-guide/querying/query-parameters/) of type Date or Date/Time with MongoDB, due to the difference between the format Redash uses and the one MongoDB expects.
+The `$humanTime` function is also needed when using [Query Parameters](/help/user-guide/querying/query-parameters/) of type Date or Date/Time with MongoDB, due to the difference between the format Bi-Dash uses and the one MongoDB expects.
 
 When using a Date (or Date Range) parameter, wrap it with a `$humanTime` object: `{{param}}` becomes `{"$humanTime": "{{param}} 00:00"}` (the ` 00:00` suffix is needed only with Date parameters, for Date Time parameters you should skip it).
 
@@ -151,16 +151,16 @@ You can add filters to Mongo queries by projecting a column with the
 '::filter' keyword added on to the end.
 
     {
-    	"collection": "zipcodes",
-    	"aggregate": [{
-    		"$project": {
-    			"_id": "$_id",
-    			"city": "$city",
-    			"loc": "$loc",
-    			"pop": "$pop",
-    			"state::filter": "$state"
-    		}
-    	}]
+        "collection": "zipcodes",
+        "aggregate": [{
+            "$project": {
+                "_id": "$_id",
+                "city": "$city",
+                "loc": "$loc",
+                "pop": "$pop",
+                "state::filter": "$state"
+            }
+        }]
     }
 
 The above example will show a 'State' column, and allow you to filter on this

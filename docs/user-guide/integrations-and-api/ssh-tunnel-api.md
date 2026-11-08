@@ -2,6 +2,11 @@
 title: SSH Tunnel API
 ---
 
+:::note[Historical upstream API]
+This page describes the former hosted Redash SSH tunnel service. It is not a Bi-Dash API or a service operated by this project. Self-hosted Bi-Dash operators configure their own network or SSH access. The original instructions below are retained for provenance only.
+:::
+
+
 ## Hosted Redash SSH Tunnel API
 
 SaaS Redash traffic always arrives from our public IP address: `52.71.84.157`.

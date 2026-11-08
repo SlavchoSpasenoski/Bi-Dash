@@ -1,8 +1,8 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro'
-import Page from '../react/pages/Product.jsx'
+import Header from '../react/components/Header.jsx'
+import Footer from '../react/components/Footer.jsx'
 ---
-
-<MarketingLayout title="All the tools to unlock your data" description="Use Redash to connect to any data source (Redshift, BigQuery, MySQL, PostgreSQL, MongoDB and many others), query, visualize and share your data to make your company data driven.">
-  <Page />
+<MarketingLayout title="Bi-Dash workspace" description="Bi-Dash: a self-hosted business intelligence workspace with flexible AI.">
+<Header /><main class="container" style="padding-top:120px;padding-bottom:80px;min-height:65vh"><h1>Bi-Dash workspace</h1><h2>From a question to a dashboard</h2><p>Create queries, tables, bar and line charts, pies and counters from a prompt. Review the unpublished draft before publishing.</p><h2>Your data and AI configuration</h2><p>Connect your data sources and choose Ollama, OpenAI, Anthropic or an OpenAI-compatible provider. Save shared business context once in Settings.</p><h2>Roles and query controls</h2><p>Admin, Editor and Reader permissions control access. Timeouts and concurrency controls protect execution. The query editor controls optional row limiting.</p></main><Footer />
 </MarketingLayout>

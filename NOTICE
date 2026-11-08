@@ -1,0 +1,21 @@
+Bi-Dash
+Copyright (c) 2026 Slavcho Spasenoski, for original Bi-Dash contributions
+to the extent protected by applicable copyright law.
+
+Bi-Dash is a modified distribution of the Redash open-source project.
+Upstream Redash: Copyright (c) 2013-2020, Arik Fraimovich.
+Upstream source: https://github.com/getredash/redash
+The upstream BSD 2-Clause license, conditions and disclaimer are retained
+in LICENSE. Original Bi-Dash contributions are distributed under the same
+BSD 2-Clause license unless an individual file states otherwise.
+
+Bi-Dash additions include the AI-provider integration, dashboard builder,
+role and execution policies, local deployment customizations, documentation
+and product identity. This notice claims no ownership of upstream code,
+third-party dependencies, names, screenshots, customer quotations or marks.
+Preserve existing third-party notices, including LICENSE.borders and
+redash/utils/ssrf/LICENSE, when redistributing the relevant components.
+
+The Bi-Dash name and visual identity identify this distribution. This
+notice is not a trademark registration or a representation of clearance.
+No endorsement by the upstream project or any third party is implied.

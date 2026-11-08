@@ -6,12 +6,12 @@ labels: "Support Question"
 
 We use GitHub only for bug reports 🐛
 
-Anything else should be a discussion: https://github.com/getredash/redash/discussions/ 👫
+Anything else should be a discussion: https://github.com/SlavchoSpasenoski/Bi-Dash/issues 👫
 
-🚨For support, help & questions use https://github.com/getredash/redash/discussions/categories/q-a
-💡For feature requests & ideas use https://github.com/getredash/redash/discussions/categories/ideas
+🚨For support, help & questions use https://github.com/SlavchoSpasenoski/Bi-Dash/issues
+💡For feature requests & ideas use https://github.com/SlavchoSpasenoski/Bi-Dash/issues
 
 Alternatively, check out these resources below. Thanks! 😁.
 
-- [Discussions](https://github.com/getredash/redash/discussions/)
+- [Discussions](https://github.com/SlavchoSpasenoski/Bi-Dash/issues
 - [Knowledge Base](https://redash.io/help)

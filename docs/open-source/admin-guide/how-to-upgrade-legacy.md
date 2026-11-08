@@ -4,6 +4,11 @@ sidebar:
   order: 2
 ---
 
+:::note[Bi-Dash deployment]
+These inherited engine instructions include upstream image names and legacy versions. For this fork, use README.md and LOCAL_PROJECT.md in the Bi-Dash repository, including compose.local.yaml and scripts/start-local.ps1. Do not replace an existing Bi-Dash installation with an upstream image when following historical upgrade steps.
+:::
+
+
 :::caution
 
 This instructions are for those who use our older instace that did not use Docker. If you use our new Docker based instance, check the [updated guide](/help/open-source/admin-guide/how-to-upgrade/).
@@ -12,11 +17,11 @@ This instructions are for those who use our older instace that did not use Docke
 
 :::caution
 
-**Starting from the Redash V8 release we're no longer building the tarball version of a release – only Docker images.** This of course doesn’t prevent you from deploying Redash anyway you want, but the `bin/upgrade` script won't work with the new releases.
+**Starting from the Bi-Dash V8 release we're no longer building the tarball version of a release – only Docker images.** This of course doesn’t prevent you from deploying Bi-Dash anyway you want, but the `bin/upgrade` script won't work with the new releases.
 
 :::
 
-It's recommended to upgrade your Redash instance once there are new releases, to benefit from new features and bug fixes. The upgrade process is relatively simple, and assuming you used one of the base images we provide, you can simply run the upgrade script. **If you have a custom deployment, you can use the upgrade script as reference to create your own process**.
+It's recommended to upgrade your Bi-Dash instance once there are new releases, to benefit from new features and bug fixes. The upgrade process is relatively simple, and assuming you used one of the base images we provide, you can simply run the upgrade script. **If you have a custom deployment, you can use the upgrade script as reference to create your own process**.
 
 :::danger
 
@@ -41,14 +46,14 @@ If you're upgrading to a beta version, you need to specify the channel: `sudo bi
 
 ### Docker
 
-If you're using Docker to run Redash, **don't use the upgrade script**. Instead you need to:
+If you're using Docker to run Bi-Dash, **don't use the upgrade script**. Instead you need to:
 
 1. Update the Docker image you're using.
-2. Apply migrations (if needed). To apply migrations you need to invoke the image with `manage db upgrade` as the command. The way to do this depends on the way you deploy Redash.
+2. Apply migrations (if needed). To apply migrations you need to invoke the image with `manage db upgrade` as the command. The way to do this depends on the way you deploy Bi-Dash.
 
 ## How to upgrade (pre v1.0.0 versions)
 
-In v1.0.0 we added the script to the repository, but if you have an earlier version, you will need to download the script first (**note that you need to download it to your Redash server**):
+In v1.0.0 we added the script to the repository, but if you have an earlier version, you will need to download the script first (**note that you need to download it to your Bi-Dash server**):
 
 ```bash
 wget https://raw.githubusercontent.com/getredash/redash/master/bin/upgrade

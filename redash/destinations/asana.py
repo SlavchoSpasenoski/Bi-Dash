@@ -42,7 +42,7 @@ class Asana(BaseDestination):
         ).strip()
 
         data = {
-            "name": f"[Redash Alert] {state}: {alert.name}",
+            "name": f"[Bi-Dash Alert] {state}: {alert.name}",
             "notes": notes,
             "projects": [options["project_id"]],
         }

@@ -2,7 +2,7 @@ import sqlparse
 from flask import jsonify, request, url_for
 from flask_login import login_required
 from flask_restful import abort
-from funcy import partial
+from funcy import partial, project
 from sqlalchemy.orm.exc import StaleDataError
 from sqlparse.exceptions import SQLParseError
 
@@ -225,6 +225,10 @@ class QueryListResource(BaseQueryListResource):
         :>json number runtime: Runtime of last query execution, in seconds (may be null)
         """
         query_def = request.get_json(force=True)
+        if query_def.get("schedule") and not self.current_user.has_permission("schedule_query"):
+            abort(403, message="Scheduling is disabled for your role.")
+        query_def = project(query_def, ("name", "description", "query", "data_source_id", "schedule", "options",
+                                        "is_draft", "is_archived", "version", "tags"))
         data_source = models.DataSource.get_by_id_and_org(query_def.pop("data_source_id"), self.current_org)
         require_access(data_source, self.current_user, not_view_only)
         require_access_to_dropdown_queries(self.current_user, query_def)
@@ -335,6 +339,10 @@ class QueryResource(BaseResource):
         """
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
         query_def = request.get_json(force=True)
+        if query_def.get("schedule") and not self.current_user.has_permission("schedule_query"):
+            abort(403, message="Scheduling is disabled for your role.")
+        query_def = project(query_def, ("name", "description", "query", "data_source_id", "schedule", "options",
+                                        "is_draft", "is_archived", "version", "tags"))
 
         require_object_modify_permission(query, self.current_user)
         require_access_to_dropdown_queries(self.current_user, query_def)
@@ -456,6 +464,7 @@ class QueryForkResource(BaseResource):
 
 
 class QueryRefreshResource(BaseResource):
+    @require_permission("execute_query")
     def post(self, query_id):
         """
         Execute a query, updating the query object with the results.

@@ -11,7 +11,7 @@
   
   
   {% block head %}{% endblock %}
-  <link rel="icon" type="image/svg+xml" href="/static/images/bi-dash-mark.svg?v=1">
+  <link rel="icon" type="image/svg+xml" href="/static/images/bi-dash-mark.svg?v=2">
   <meta name="theme-color" content="#191c22">
 </head>
 <body class="d-flex flex-column justify-content-center align-items-center signed-out">
@@ -19,7 +19,7 @@
   <div>
     <div class="header">
       <div class="text-center m-b-15">
-        <a href="/"><img class="bi-dash-wordmark" src="/static/images/bi-dash-wordmark.svg" alt="Bi-Dash"></a>
+        <a href="/"><img class="bi-dash-wordmark" src="/static/images/bi-dash-wordmark.svg?v=2" alt="Bi-Dash"></a>
       </div>
       <p class="bi-dash-tagline text-center">Your data. A clearer direction.</p>
       {% if not hide_page_header %}
@@ -27,6 +27,9 @@
       {% endif %}
     </div>
     {% block content %}{% endblock %}
+    <p class="text-center text-muted m-t-20" style="font-size:12px">© 2026 Slavcho Spasenoski · original Bi-Dash contributions<br>
+      <a href="/static/licenses/NOTICE.txt">Open-source notices</a> · <a href="/static/licenses/LICENSE.txt">License</a>
+    </p>
   </div>
 
 {% block scripts %}{% endblock %}

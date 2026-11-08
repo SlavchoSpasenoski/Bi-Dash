@@ -135,6 +135,9 @@ class UserListResource(BaseResource):
         if "@" not in req["email"]:
             abort(400, message="Bad email address.")
         require_allowed_email(req["email"])
+        role = req.get("role", "reader")
+        if not isinstance(role, str) or role not in ("admin", "editor", "reader"):
+            abort(400, message="Choose Admin, Editor or Reader.")
 
         user = models.User(
             org=self.current_org,
@@ -142,6 +145,7 @@ class UserListResource(BaseResource):
             email=req["email"],
             is_invitation_pending=True,
             group_ids=[self.current_org.default_group.id],
+            details={"role": role},
         )
 
         try:
@@ -222,8 +226,12 @@ class UserResource(BaseResource):
             params.pop("old_password")
 
         if "group_ids" in params:
+            from redash.handlers.access_policy import lock_administrator
+            lock_administrator(self.current_org, self.current_user)
             if not self.current_user.has_permission("admin"):
                 abort(403, message="Must be admin to change groups membership.")
+            if user.id == self.current_user.id and set(params["group_ids"]) != set(user.group_ids):
+                abort(400, message="Ask another administrator to change your group membership.")
 
             for group_id in params["group_ids"]:
                 try:

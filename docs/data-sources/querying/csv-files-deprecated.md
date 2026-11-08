@@ -4,14 +4,14 @@ title: CSV Files (Deprecated)
 
 :::caution
 
-The CSV data source used in this tutorial has been replaced. You can find instructions for the new one [here](/help/data-sources/querying/csv-excel-files/). You can still use the deprecated source by manually adding it to your installation. The source code is available under the same license as Redash at [this link](https://gist.github.com/susodapop/d367ff6c02f19ef4b9964e1042ca1d92).
+The CSV data source used in this tutorial has been replaced. You can find instructions for the new one [here](/help/data-sources/querying/csv-excel-files/). You can still use the deprecated source by manually adding it to your installation. The source code is available under the same license as Bi-Dash at [this link](https://gist.github.com/susodapop/d367ff6c02f19ef4b9964e1042ca1d92).
 
 :::
 
 ## Intro
 
-You can't upload files to Redash directly. Instead, you have to pull them from
-somewhere. This guide shows how to load data from CSV files into Redash and
+You can't upload files to Bi-Dash directly. Instead, you have to pull them from
+somewhere. This guide shows how to load data from CSV files into Bi-Dash and
 query it with
 [QRDS](/help/user-guide/querying/query-results-data-source/).
 
@@ -135,7 +135,7 @@ this:
 https://cvws.icloud-content.com/B/AYifvNUNnayDN0SZAlizP8ZfYUPMAfZEgQW_YFfb6FUKTWO6xVkZo04B/${f}?o=AgSnT48VhMQtC-elFkgjbrw22qBLn3uBOytgkANDgAtv&v=1&x=3&a=CAogw0DCZoo9iGQlDuozkTAtH4vQXNvV5qk9j5g56uwuzaESHRDd_IWOgy4Y3dnhj4MuIgEAUgRfYUPMWgQZo04B&e=1581386329&k=Yc1Tyt4g4oKp6blXKa6yBA&fl=&r=b5089feb-afa2-4d0f-b207-9c9b16524c61-1&ckc=com.apple.clouddocs&ckz=com.apple.CloudDocs&p=24&s=UoT0siK5WgA5WNxN47jHUDlSzQo
 ```
 
-## Step 3: Pull the data into Redash
+## Step 3: Pull the data into Bi-Dash
 
 ![Screenshot of query screen with URL pasted](/assets/images/docs/gitbook/query-example.png)
 
@@ -146,12 +146,12 @@ https://cvws.icloud-content.com/B/AYifvNUNnayDN0SZAlizP8ZfYUPMAfZEgQW_YFfb6FUKTW
 
 :::note
 
-Redash expects a CSV file with a header as the first
+Bi-Dash expects a CSV file with a header as the first
 row.
 
 :::
 
-The CSV data is now available to Redash. If everything looks correct click
+The CSV data is now available to Bi-Dash. If everything looks correct click
 **Save**. Then copy the query ID from the URL bar.
 
 ## Step 4: Query the data with QRDS
@@ -185,7 +185,7 @@ syntax.
 
 <!-- # Troubleshooting
 
-It's rare to see errors once the data is successfully added to Redash in step 3. Most errors occur in step 2.
+It's rare to see errors once the data is successfully added to Bi-Dash in step 3. Most errors occur in step 2.
 
 ### My data is jumbled
 

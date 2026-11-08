@@ -18,17 +18,17 @@ const DOCS_ONLY = !!process.env.DOCS_ONLY
 const isDocsPage = (url) => new URL(url).pathname.startsWith('/help/')
 
 export default defineConfig({
-  site: 'https://redash.io',
+  site: process.env.BIDASH_SITE_URL || 'https://bidash.example',
   // URLs match the Gatsby site: every page is a directory with a trailing slash.
   trailingSlash: 'always',
   build: { format: 'directory' },
   integrations: [
     starlight({
-      title: 'Redash Docs',
-      logo: { src: './src/assets/redash-logo.svg', alt: 'Redash' },
+      title: 'Bi-Dash Docs',
+      logo: { src: './src/assets/redash-logo.svg', alt: 'Bi-Dash' },
       favicon: '/assets/images/favicon.ico',
-      social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/getredash/redash' }],
-      editLink: { baseUrl: 'https://github.com/getredash/redash/edit/master/website/' },
+      social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/SlavchoSpasenoski/Bi-Dash' }],
+      editLink: { baseUrl: 'https://github.com/SlavchoSpasenoski/Bi-Dash/edit/main/website/' },
       sidebar: buildSidebar(),
       customCss: ['./src/styles/docs.css'],
       components: {

@@ -2,6 +2,7 @@ import unicodedata
 from urllib.parse import quote
 
 import regex
+from redis.exceptions import LockError
 from flask import make_response, request
 from flask_login import current_user
 from flask_restful import abort
@@ -35,6 +36,7 @@ from redash.serializers import (
 )
 from redash.tasks import Job
 from redash.tasks.queries import enqueue_query
+from redash.tasks.queries.execution import QueryExecutionError
 from redash.utils import (
     collect_parameters_from_request,
     json_dumps,
@@ -83,10 +85,16 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
     if query.missing_params:
         return error_response("Missing parameter value for: {}".format(", ".join(query.missing_params)))
 
+    reader = not current_user.is_api_user() and not current_user.has_permission("execute_query")
+    if reader:
+        max_age = -1
     if max_age == 0:
         query_result = None
     else:
         query_result = models.QueryResult.get_latest(data_source, query_text, max_age)
+
+    if reader and query_result is None:
+        return error_response("No saved result is available for these parameters. Ask an editor to refresh the report.", 403)
 
     record_event(
         current_user.org,
@@ -106,16 +114,20 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
         return {"query_result": serialize_query_result(query_result, current_user.is_api_user())}
     else:
         # SQL annotations must use numeric IDs or server-generated API labels, never user generated content.
-        job = enqueue_query(
-            query_text,
-            data_source,
-            current_user.id,
-            current_user.is_api_user(),
-            metadata={
-                "user_id": current_user.get_actual_user() if current_user.is_api_user() else current_user.id,
-                "query_id": query_id,
-            },
-        )
+        try:
+            job = enqueue_query(
+                query_text,
+                data_source,
+                current_user.id,
+                current_user.is_api_user(),
+                metadata={
+                    "user_id": current_user.get_actual_user() if current_user.is_api_user() else current_user.id,
+                    "query_id": query_id,
+                },
+            )
+        except (QueryExecutionError, LockError) as error:
+            return error_response(str(error) if isinstance(error, QueryExecutionError)
+                                  else "Another query request is being processed. Please retry.", 429)
         return serialize_job(job)
 
 
@@ -231,7 +243,7 @@ class QueryResultResource(BaseResource):
                 headers["Access-Control-Allow-Origin"] = origin
                 headers["Access-Control-Allow-Credentials"] = str(settings.ACCESS_CONTROL_ALLOW_CREDENTIALS).lower()
 
-    @require_any_of_permission(("view_query", "execute_query"))
+    @require_any_of_permission(("view_query", "execute_query", "view_results"))
     def options(self, query_id=None, query_result_id=None, filetype="json"):
         headers = {}
         self.add_cors_headers(headers)
@@ -244,7 +256,7 @@ class QueryResultResource(BaseResource):
 
         return make_response("", 200, headers)
 
-    @require_any_of_permission(("view_query", "execute_query"))
+    @require_any_of_permission(("view_query", "execute_query", "view_results"))
     def post(self, query_id):
         """
         Execute a saved query.
@@ -291,7 +303,7 @@ class QueryResultResource(BaseResource):
             else:
                 return error_messages["no_permission"]
 
-    @require_any_of_permission(("view_query", "execute_query"))
+    @require_any_of_permission(("view_query", "execute_query", "view_results"))
     def get(self, query_id=None, query_result_id=None, filetype="json"):
         """
         Retrieve query results.
@@ -312,6 +324,8 @@ class QueryResultResource(BaseResource):
         # This method handles two cases: retrieving result by id & retrieving result by query id.
         # They need to be split, as they have different logic (for example, retrieving by query id
         # should check for query parameters and shouldn't cache the result).
+        if filetype != "json" and not self.current_user.has_permission("download_results"):
+            abort(403, message="Downloads are disabled for your role.")
         should_cache = query_result_id is not None
 
         query_result = None
@@ -384,8 +398,8 @@ class QueryResultResource(BaseResource):
             if len(settings.ACCESS_CONTROL_ALLOW_ORIGIN) > 0:
                 self.add_cors_headers(response.headers)
 
-            if should_cache:
-                response.headers.add_header("Cache-Control", "private,max-age=%d" % ONE_YEAR)
+            # Authorization and SQL visibility may change between requests or logins.
+            response.headers["Cache-Control"] = "private, no-store"
 
             filename = get_download_filename(query_result, query, filetype)
 
@@ -399,7 +413,7 @@ class QueryResultResource(BaseResource):
 
     @staticmethod
     def make_json_response(query_result):
-        data = json_dumps({"query_result": query_result.to_dict()})
+        data = json_dumps({"query_result": serialize_query_result(query_result, current_user.is_api_user())})
         headers = {"Content-Type": "application/json"}
         return make_response(data, 200, headers)
 
@@ -425,6 +439,10 @@ class JobResource(BaseResource):
         Retrieve info about a running query job.
         """
         job = Job.fetch(job_id, connection=rq_redis_connection)
+        if job.meta.get("org_id") != self.current_org.id:
+            abort(404)
+        if not self.current_user.has_permission("admin") and job.meta.get("user_id") != self.current_user.id:
+            abort(403)
         return serialize_job(job)
 
     def delete(self, job_id):
@@ -432,4 +450,8 @@ class JobResource(BaseResource):
         Cancel a query job in progress.
         """
         job = Job.fetch(job_id, connection=rq_redis_connection)
+        if job.meta.get("org_id") != self.current_org.id:
+            abort(404)
+        if not self.current_user.has_permission("admin") and job.meta.get("user_id") != self.current_user.id:
+            abort(403)
         job.cancel()
