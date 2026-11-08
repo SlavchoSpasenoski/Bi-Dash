@@ -1,0 +1,32 @@
+# Use together with compose.linux.yaml; see PUBLIC_DEPLOYMENT.md.
+services:
+  server:
+    environment:
+      REDASH_HOST: https://${BIDASH_DOMAIN:?Set BIDASH_DOMAIN in .env.linux}
+      REDASH_COOKIES_SECURE: "true"
+  worker:
+    environment:
+      REDASH_HOST: https://${BIDASH_DOMAIN:?Set BIDASH_DOMAIN in .env.linux}
+      REDASH_COOKIES_SECURE: "true"
+  scheduler:
+    environment:
+      REDASH_HOST: https://${BIDASH_DOMAIN:?Set BIDASH_DOMAIN in .env.linux}
+      REDASH_COOKIES_SECURE: "true"
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      BIDASH_DOMAIN: ${BIDASH_DOMAIN:?Set BIDASH_DOMAIN in .env.linux}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,4 @@
+{$BIDASH_DOMAIN} {
+    encode gzip
+    reverse_proxy server:5000
+}

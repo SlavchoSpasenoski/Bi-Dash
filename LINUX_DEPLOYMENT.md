@@ -74,6 +74,10 @@ source/image, database and secrets. Rolling back an image does not undo migratio
 
 ## Public hosting
 
+For concrete domain, HTTPS and reverse proxy configuration, follow
+[Public server deployment](PUBLIC_DEPLOYMENT.md), using `compose.public.yaml`
+alongside the Linux configuration.
+
 This is private staging. Public hosting additionally needs a TLS reverse proxy,
 DNS and REDASH_HOST set to the actual HTTPS URL. These installation-specific
 values cannot be automatically inferred. Do not publicly expose the development

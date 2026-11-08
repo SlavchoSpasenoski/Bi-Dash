@@ -2,7 +2,7 @@
 
 This guide installs the repository's local Docker stack on Windows, Linux or macOS. All application dependencies are built inside Linux containers: you do not need host Python, Node.js, PostgreSQL, Redis or a separate Ollama installation.
 
-The stack is intended for local use. It binds the application to `127.0.0.1:5001`, uses local database credentials and does not configure HTTPS, a public domain or email delivery. A shared company deployment needs separate production configuration.
+The stack below is intended for local use. It binds the application to `127.0.0.1:5001`, uses local database credentials and does not configure HTTPS, a public domain or email delivery. For internet access with a domain and HTTPS, follow [Public server deployment](PUBLIC_DEPLOYMENT.md).
 
 ## 1. Requirements
 

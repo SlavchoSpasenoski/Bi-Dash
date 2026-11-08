@@ -15,6 +15,10 @@ A business intelligence workspace with local AI, built on [Redash](https://githu
 
 ## Portable Linux server installation
 
+For a public server with a domain and automatic HTTPS, follow
+[Public server deployment](PUBLIC_DEPLOYMENT.md). Visitors access the site in
+their browser without an SSH tunnel.
+
 For automatic secrets and a repeatable private server installation, see [Linux deployment](LINUX_DEPLOYMENT.md). Run `bash scripts/linux.sh install` after installing Docker.
 
 ## Install from scratch: Windows, Linux and macOS
