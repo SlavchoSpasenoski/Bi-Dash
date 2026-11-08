@@ -17,3 +17,6 @@ redash-master/
 /setup/
 /website/
 /docs/
+
+.env.*
+!.env.example

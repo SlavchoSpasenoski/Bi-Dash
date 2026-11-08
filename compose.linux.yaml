@@ -1,0 +1,73 @@
+name: bi-dash-linux
+
+x-app: &app
+  image: bi-dash-linux:local
+  build:
+    context: .
+    args:
+      skip_frontend_build: ""
+      install_groups: main,all_ds
+  env_file: .env.linux
+  environment: &environment
+    REDASH_DATABASE_URL: postgresql://redash:${POSTGRES_PASSWORD:?Run bash scripts/linux.sh install first}@postgres/redash
+    REDASH_REDIS_URL: redis://redis:6379/0
+    REDASH_HOST: ${REDASH_HOST:-http://localhost:5001}
+    REDASH_ENFORCE_CSRF: "true"
+    REDASH_RATELIMIT_ENABLED: "true"
+    REDASH_WEB_WORKERS: 2
+    REDASH_GUNICORN_TIMEOUT: 1860
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  server:
+    <<: *app
+    command: server
+    ports:
+      - "127.0.0.1:${BIDASH_PORT:-5001}:5000"
+    restart: unless-stopped
+  worker:
+    <<: *app
+    command: worker
+    restart: unless-stopped
+  scheduler:
+    <<: *app
+    command: scheduler
+    restart: unless-stopped
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: redash
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run bash scripts/linux.sh install first}
+      POSTGRES_DB: redash
+    volumes:
+      - redash-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redash -d redash"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  ollama:
+    profiles: ["local-ai"]
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_NO_CLOUD: "true"
+    volumes:
+      - redash-ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  redash-postgres:
+  redash-ollama:

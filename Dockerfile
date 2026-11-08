@@ -117,7 +117,9 @@ EOF
 
 COPY --chown=redash . /app
 COPY --from=frontend-builder --chown=redash /frontend/client/dist /app/client/dist
-RUN chown redash /app
+RUN sed -i "s/\r$//" /app/bin/docker-entrypoint /app/manage.py && \
+    chmod 755 /app/bin/docker-entrypoint /app/manage.py && \
+    chown redash /app
 USER redash
 
 ENTRYPOINT ["/app/bin/docker-entrypoint"]

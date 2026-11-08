@@ -61,6 +61,8 @@ Continue at [First sign-in](#6-first-sign-in).
 
 ## 3. Linux
 
+For automated server installation, see [Linux deployment](LINUX_DEPLOYMENT.md), using separate `.env.linux` and `compose.linux.yaml` files. The manual local setup below remains available.
+
 ### Install prerequisites
 
 Install Docker Engine using the official instructions for your distribution, including Buildx and the Compose plugin:

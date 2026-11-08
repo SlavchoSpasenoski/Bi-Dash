@@ -13,6 +13,10 @@ A business intelligence workspace with local AI, built on [Redash](https://githu
 - A custom rising-signal logo with blue and yellow accents and anthracite navigation.
 - Local Docker deployment with persistent PostgreSQL, Redis, and Ollama storage.
 
+## Portable Linux server installation
+
+For automatic secrets and a repeatable private server installation, see [Linux deployment](LINUX_DEPLOYMENT.md). Run `bash scripts/linux.sh install` after installing Docker.
+
 ## Install from scratch: Windows, Linux and macOS
 
 Follow the **[complete installation guide](INSTALLATION.md)** for prerequisites, first setup, AI configuration, updates and troubleshooting:
