@@ -2,7 +2,7 @@
 
 A business intelligence workspace with local AI, built on [Redash](https://github.com/getredash/redash).
 
-**[Кориснички водич на македонски →](USER_GUIDE.mk.md)** — достапни функции, подобрувања во однос на upstream Redash, практични примери, улоги, AI поставки и решавање проблеми.
+**[Bi-Dash User Guide →](USER_GUIDE.md)** — available features, improvements over upstream Redash, practical examples, roles, AI settings and troubleshooting.
 
 - Query connected data sources and build interactive dashboards.
 - Draft SQL with an integrated AI assistant powered by local Ollama.
