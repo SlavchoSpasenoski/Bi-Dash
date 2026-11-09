@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>README · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/README.html"><link rel="alternate" hreflang="en" href="/en/downloads/README.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/en/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/en/#download">← Downloads</a></div><div class="language-switch" role="group" aria-label="Choose language"><a href="/downloads/README.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски">МК</a><a href="/en/downloads/README.html" data-language="en" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a></div></header><main class="wrap doc"><h1 id="bi-dash">Bi-Dash</h1>
+<p>A business intelligence workspace with local AI, built on <a href="https://github.com/getredash/redash">Redash</a>.</p>
+<p><strong><a href="/en/downloads/USER_GUIDE.html">Bi-Dash User Guide →</a></strong> — available features, improvements over upstream Redash, practical examples, roles, AI settings and troubleshooting.</p>
+<ul>
+<li>Query connected data sources and build interactive dashboards.</li>
+<li>Draft SQL with an integrated AI assistant powered by local Ollama.</li>
+<li>Create saved draft dashboards from prompts through <strong>AI Assistant → Build dashboard</strong>, including queries, charts and initial results. See <a href="/en/downloads/AI_DASHBOARDS.html">AI_DASHBOARDS.md</a>.</li>
+<li>Choose Ollama, OpenAI, Anthropic, or an OpenAI-compatible service in <strong>Settings → AI Configuration</strong>.</li>
+<li>Save shared schemas and business definitions in <strong>Settings → AI Context</strong>.</li>
+<li>Manage Admin, Editor and Reader roles, export permissions and query limits in <strong>Settings → Roles &#x26; Access</strong>. See <a href="/en/downloads/ACCESS_CONTROL.html">ACCESS_CONTROL.md</a>.</li>
+<li>A custom rising-signal logo with blue and yellow accents and anthracite navigation.</li>
+<li>Local Docker deployment with persistent PostgreSQL, Redis, and Ollama storage.</li>
+</ul>
+<h2 id="portable-linux-server-installation">Portable Linux server installation</h2>
+<p>For a public server with a domain and automatic HTTPS, follow
+<a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/PUBLIC_DEPLOYMENT.md">Public server deployment</a>. Visitors access the site in
+their browser without an SSH tunnel.</p>
+<p>For automatic secrets and a repeatable private server installation, see <a href="/en/downloads/LINUX_DEPLOYMENT.html">Linux deployment</a>. Run <code>bash scripts/linux.sh install</code> after installing Docker.</p>
+<h2 id="install-from-scratch-windows-linux-and-macos">Install from scratch: Windows, Linux and macOS</h2>
+<p>Follow the <strong><a href="/en/downloads/INSTALLATION.html">complete installation guide</a></strong> for prerequisites, first setup, AI configuration, updates and troubleshooting:</p>
+<ul>
+<li><a href="/en/downloads/INSTALLATION.html#2-windows">Windows installation</a> — Docker Desktop, Git and PowerShell 7.</li>
+<li><a href="/en/downloads/INSTALLATION.html#3-linux">Linux installation</a> — Docker Engine, Compose v2, Git and OpenSSL.</li>
+<li><a href="/en/downloads/INSTALLATION.html#4-macos">macOS installation</a> — Docker Desktop for Intel or Apple Silicon, Git and OpenSSL.</li>
+</ul>
+<p>The local Docker stack includes the application, PostgreSQL metadata database, Redis, workers and Ollama. The Ollama service starts automatically; its AI model is downloaded separately. A paid provider can be used instead. No host Python or Node.js installation is required.</p>
+<h3 id="windows-quick-start">Windows quick start</h3>
+<p>Install Docker Desktop with Linux containers and PowerShell 7, then run:</p>
+<pre><code class="language-powershell">git clone https://github.com/SlavchoSpasenoski/Bi-Dash.git
+Set-Location Bi-Dash
+pwsh -NoProfile -File ./scripts/start-local.ps1
+docker compose -f compose.local.yaml exec ollama ollama pull qwen2.5-coder:7b
+</code></pre>
+<p>Open <a href="http://localhost:5001/setup">http://localhost:5001/setup</a> to create your administrator. On later visits, open <a href="http://localhost:5001">http://localhost:5001</a>.</p>
+<p>For Linux and macOS, clone the same repository and follow the guide’s <a href="/en/downloads/INSTALLATION.html#5-initialize-on-linux-or-macos">shared initialization commands</a>, which generate secrets and initialize a fresh database. The Windows script is also for fresh setup; use <code>docker compose -f compose.local.yaml up -d</code> for later starts.</p>
+<p>The startup script generates local secrets in an ignored <code>.env</code> file. No AI API key is required for Ollama. Chat drafts SQL for manual use; Build dashboard creates and runs bounded read-only queries for PostgreSQL and MySQL/MariaDB. Review generated results before publishing.</p>
+<p>This configuration is for local use at <code>127.0.0.1:5001</code>; shared hosting requires separate security and network configuration. Windows/Linux-container operation has been verified; native Linux and macOS host installations still require platform validation.</p>
+<p>An administrator can select a provider, enter its model ID and their own API key in Settings. Compatible services also accept a custom API base URL. Each installation uses its own provider account; no project owner’s key is bundled. Providers with other API protocols require an adapter.</p>
+<p>See <a href="/en/downloads/LOCAL_PROJECT.html">LOCAL_PROJECT.md</a> for configuration, hardware limits, and validation, and <a href="/en/downloads/BRANDING.html">BRANDING.md</a> for the product identity.</p>
+<h2 id="development-checks">Development checks</h2>
+<pre><code class="language-powershell">python -m unittest discover -s tests_local -v
+docker compose -f compose.local.yaml config --quiet
+</code></pre>
+<p>The tests require the project’s Python dependencies, including <code>cryptography</code>. With the local Docker image built, run them without a host Python environment:</p>
+<pre><code class="language-powershell">docker compose -f compose.local.yaml run --rm --no-deps --entrypoint python server -m unittest discover -s tests_local -v
+</code></pre>
+<h2 id="upstream-and-license">Upstream and license</h2>
+<p>This project is based on an upstream source archive, with custom AI integration, local deployment, and branding. See <a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/UPSTREAM_SOURCE.json">UPSTREAM_SOURCE.json</a>, <a href="/en/downloads/README.upstream.html">README.upstream.md</a>, and <a href="/downloads/LICENSE">LICENSE</a>. Original license and copyright notices are preserved. Original Bi-Dash contributions: © 2026 Slavcho Spasenoski, under BSD-2-Clause. See <a href="/downloads/NOTICE">NOTICE</a> and <a href="/en/downloads/COPYRIGHT.html">COPYRIGHT.md</a>.</p>
+<p>Local credentials, database storage, temporary files, and editor workspaces are excluded from Git.</p></main></body></html>

@@ -1,0 +1,661 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>USER_GUIDE · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/USER_GUIDE.html"><link rel="alternate" hreflang="en" href="/en/downloads/USER_GUIDE.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/en/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/en/#download">← Downloads</a></div><div class="language-switch" role="group" aria-label="Choose language"><a href="/downloads/USER_GUIDE.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски">МК</a><a href="/en/downloads/USER_GUIDE.html" data-language="en" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a></div></header><main class="wrap doc"><h1 id="bi-dash--user-guide">Bi-Dash — User Guide</h1>
+<p><strong>For readers, editors and administrators · Updated November 8, 2026</strong></p>
+<p>Bi-Dash is a workspace for connecting databases, writing queries, visualizing results and sharing reports. It extends the open-source Redash foundation with an AI assistant, automatic draft dashboards, configurable AI providers, persistent business context and explicit user roles with execution limits.</p>
+<p>This guide describes the implementation in this repository. Button names match the English interface. Available controls depend on your role, groups and administrator policies.</p>
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#comparison">Inherited features and Bi-Dash improvements</a></li>
+<li><a href="#concepts">Key concepts</a></li>
+<li><a href="#quick-start">Quick start by role</a></li>
+<li><a href="#sources">Connecting a data source</a></li>
+<li><a href="#manual">Creating a report manually</a></li>
+<li><a href="#dashboards">Visualizations and dashboards</a></li>
+<li><a href="#chat">AI Assistant: Ask AI</a></li>
+<li><a href="#builder">AI Assistant: Build dashboard</a></li>
+<li><a href="#prompts">Writing effective prompts</a></li>
+<li><a href="#context">Persistent AI Context</a></li>
+<li><a href="#providers">Choosing and configuring an AI provider</a></li>
+<li><a href="#roles">Admin, Editor and Reader</a></li>
+<li><a href="#limits">Duration, concurrent queries and Limit 1000</a></li>
+<li><a href="#sharing">Refreshing, downloading and sharing</a></li>
+<li><a href="#privacy">Privacy and data storage</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#workflow">Recommended workflow</a></li>
+<li><a href="#references">Installation and further documentation</a></li>
+</ol>
+<p><a id="comparison"></a></p>
+<h2 id="1-inherited-features-and-bi-dash-improvements">1. Inherited features and Bi-Dash improvements</h2>
+<p>The comparison uses the upstream source snapshot imported on November 6, 2026, recorded in <a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/UPSTREAM_SOURCE.json">UPSTREAM_SOURCE.json</a>. It does not describe every Redash version, commercial offering or other fork.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Area</th><th>Inherited Redash foundation</th><th>Added or improved in Bi-Dash</th></tr></thead><tbody><tr><td>SQL and sources</td><td>Query editor, schema browser and connectors</td><td>Existing connections and workflows retained; AI builder uses the available schema</td></tr><tr><td>Reports and dashboards</td><td>Saved queries, visualizations, widgets and layouts</td><td>A prompt creates an actual draft dashboard with queries and visualizations</td></tr><tr><td>AI conversation</td><td>Not included in the imported foundation</td><td>Larger, more readable AI panel, SQL explanations and query suggestions</td></tr><tr><td>AI providers</td><td>No equivalent configuration in the imported foundation</td><td>Ollama, OpenAI, Anthropic and OpenAI-compatible APIs through Settings</td></tr><tr><td>Business context</td><td>No dedicated AI context section</td><td>Organization context saved once and automatically included in AI requests</td></tr><tr><td>Access</td><td>Groups, source permissions and resource permissions</td><td>Explicit Admin / Editor / Reader roles provide an additional permission boundary</td></tr><tr><td>Reader</td><td>Existing permissions and groups</td><td>Results without SQL, query keys, schema access or execution privileges</td></tr><tr><td>Editor controls</td><td>Existing jobs and deployment timeouts</td><td>Organization limits, stricter individual limits, running + queued job accounting and controls for AI, scheduling, sharing and archiving</td></tr><tr><td>Export</td><td>Inherited download formats</td><td>Administrators can disable Reader downloads</td></tr><tr><td>Row counts</td><td>Optional query editor auto-limit</td><td>No additional automatic row limit for AI queries; use the existing checkbox when needed</td></tr><tr><td>Installation</td><td>Inherited server architecture</td><td>Local Docker configuration with PostgreSQL, Redis and Ollama</td></tr><tr><td>Identity</td><td>Upstream branding and assets</td><td>Bi-Dash interface, Rising Signal logo and appropriate copyright/license notices</td></tr></tbody></table>
+<p>Standard features such as parameters, favorites, tags, refreshing, alerts and API access remain part of the inherited platform. Availability depends on connectors, installed components and permissions. These are not all new Bi-Dash features.</p>
+<p><a id="concepts"></a></p>
+<h2 id="2-key-concepts">2. Key concepts</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Data Source</strong></td><td>A connection to a database or another supported source, including its address, credentials, connector type and permitted groups</td></tr><tr><td><strong>Query</strong></td><td>A saved request to a source, usually SQL, with a name and optional parameters</td></tr><tr><td><strong>Result</strong></td><td>Data returned by a particular execution; saved results may be older than the current database contents</td></tr><tr><td><strong>Visualization</strong></td><td>A table, chart, counter or another presentation of a result</td></tr><tr><td><strong>Dashboard</strong></td><td>A page containing one or more widgets, visualizations and optional text</td></tr><tr><td><strong>Report</strong></td><td>In this guide, a query with a visualization or a dashboard answering a business question; not necessarily a PDF document</td></tr><tr><td><strong>Draft</strong></td><td>An unpublished resource awaiting review; not a separate private workspace with its own access rules</td></tr><tr><td><strong>Role</strong></td><td>The upper boundary of permitted actions: Admin, Editor or Reader</td></tr><tr><td><strong>Group</strong></td><td>A way to organize source access; a role does not replace group permissions</td></tr></tbody></table>
+<p>An accurate report needs both technically correct SQL and the right business definition. For example, “sales” could mean tax-inclusive totals, net revenue, paid invoices or confirmed orders.</p>
+<p><a id="quick-start"></a></p>
+<h2 id="3-quick-start-by-role">3. Quick start by role</h2>
+<h3 id="reader">Reader</h3>
+<ol>
+<li>Sign in at your Bi-Dash installation address.</li>
+<li>Open an available dashboard from <strong>Dashboards</strong> or a team link.</li>
+<li>Check when its results were refreshed.</li>
+<li>Browse, sort and use the available table filters.</li>
+<li>Download results if the administrator permits it.</li>
+</ol>
+<p>If no saved result exists or you need fresh data, ask an Editor to refresh the report. Readers do not execute SQL.</p>
+<h3 id="editor">Editor</h3>
+<ol>
+<li>Check that you can access the required source and execute queries.</li>
+<li>Create a report manually or through <strong>AI Assistant → Build dashboard</strong>.</li>
+<li>Review the SQL, results, aggregation and visualizations.</li>
+<li>Save the report with a clear name and description.</li>
+<li>Add it to a dashboard and publish when ready and permitted.</li>
+</ol>
+<h3 id="admin">Admin</h3>
+<ol>
+<li>Connect and test Data Sources.</li>
+<li>Configure groups and source access.</li>
+<li>Assign roles through <strong>Settings → Users</strong>.</li>
+<li>Set policies under <strong>Settings → Roles &#x26; Access</strong>.</li>
+<li>Configure <strong>AI Configuration</strong> and save <strong>AI Context</strong> if AI will be used.</li>
+<li>Prepare at least one verified report with saved results for Readers.</li>
+</ol>
+<p><a id="sources"></a></p>
+<h2 id="4-connecting-a-data-source">4. Connecting a data source</h2>
+<p>An administrator performs these steps:</p>
+<ol>
+<li>Open <strong>Settings → Data Sources</strong> and add a source.</li>
+<li>Choose the appropriate connector.</li>
+<li>Enter a descriptive name, <strong>Host</strong>, <strong>Port</strong>, <strong>User</strong>, <strong>Password</strong>, database name and any required SSL settings.</li>
+<li>Save and use <strong>Test Connection</strong>.</li>
+<li>Assign access through groups.</li>
+<li>Open the query editor and check that the table schema loads.</li>
+</ol>
+<p><strong>The MySQL connector also supports compatible MariaDB servers.</strong> The MySQL label identifies the connector, rather than guaranteeing the remote database product. When the connection works, check the server version with <code>SELECT VERSION();</code>.</p>
+<p>Source <strong>Full access</strong> and <strong>View Only</strong> permissions combine with the user role. A Reader does not gain SQL or execution access merely because a group has Full access. The AI builder requires an active, permitted source with query access.</p>
+<p>The schema browser uses a cache. Visible tables do not prove that the connection still works. Refresh the schema after schema changes; retest the connection after changing the address or credentials.</p>
+<p>The regular query editor supports more connectors than the AI builder. Automatic AI creation currently supports PostgreSQL and MySQL/MariaDB.</p>
+<p><a id="manual"></a></p>
+<h2 id="5-creating-a-report-manually">5. Creating a report manually</h2>
+<ol>
+<li>Choose <strong>New Query</strong> from the creation menu.</li>
+<li>Select a Data Source.</li>
+<li>Inspect tables and columns in the schema browser.</li>
+<li>Write a query using the source’s SQL dialect.</li>
+<li>Decide whether to enable <strong>Limit 1000</strong>.</li>
+<li>Run the query and check results and errors.</li>
+<li>Save it with a clear name, such as “Monthly net sales — confirmed orders”.</li>
+<li>Add a visualization or include it in a dashboard.</li>
+</ol>
+<p><strong>MySQL/MariaDB example using a fictional schema</strong>, <code>orders(created_at, status, total)</code>:</p>
+<pre><code class="language-sql">SELECT
+    DATE_FORMAT(created_at, '%Y-%m') AS sales_month,
+    SUM(total) AS revenue
+FROM orders
+WHERE status = 'completed'
+GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+ORDER BY sales_month;
+</code></pre>
+<p>Adapt names and statuses to the real database. PostgreSQL uses functions such as <code>date_trunc</code>; SQL is not automatically portable between all connectors.</p>
+<p>Before saving, check the reporting period, time zone, tax treatment, reversals and whether joins duplicate amounts.</p>
+<p><a id="dashboards"></a></p>
+<h2 id="6-visualizations-and-dashboards">6. Visualizations and dashboards</h2>
+<p>Manual editing offers the visualizations available in your installation. The AI builder creates this subset:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Type</th><th>Useful for</th></tr></thead><tbody><tr><td><strong>Table</strong></td><td>Detailed rows, validation, lists and rankings</td></tr><tr><td><strong>Bar</strong></td><td>Comparisons by product, category, store or another segment</td></tr><tr><td><strong>Line</strong></td><td>Trends over time in chronological order</td></tr><tr><td><strong>Pie</strong></td><td>Shares of a whole with a small number of categories</td></tr><tr><td><strong>Counter</strong></td><td>One numeric value, such as total sales or order count</td></tr></tbody></table>
+<p>In the visualization editor, choose the category/date for X and numeric columns for Y. Configure number formats, legends, titles and other available options. Do not add different currencies into one counter without a defined conversion.</p>
+<p>For a manual dashboard, create <strong>New Dashboard</strong>, add saved visualizations, arrange and resize widgets, add descriptions or text, and save. Widgets can use different sources; users need the appropriate access to their data.</p>
+<p>Publishing a dashboard and creating a <strong>public link</strong> are separate actions. Public sharing requires its own permission. An unpublished draft is not necessarily visible only to its author.</p>
+<p><a id="chat"></a></p>
+<h2 id="7-ai-assistant-ask-ai">7. AI Assistant: Ask AI</h2>
+<p><strong>Ask AI</strong> is a conversation for SQL questions, query analysis and explanations. It does not itself create dashboards or execute suggested queries.</p>
+<ol>
+<li>Open <strong>AI Assistant</strong> and choose <strong>Ask AI</strong>.</li>
+<li>Write a specific question.</li>
+<li>If needed, expand <strong>Extra context for this conversation</strong> and add relevant schema or details.</li>
+<li>Submit with <strong>Send</strong> or <strong>Ctrl / ⌘ + Enter</strong>.</li>
+<li>Read the answer. Review any proposed SQL before running it in the query editor.</li>
+</ol>
+<p>Examples:</p>
+<blockquote>
+<p>Explain why this JOIN could duplicate sales. Keep the table names unchanged.</p>
+</blockquote>
+<blockquote>
+<p>Write a MySQL query for daily sales from confirmed orders. Use the supplied schema and ask if the amount definition is missing.</p>
+</blockquote>
+<p><strong>Copy SQL / answer</strong> copies the recognized SQL block or the answer. <strong>Clear chat</strong> clears the conversation. Reloading loses the panel conversation; saved organization AI Context remains.</p>
+<p>Chat does not automatically inspect the entire database. It answers using the submitted question and context. Accuracy also depends on the selected model.</p>
+<p><a id="builder"></a></p>
+<h2 id="8-ai-assistant-build-dashboard">8. AI Assistant: Build dashboard</h2>
+<p>Use this mode to create actual reports without copying SQL from a chat answer.</p>
+<h3 id="steps">Steps</h3>
+<ol>
+<li>Open <strong>AI Assistant → Build dashboard</strong>.</li>
+<li>Select a Data Source. Available active PostgreSQL and MySQL/MariaDB sources with appropriate access are listed.</li>
+<li>Under <strong>Relevant tables</strong>, choose up to <strong>12</strong> tables needed for the report. Exact names and columns from the cached schema are added automatically.</li>
+<li>Describe metrics, period, grouping, filters and desired visualizations.</li>
+<li>Click <strong>Create draft dashboard</strong> and wait.</li>
+<li>Review each query’s status: preparing, queued, running, ready or a specific error.</li>
+<li>Select <strong>Open draft dashboard</strong>.</li>
+<li>Review SQL, data, charts and business assumptions. Edit as needed, then publish.</li>
+</ol>
+<h3 id="how-it-works">How it works</h3>
+<pre><code class="language-mermaid">flowchart TD
+    A[Prompt + selected tables + saved context] --> B[Selected AI provider]
+    B --> C{Valid plan?}
+    C -->|Information missing| D[Clarification question]
+    C -->|No| E[Error without creating resources]
+    C -->|Yes| F[Saved draft with queries, visualizations and layout]
+    F --> G[Sequential execution with permissions and timeouts]
+    G --> H[Results or errors for each widget]
+    H --> I[User review and manual publication]
+</code></pre>
+<p>The model proposes a structured plan; Bi-Dash validates it and creates resources. Permissions are checked again after the AI response. Automatic queries are single read-only SELECT/CTE statements with a restricted function allowlist, and the connector uses a read-only transaction. An invalid plan does not create a partial dashboard.</p>
+<h3 id="capabilities-and-limits">Capabilities and limits</h3>
+<ul>
+<li>Up to <strong>6 visualizations</strong> per generation: table, bar, line, pie or counter.</li>
+<li>The builder does not automatically publish, schedule or create public links.</li>
+<li>There is no additional automatic 1,000-row limit. New AI queries have auto-limit disabled. Use the query editor checkbox when needed.</li>
+<li>An explicitly requested “top 10” or another SQL <code>LIMIT</code> has its own meaning and remains when the checkbox is disabled.</li>
+<li>Each AI query has a maximum duration of <strong>60 seconds</strong>, or a shorter applicable user/deployment limit.</li>
+<li>Selected tables guide the model; they do not create a new security boundary. Authorization comes from Bi-Dash permissions and database credentials.</li>
+<li>If expected chart column names do not match the result, the builder may fall back to a table and report this in the status.</li>
+</ul>
+<h3 id="if-a-query-fails">If a query fails</h3>
+<p>The saved draft remains, and the affected widget shows its error. Fix the cause and use <strong>Retry report results</strong>, or open the query in the editor. Retry reruns that draft without creating another dashboard for the same request ID. A new prompt or session may create a new draft.</p>
+<p>Keep the page open during generation and sequential execution. Closing the drawer preserves its state, but reloading or navigating may interrupt remaining browser steps. Already saved resources and submitted jobs remain.</p>
+<p><a id="prompts"></a></p>
+<h2 id="9-writing-effective-prompts">9. Writing effective prompts</h2>
+<p>Include <strong>metric + period + filters + grouping + visualization + definitions that must not be assumed</strong>.</p>
+<h3 id="monthly-weekly-and-daily-sales">Monthly, weekly and daily sales</h3>
+<blockquote>
+<p>Create a dashboard with three line charts for monthly, weekly and daily net sales in 2026. Include only confirmed orders. Exclude cancelled orders and deduct reversals according to the saved context. Weeks start on Monday. Use the Europe/Skopje business time zone. Sort dates ascending. Do not add a row limit. If the schema or context does not define net sales, ask before preparing the plan.</p>
+</blockquote>
+<p>This instructs the model; it does not guarantee correct weekly grouping or time zone conversion without review. Required columns and definitions must exist.</p>
+<h3 id="management-overview">Management overview</h3>
+<blockquote>
+<p>Create a draft with a counter for total net revenue in the selected period, a bar chart by category and a table of the top 10 products by revenue. Use one currency for all amounts. Do not confuse product counts with order counts.</p>
+</blockquote>
+<h3 id="data-validation">Data validation</h3>
+<blockquote>
+<p>Create a table with daily order counts and total amounts. Include a count of rows without a date. Do not assume a JOIN unless the relationship between the selected tables is defined in the context.</p>
+</blockquote>
+<p>Avoid vague requests such as “make sales with a chart”. With a small local model, request fewer widgets and select only relevant tables. For SQL beyond the builder’s supported features, use Ask AI and review it manually.</p>
+<p><a id="context"></a></p>
+<h2 id="10-persistent-ai-context">10. Persistent AI Context</h2>
+<p><strong>Settings → AI Context</strong> is a dedicated administrator section for shared business definitions. Context is saved per organization, applies to chat and builder requests, and survives restarts. Saved text is limited to <strong>24,000 characters</strong>; the amount a model can process also depends on its context window.</p>
+<p>Adapt this example to your real database:</p>
+<pre><code class="language-text">SQL dialect: MySQL/MariaDB.
+Preserve all table names and prefixes exactly.
+
+Sales = net amount from confirmed orders.
+Exclude cancelled orders.
+Net amounts exclude VAT. Currency: MKD.
+Reversal definition: [enter the exact business logic].
+
+Weeks start on Monday.
+Database dates are stored in: [enter the actual time zone].
+Order-to-item relationship: [table.key = table.key].
+
+Ask when a definition is missing. Do not invent columns or relationships.
+</code></pre>
+<p>Replace placeholders with accurate definitions, amount fields, statuses and keys. Context guides the model; it does not grant access or protect the database. Do not enter passwords, API keys or unnecessary personal data.</p>
+<p>Extra context in Ask AI applies to the current conversation. It does not replace or update persistent organization context.</p>
+<p><a id="providers"></a></p>
+<h2 id="11-choosing-and-configuring-an-ai-provider">11. Choosing and configuring an AI provider</h2>
+<p>An administrator opens <strong>Settings → AI Configuration</strong>, selects a provider, enters the exact <strong>Model ID</strong>, address when applicable and their own <strong>API key</strong> when required, then clicks <strong>Save</strong>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Option</th><th>Configuration</th><th>Suitable for</th></tr></thead><tbody><tr><td><strong>Ollama</strong></td><td>Installed Model ID and a server-accessible address</td><td>Local model execution without a paid API key</td></tr><tr><td><strong>OpenAI</strong></td><td>Model ID available to the account and its API key</td><td>Hosted models billed by the provider</td></tr><tr><td><strong>Anthropic</strong></td><td>Appropriate Claude Model ID and API key</td><td>Hosted models billed by the provider</td></tr><tr><td><strong>Other / OpenAI-compatible</strong></td><td>Model ID, API base URL and optional service key</td><td>Compatible local servers, gateways or hosted APIs</td></tr></tbody></table>
+<p>Flexibility is at the API protocol level. Arbitrary agent endpoints may need an adapter. The compatible option expects an OpenAI Chat Completions-compatible interface.</p>
+<p>Enter a compatible service’s base URL including its version path, such as <code>https://provider.example/v1</code>, <strong>without</strong> <code>/chat/completions</code>; Bi-Dash appends that path. The <code>.example</code> address is illustrative, not a working provider.</p>
+<p>The local Docker configuration uses <code>http://ollama:11434</code>. For Ollama on the Windows host, containers normally use <code>http://host.docker.internal:11434</code>. Inside a container, <code>localhost</code> does not refer to the Windows host.</p>
+<p>Entering a model name does not download it. For the model used by the local configuration:</p>
+<pre><code class="language-powershell">docker compose -f compose.local.yaml exec ollama ollama pull qwen2.5-coder:7b
+</code></pre>
+<p>Provider profiles are retained when switching providers. A blank key field keeps the saved key for that profile; a new key replaces it, and <strong>Remove the saved API key</strong> deletes it. Changing a compatible base URL requires entering the key again so an old key is not sent to a different address.</p>
+<p>Provider selection is explicit: if Ollama fails, Bi-Dash does not automatically switch to a paid provider. Hosted profiles require valid credentials and provider quota. The project does not include someone else’s API key or a free hosted account.</p>
+<p><a id="roles"></a></p>
+<h2 id="12-admin-editor-and-reader">12. Admin, Editor and Reader</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Capability</th><th>Admin</th><th>Editor</th><th>Reader</th></tr></thead><tbody><tr><td>Manage users, roles, sources and AI settings</td><td>Yes, within the organization</td><td>No</td><td>No</td></tr><tr><td>View SQL and schema</td><td>Yes</td><td>Subject to source access</td><td>No</td></tr><tr><td>Create and edit reports</td><td>Yes</td><td>Own resources or resources with edit access</td><td>No</td></tr><tr><td>View available results</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Execute fresh queries</td><td>Yes, subject to deployment limits</td><td>Subject to limits and access</td><td>No</td></tr><tr><td>Download</td><td>Yes</td><td>Yes</td><td>Enabled by default; Admin can disable it</td></tr><tr><td>AI Assistant and builder</td><td>Yes</td><td>Enabled by default; Admin can disable it; other permissions still apply</td><td>No</td></tr><tr><td>Scheduling / public sharing / archiving</td><td>Yes</td><td>Disabled by default; configured by Admin</td><td>No</td></tr></tbody></table>
+<h3 id="assigning-roles">Assigning roles</h3>
+<p>In <strong>Settings → Users</strong>, select a role when creating a user, or open a profile and <strong>Role &#x26; query limits</strong>. Save changes. New invitations and new SSO users default to Reader; an Admin can promote them.</p>
+<p>Existing accounts without an explicit role are interpreted using inherited groups: Admin if they have administrator permission, otherwise Editor. This compatibility rule does not replace reviewing existing accounts.</p>
+<p>Group access cannot exceed an explicit role. A Reader in an administrative group does not become an Admin. Editors cannot promote themselves or assign edit grants to other users; administrators manage these permissions.</p>
+<h3 id="what-readers-see">What Readers see</h3>
+<p>Readers receive results without SQL, query hashes or query API keys. They cannot access SQL query lists, the schema browser, query snippets, AI or modification endpoints. Restrictions are enforced by the backend, as well as the interface.</p>
+<p>Readers use previously computed results. Paging, sorting and table filters operate on loaded data. Changing parameters may return a saved result for that exact combination; otherwise an Editor must execute the query. Reader refresh does not create a database job.</p>
+<p>Disabling downloads does not remove access to permitted report data. Users can still read it through the normal interface/API.</p>
+<p><a id="limits"></a></p>
+<h2 id="13-duration-concurrent-queries-and-limit-1000">13. Duration, concurrent queries and Limit 1000</h2>
+<p>These controls address different concerns:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Control</th><th>What it limits</th><th>Default / range</th></tr></thead><tbody><tr><td><strong>Maximum query duration</strong></td><td>Duration of an execution</td><td>Editor: 60 seconds; organization setting: 1–3,600 seconds</td></tr><tr><td><strong>Maximum concurrent queries</strong></td><td>Running or queued jobs per user</td><td>Editor: 2; organization setting: 1–20</td></tr><tr><td><strong>Limit 1000</strong></td><td>Optional query editor auto-limit</td><td>Selected per query; not an additional hardcoded AI limit</td></tr></tbody></table>
+<p>Admin sets the first two controls in <strong>Settings → Roles &#x26; Access</strong>. A profile can impose stricter limits on an individual Editor; blank fields inherit policy. A larger individual value cannot relax a stricter organization limit.</p>
+<p>For example, an organization allows 60 seconds and 2 jobs. A new Editor is assigned 20 seconds and 1 job, so 20/1 applies. A profile value of 120 seconds still cannot exceed the organization limit of 60. The AI builder has its own 60-second maximum even when a user’s ordinary queries may run longer.</p>
+<p>Queued jobs count toward the quota: two queued queries may occupy a limit of 2. HTTP 429 means you need to wait or cancel your own work when that option is available.</p>
+<p>At timeout, the worker interrupts the job; PostgreSQL also receives a native statement timeout. Other remote databases depend on their connector’s cancellation behavior. Limits do not undo actions that have already completed. Policy changes do not retroactively shorten a job’s already accepted timeout.</p>
+<p><strong>Limit 1000</strong> is not a timeout or a guarantee of low cost: a small result can require scanning substantial data. Disabling it does not remove a <code>LIMIT</code> written in SQL or restore rows excluded by WHERE, GROUP BY or other conditions. Rerun and save after changing the setting to obtain updated results.</p>
+<p><a id="sharing"></a></p>
+<h2 id="14-refreshing-downloading-and-sharing">14. Refreshing, downloading and sharing</h2>
+<h3 id="freshness-and-parameters">Freshness and parameters</h3>
+<p>Saved dashboards may display previous results. Check the refresh time before making a decision. Editors/Admins with source access can execute fresh queries; Readers use available saved results.</p>
+<p>Define query parameters in the editor using appropriate types. The builder initially generates queries without parameters; subsequent manual edits follow the platform’s normal rules.</p>
+<h3 id="download">Download</h3>
+<p>Use the query/visualization download menu, when available, to export <strong>CSV</strong>, <strong>TSV</strong> or <strong>Excel (.xlsx)</strong>. Export contains the particular query result, rather than the entire database or a screenshot of the dashboard. It cannot reconstruct rows excluded by SQL or auto-limit.</p>
+<h3 id="internal-sharing">Internal sharing</h3>
+<p>Share report or dashboard links with organization members. A link does not grant access to otherwise restricted sources. Editing someone else’s resource requires the appropriate Admin-assigned edit grant.</p>
+<h3 id="public-links-and-scheduling">Public links and scheduling</h3>
+<p>Public sharing is separate from <strong>Publish</strong> on a draft. Use it only when permitted and appropriate for the results. Editors have public sharing, scheduling and archiving disabled by default; Admin can enable them independently.</p>
+<p>Scheduled refresh executes a query; it does not generate a new AI plan. The owner’s continuing scheduling permission is checked. Alerts and destinations are configured separately and depend on installed integrations and permissions.</p>
+<p><a id="privacy"></a></p>
+<h2 id="15-privacy-and-data-storage">15. Privacy and data storage</h2>
+<ul>
+<li><strong>AI provider:</strong> Receives the prompt, included context and relevant schema. Chat also sends content you paste into the conversation. The builder does not send query result rows back to the model.</li>
+<li><strong>Local model:</strong> Ollama is local only if its configured endpoint is local. A remote address sends requests to that address.</li>
+<li><strong>Hosted model:</strong> Processing, retention and billing depend on the provider and your account agreement.</li>
+<li><strong>API keys:</strong> Saved keys are encrypted on the server and are not returned as plaintext in Settings. Backup/restore must preserve the appropriate server secret for decryption.</li>
+<li><strong>Drafts:</strong> Remain organization resources under normal access rules. “Unpublished” does not guarantee author-only privacy.</li>
+<li><strong>Local Docker storage:</strong> The PostgreSQL volume stores users, reports and settings; the Ollama volume stores models. The drawer conversation is not persistent chat history.</li>
+<li><strong>Usage data:</strong> Inherited optional telemetry is separate from AI and, when enabled, goes to the upstream analytics endpoint. The interface identifies the actual recipient; this is not a Bi-Dash hosted analytics service.</li>
+</ul>
+<p>Source code and GitHub alone are not a backup. Preserve the metadata database and relevant server secrets/configuration. Do not publish <code>.env</code>, database dumps, private keys or real credentials to GitHub.</p>
+<p><a id="troubleshooting"></a></p>
+<h2 id="16-troubleshooting">16. Troubleshooting</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Symptom</th><th>Meaning / next step</th></tr></thead><tbody><tr><td><strong>Host is not allowed / 1130</strong></td><td>The server rejected the displayed client address. Check the database Host, permitted access and whether the provider changed its IP. The database address and connecting client address have different roles</td></tr><tr><td><strong>Access denied</strong></td><td>Check user/password, database, host-specific grants and SSL requirements. Do not put credentials in AI Context</td></tr><tr><td>Tables are visible but queries fail</td><td>Schema may be cached. Run Test Connection and check source/worker access</td></tr><tr><td>Source missing from Build dashboard</td><td>Check PostgreSQL/MySQL type, paused state, role, AI permission and Full query access through a group</td></tr><tr><td>Schema cannot load</td><td>Check connection, schema worker and table access for the database user</td></tr><tr><td><strong>AI provider is not configured</strong></td><td>Admin must save a valid provider, Model ID, URL and key when required</td></tr><tr><td>Provider error / 502</td><td>Check endpoint reachability from the Bi-Dash server, Model ID, API protocol and provider status; read the specific error</td></tr><tr><td>AI timeout / 504</td><td>The model did not respond in time. Reduce context/tables/widgets and check CPU/RAM; ask Admin to review AI and web-worker timeouts</td></tr><tr><td><strong>429 / query limit reached</strong></td><td>Wait for running/queued work to finish. A separate hosted AI 429 may mean a provider rate limit or exhausted quota</td></tr><tr><td>Query timeout</td><td>Shorten the period, optimize joins/conditions, check indexes or ask Admin to review policy</td></tr><tr><td>Invalid AI plan</td><td>The model returned unsupported structure/SQL. Refine the prompt, request fewer widgets or use a more suitable model</td></tr><tr><td>One widget fails</td><td>The draft remains. Open its query, check SQL/connection, then retry or run manually</td></tr><tr><td>Chart becomes a table</td><td>Output aliases did not match expected chart columns. Configure a suitable visualization after reviewing the result</td></tr><tr><td>Reader cannot obtain fresh data</td><td>An Editor/Admin must compute the result, including the requested parameter combination</td></tr><tr><td>Download missing</td><td>Check Reader download policy and result availability</td></tr><tr><td>Still only 1,000 rows</td><td>Check Limit 1000, SQL LIMIT and whether the result is stale. Rerun after changes</td></tr><tr><td>Incorrect numbers without a technical error</td><td>Check definitions, time zones, statuses, currencies, reversals and join duplication. Successful execution does not prove business accuracy</td></tr><tr><td>Old logo or controls remain</td><td>Refresh with Ctrl+Shift+R. After a role change, reload to align controls with current permissions</td></tr></tbody></table>
+<p>When reporting an issue, include your role, report name/ID, time, exact error and relevant prompt/SQL without secrets. State whether <strong>Test Connection</strong> works and whether the problem also occurs without AI.</p>
+<p><a id="workflow"></a></p>
+<h2 id="17-recommended-workflow">17. Recommended workflow</h2>
+<ol>
+<li><strong>Admin:</strong> Connect and test the source, then define groups and roles.</li>
+<li><strong>Team:</strong> Agree on metric definitions, statuses and time zones.</li>
+<li><strong>Admin:</strong> Save agreed AI Context and select the provider.</li>
+<li><strong>Editor:</strong> Create a small, clearly defined draft manually or with AI.</li>
+<li><strong>Editor:</strong> Compare results with a known period or reference report and inspect joins.</li>
+<li><strong>Editor/Admin:</strong> Review titles, formats, descriptions, layout and permissions, then publish the verified dashboard.</li>
+<li><strong>Reader:</strong> Use, browse and download results when permitted.</li>
+<li><strong>Admin:</strong> Review workload, access and refresh policy against actual needs.</li>
+</ol>
+<p>Start a pilot with one metric and one chart. Expand to more widgets after verification to make business logic errors easier to identify.</p>
+<p><a id="references"></a></p>
+<h2 id="18-installation-and-further-documentation">18. Installation and further documentation</h2>
+<p>For a fresh Windows, Linux or macOS installation, follow the <a href="/en/downloads/INSTALLATION.html">Installation Guide</a>. See <a href="/en/downloads/README.html">README.md</a> and <a href="/en/downloads/LOCAL_PROJECT.html">LOCAL_PROJECT.md</a> for an overview and implementation details. Docker with Linux containers and sufficient resources for the selected model are required. The local stack exposes Bi-Dash at <code>http://localhost:5001</code>; other installations use the address supplied by their administrator.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Document</th><th>Purpose</th></tr></thead><tbody><tr><td><a href="/en/downloads/README.html">README.md</a></td><td>Project introduction and local startup</td></tr><tr><td><a href="/en/downloads/AI_DASHBOARDS.html">AI_DASHBOARDS.md</a></td><td>Automatic creation implementation and limits</td></tr><tr><td><a href="/en/downloads/ACCESS_CONTROL.html">ACCESS_CONTROL.md</a></td><td>Roles, quotas, API behavior and cancellation</td></tr><tr><td><a href="/en/downloads/LOCAL_PROJECT.html">LOCAL_PROJECT.md</a></td><td>Configuration, local architecture, resources and verification</td></tr><tr><td><a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/docs/user-guide">docs/user-guide</a></td><td>Detailed inherited/adapted guides for querying, dashboards and other features</td></tr><tr><td><a href="/en/downloads/BRANDING.html">BRANDING.md</a> and <a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/branding">branding</a></td><td>Visual identity and logo assets</td></tr><tr><td><a href="/downloads/LICENSE">LICENSE</a>, <a href="/downloads/NOTICE">NOTICE</a>, <a href="/en/downloads/COPYRIGHT.html">COPYRIGHT.md</a></td><td>Licenses and copyright notice scope</td></tr><tr><td><a href="/en/downloads/SECURITY.html">SECURITY.md</a></td><td>Reporting security issues</td></tr></tbody></table>
+<p>Technical <code>REDASH_*</code> environment variables and internal package names remain for compatibility. They do not indicate a different application is loaded. Historical upstream notices and third-party rights retain their actual names.</p>
+<p>Original Bi-Dash contributions: © 2026 Slavcho Spasenoski, to the extent protected by applicable law. Bi-Dash derives from upstream Redash; its license and required attributions are preserved.</p></main></body></html>

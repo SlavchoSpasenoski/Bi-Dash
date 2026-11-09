@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LINUX_DEPLOYMENT · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/LINUX_DEPLOYMENT.html"><link rel="alternate" hreflang="en" href="/en/downloads/LINUX_DEPLOYMENT.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/en/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/en/#download">← Downloads</a></div><div class="language-switch" role="group" aria-label="Choose language"><a href="/downloads/LINUX_DEPLOYMENT.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски">МК</a><a href="/en/downloads/LINUX_DEPLOYMENT.html" data-language="en" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a></div></header><main class="wrap doc"><h1 id="portable-linux-installation">Portable Linux installation</h1>
+<p>Target: Linux x86-64, Docker Engine with Buildx and Compose v2, Bash and OpenSSL.
+Ubuntu 24.04 LTS is a suitable starting point. No host Python, Node, PostgreSQL
+or Redis is needed. Plan initially for 4 vCPU, 8 GB RAM and 60 GB disk without
+local AI; measure actual usage. ARM64 and GPU inference are not validated.</p>
+<h2 id="install">Install</h2>
+<p>Install Docker for your distribution: <a href="https://docs.docker.com/engine/install/">https://docs.docker.com/engine/install/</a>.
+Your account must be allowed to use Docker. Then:</p>
+<pre><code class="language-bash">git clone https://github.com/SlavchoSpasenoski/Bi-Dash.git
+cd Bi-Dash
+bash scripts/linux.sh install
+</code></pre>
+<p>No configuration edits are required. Three independent secrets are generated in
+<code>.env.linux</code> with owner-only permissions. Frontend and backend build in Docker.
+PostgreSQL, Redis, server, worker and scheduler start automatically. Repeating
+install preserves secrets and data; it only initializes empty databases and does
+not migrate existing schemas. Do not run concurrent installers.</p>
+<p>From your computer:</p>
+<pre><code class="language-bash">ssh -N -L 5001:127.0.0.1:5001 your-user@your-server
+</code></pre>
+<p>Open <a href="http://localhost:5001/setup">http://localhost:5001/setup</a> to create the administrator, then use
+<a href="http://localhost:5001">http://localhost:5001</a>. This URL works on every machine through the tunnel.
+Only loopback can access the app; database, Redis and Ollama ports are unpublished.</p>
+<h2 id="optional-ai">Optional AI</h2>
+<pre><code class="language-bash">bash scripts/linux.sh ai
+</code></pre>
+<p>This starts Ollama and downloads qwen2.5-coder:7b into a persistent volume.
+Repeat after <code>stop</code> to start Ollama again. Plan at least 16 GB host RAM for local
+AI and measure responsiveness. GPU passthrough is not configured. Alternatively,
+select a hosted provider and enter your own model/key in Settings / AI
+Configuration. AI needs one of these options; ordinary dashboards do not.</p>
+<h2 id="operations">Operations</h2>
+<pre><code class="language-bash">bash scripts/linux.sh status
+bash scripts/linux.sh logs
+bash scripts/linux.sh stop
+bash scripts/linux.sh start
+bash scripts/linux.sh check
+</code></pre>
+<p>Stop preserves volumes. Never use <code>down -v</code> unless deliberately deleting data.
+Back up PostgreSQL AND <code>.env.linux</code>: the original encryption key is required to
+read saved credentials. Migrating existing data requires restoring both, rather
+than generating fresh secrets. Never change POSTGRES_PASSWORD on an existing
+volume without changing the database role password too.</p>
+<p>Before upgrading source, back up the database and secrets, then:</p>
+<pre><code class="language-bash">docker compose --env-file .env.linux -f compose.linux.yaml build server
+docker compose --env-file .env.linux -f compose.linux.yaml stop server worker scheduler
+docker compose --env-file .env.linux -f compose.linux.yaml run --rm --no-deps server manage db upgrade
+bash scripts/linux.sh start
+</code></pre>
+<p>If migration fails, keep writers stopped and investigate or restore matching old
+source/image, database and secrets. Rolling back an image does not undo migrations.</p>
+<h2 id="public-hosting">Public hosting</h2>
+<p>For concrete domain, HTTPS and reverse proxy configuration, follow
+<a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/PUBLIC_DEPLOYMENT.md">Public server deployment</a>, using <code>compose.public.yaml</code>
+alongside the Linux configuration.</p>
+<p>This is private staging. Public hosting additionally needs a TLS reverse proxy,
+DNS and REDASH_HOST set to the actual HTTPS URL. These installation-specific
+values cannot be automatically inferred. Do not publicly expose the development
+<code>compose.yaml</code>. Optional BIDASH_PORT and REDASH_HOST may be set in the shell or
+<code>.env.linux</code>; neither is required for default tunnel access.</p>
+<p>The fixed Compose project name <code>bi-dash-linux</code> preserves volume identity when the
+checkout directory changes. Multiple installations on one host need separate
+Compose project names (<code>-p</code>) and ports. Windows <code>.env</code> and compose.local.yaml
+are separate and unchanged.</p>
+<h2 id="validation">Validation</h2>
+<p>The Linux CI workflow builds a fresh installation, checks HTTP readiness and
+checks restart/secret persistence on Ubuntu. Review its result for the revision
+being deployed. Docker Desktop Linux containers alone do not validate a native
+Linux host. No paid AI requests are included in these checks.</p></main></body></html>

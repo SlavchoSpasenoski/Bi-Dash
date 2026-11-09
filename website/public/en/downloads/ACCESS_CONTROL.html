@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ACCESS_CONTROL · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/ACCESS_CONTROL.html"><link rel="alternate" hreflang="en" href="/en/downloads/ACCESS_CONTROL.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/en/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/en/#download">← Downloads</a></div><div class="language-switch" role="group" aria-label="Choose language"><a href="/downloads/ACCESS_CONTROL.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски">МК</a><a href="/en/downloads/ACCESS_CONTROL.html" data-language="en" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a></div></header><main class="wrap doc"><h1 id="bi-dash-roles-and-execution-safeguards">Bi-Dash roles and execution safeguards</h1>
+<p>Manage organization defaults in <strong>Settings → Roles &#x26; Access</strong>. Assign a role when creating a user, or open <strong>Settings → Users → a user → Role &#x26; query limits</strong>. These settings are enforced by the backend, including requests made with a personal API key.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Capability</th><th>Admin</th><th>Editor</th><th>Reader</th></tr></thead><tbody><tr><td>Manage users, roles, data sources and AI configuration</td><td>Yes</td><td>No</td><td>No</td></tr><tr><td>Read SQL and data-source schemas</td><td>Yes</td><td>Within data-source group access</td><td>No</td></tr><tr><td>Build/edit queries, visualizations and dashboards</td><td>Yes</td><td>Own resources or explicitly granted edit access</td><td>No</td></tr><tr><td>Browse reports; sort, filter and page loaded results</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>CSV, TSV and Excel export</td><td>Yes</td><td>Yes</td><td>Enabled by default; admin can disable</td></tr><tr><td>Execute fresh queries</td><td>Yes</td><td>Subject to runtime and outstanding-job limits</td><td>No</td></tr><tr><td>Scheduling / public sharing / archiving reports</td><td>Yes</td><td>Disabled by default; separately configurable</td><td>No</td></tr><tr><td>AI Assistant</td><td>Yes</td><td>Enabled by default; configurable</td><td>No</td></tr></tbody></table>
+<p>Groups still decide which data sources a member can access. An explicit role is an upper bound on group permissions: adding a Reader or Editor to an administrative group does not promote their assigned role. Editors cannot change access grants. Admins can manage all resources within their organization; deployment-wide query time limits still apply.</p>
+<p>Existing accounts remain compatible: users without an explicit role are Admin if their groups contain the admin permission, otherwise Editor. New invitations default to Reader, with an explicit role selector. New SSO accounts default to Reader and can be promoted by an administrator. Existing accounts and data-source memberships are preserved. CLI-created accounts without explicit roles retain the legacy group-based inference.</p>
+<h2 id="reader-results-and-sql-privacy">Reader results and SQL privacy</h2>
+<p>Readers do not receive SQL, query hashes or query API keys in dashboard/result JSON. Query lists, SQL source routes, schemas, query snippets, AI and modification endpoints are denied. Result responses use <code>Cache-Control: private, no-store</code> so new authorization decisions are not replaced by long-lived cached API responses.</p>
+<p>Readers load previously computed results. Sorting, paging and table filters work on the loaded data. Selecting parameters can retrieve a cached result for that exact combination; when no result exists, the API asks for an editor to refresh it. Even a forced refresh request cannot enqueue a job for a Reader. An administrator can separately disable CSV/TSV/XLSX downloads; report data remains readable through the normal JSON API.</p>
+<h2 id="query-limits">Query limits</h2>
+<p>Editor defaults are <strong>60 seconds per execution</strong> and <strong>two running or queued jobs per user</strong>. Runtime can be configured from 1–3600 seconds, and the outstanding-job limit from 1–20. User profiles can impose stricter limits; blank fields inherit the role policy. A larger user override cannot relax a stricter role limit. Identical pending requests can reuse their existing job; new work beyond the quota receives HTTP 429.</p>
+<p>Admission uses a Redis lock, and counts queued work as well as running work. Interactive jobs and query-token jobs share the owner’s quota. Query tokens cannot escape a stricter owner timeout, and a Reader/disabled owner cannot refresh a report through an old token. Non-admin jobs do not reuse an administrator’s unrestricted execution. Job status/cancellation is scoped to the organization and submitting identity. User-role/disabled-state checks are repeated before queued jobs execute.</p>
+<p>The effective runtime is the smaller of the role/user limit and any positive deployment-wide limit. Limits are attached when new jobs are enqueued; changing a runtime policy does not retroactively shorten a job already admitted. Scheduled execution also checks the owner’s scheduling permission, so disabling scheduling prevents further scheduled execution, including existing schedules.</p>
+<p>RQ interrupts the worker task at its timeout. PostgreSQL additionally receives a native <code>statement_timeout</code>; the existing interrupt path requests query cancellation and closes the connection. The worker has its existing hard-kill fallback for an unresponsive connector. Remote cancellation behavior varies by connector and remote service; a worker timeout alone cannot guarantee that every remote engine has stopped its work. Use appropriate database-side resource limits and database credentials for the connected service. Timeouts do not undo statements that already completed.</p>
+<p>Role policies, assignments and per-user limit changes are recorded as audit events. Non-admin users cannot assign roles, edit role policies or grant object permissions. An admin cannot demote themself or remove their own group membership. Permission changes take effect on subsequent server requests; reload open pages to refresh the visible controls.</p>
+<h2 id="verification">Verification</h2>
+<p>Tests cover Reader SQL/key redaction, result browsing and three export formats, direct-API execution/modification denial, cached-only refresh, download restrictions, role assignment, group escalation prevention, CSRF, scheduling/sharing/deletion/AI restrictions, query admission, API-key quota bypasses, and stricter per-user limits. Real PostgreSQL and RQ worker tests use a one-second test limit with <code>pg_sleep(5)</code> to verify that execution is interrupted and PostgreSQL has no remaining active test statement. The normal Editor default is independently checked as 60 seconds.</p>
+<p>Integration tests under <code>tests/</code> use the repository’s <code>BaseTestCase</code>, which recreates the schema: run them only against a separate disposable test database. The <code>tests_local/</code> suite remains independent of a database.</p>
+<p>Relevant connector references: <a href="https://python-rq.org/docs/results/">RQ job timeouts</a>, <a href="https://www.psycopg.org/docs/connection.html">Psycopg cancellation</a>.</p></main></body></html>

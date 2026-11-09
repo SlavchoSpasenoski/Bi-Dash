@@ -1,0 +1,22 @@
+<!doctype html><html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Корисничко упатство · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/USER_GUIDE.html"><link rel="alternate" hreflang="en" href="/en/downloads/USER_GUIDE.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/#download">← Преземања</a></div><div class="language-switch" role="group" aria-label="Избери јазик"><a href="/downloads/USER_GUIDE.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски" aria-current="page">МК</a><a href="/en/downloads/USER_GUIDE.html" data-language="en" lang="en" hreflang="en" aria-label="English">EN</a></div></header><main class="wrap doc"><h1 id="корисничко-упатство">Корисничко упатство</h1>
+<p>Bi-Dash ги поврзува SQL анализите, визуелизациите и тимската работа во работен простор што го хостирате самостојно.</p>
+<h2 id="1-поврзете-извор-на-податоци">1. Поврзете извор на податоци</h2>
+<p>Администратор отвора <strong>Settings → Data Sources</strong>, избира тип на база, ги внесува пристапните податоци и користи <strong>Test Connection</strong>. Изберете сметка со дозволи соодветни на анализата; за извештаи обично е соодветен пристап само за читање.</p>
+<h2 id="2-создајте-sql-прашање">2. Создајте SQL прашање</h2>
+<p>Отворете <strong>Create → New Query</strong>, изберете извор и прегледајте ја достапната шема. Напишете прашање според имињата на табелите и колоните во вашата база. На пример, ако имате табела <code>orders</code> со колоните <code>created_at</code> и <code>amount</code> во PostgreSQL:</p>
+<pre><code class="language-sql">SELECT date_trunc('month', created_at) AS month,
+       SUM(amount) AS revenue
+FROM orders
+GROUP BY 1
+ORDER BY 1;
+</code></pre>
+<p>Ова е илустративен пример, не вградена табела во Bi-Dash. Извршете го прашањето, проверете ги резултатите и зачувајте го со јасно име.</p>
+<h2 id="3-додајте-визуелизација">3. Додајте визуелизација</h2>
+<p>Од резултатите додајте визуелизација, изберете тип на графикон и поставете оски или колони. За примерот погоре, <code>month</code> може да биде хоризонтална оска, а <code>revenue</code> вертикална. Зачувајте ја визуелизацијата.</p>
+<h2 id="4-составете-контролна-табла">4. Составете контролна табла</h2>
+<p>Создајте контролна табла, додајте ги зачуваните визуелизации како елементи и распоредете ги. Додајте текст што го објаснува периодот, валутата и значењето на метриките. Ако прашањата користат параметри, поврзете ги со соодветните параметри на контролната табла.</p>
+<h2 id="5-споделување-и-улоги">5. Споделување и улоги</h2>
+<p>Проверете ги корисниците, групите и дозволите во <strong>Settings → Roles &#x26; Access</strong>. Admin, Editor и Reader имаат различни можности; извозот и ограничувањата на прашањата се конфигурираат од администратор. Споделувањето линк не ја заменува правилната контрола на пристап.</p>
+<h2 id="6-користете-ai-по-избор">6. Користете AI по избор</h2>
+<p>Во <strong>AI Assistant</strong> можете да подготвите SQL или да побарате нацрт на контролна табла преку <strong>Build dashboard</strong>. Конфигурирајте провајдер и контекст пред употреба. Проверувајте ги генерираните прашања и резултати пред споделување.</p>
+<p><a href="/downloads/AI_DASHBOARDS.html">Поставување AI</a> · <a href="/downloads/ACCESS_CONTROL.html">Улоги и пристап</a> · <a href="/en/downloads/USER_GUIDE.html">Детална корисничка референца (EN)</a></p></main></body></html>

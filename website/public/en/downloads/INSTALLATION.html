@@ -1,0 +1,213 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>INSTALLATION · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/INSTALLATION.html"><link rel="alternate" hreflang="en" href="/en/downloads/INSTALLATION.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/en/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/en/#download">← Downloads</a></div><div class="language-switch" role="group" aria-label="Choose language"><a href="/downloads/INSTALLATION.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски">МК</a><a href="/en/downloads/INSTALLATION.html" data-language="en" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a></div></header><main class="wrap doc"><h1 id="install-bi-dash-from-scratch">Install Bi-Dash from scratch</h1>
+<p>This guide installs the repository’s local Docker stack on Windows, Linux or macOS. All application dependencies are built inside Linux containers: you do not need host Python, Node.js, PostgreSQL, Redis or a separate Ollama installation.</p>
+<p>The stack below is intended for local use. It binds the application to <code>127.0.0.1:5001</code>, uses local database credentials and does not configure HTTPS, a public domain or email delivery. For internet access with a domain and HTTPS, follow <a href="https://github.com/SlavchoSpasenoski/Bi-Dash/blob/main/PUBLIC_DEPLOYMENT.md">Public server deployment</a>.</p>
+<h2 id="1-requirements">1. Requirements</h2>
+<ul>
+<li>Git, internet access and Docker with the Compose v2 plugin (<code>docker compose</code>).</li>
+<li>Windows: PowerShell 7 and Docker Desktop using Linux containers.</li>
+<li>Linux/macOS: a shell and <code>openssl</code> for generating secrets.</li>
+<li>Practical starting point: 16 GB system RAM and 30 GB free disk space for building the application and trying the default 7B model. These are planning estimates, not guaranteed minimums; dependency caches and models can require more space. Allocate sufficient memory to Docker; 8 GB is a starting point for the application build, with additional memory needed when running a model. More RAM and CPU improve local AI responsiveness.</li>
+<li>Access to the databases you want to report on. The included PostgreSQL instance stores Bi-Dash metadata; it does not automatically contain your business data.</li>
+</ul>
+<p>The Docker stack does not configure GPU passthrough. Do not assume a host GPU or Apple Silicon acceleration is available to the containerized model. Hosted AI avoids the local model’s memory requirement, but the application still needs to build.</p>
+<p>The current local deployment has been verified on Windows with Linux containers. The Linux and macOS instructions use the same Compose services; a complete fresh installation has not yet been verified on physical Linux and Mac hosts. Native ARM builds and individual database drivers may have additional compatibility constraints.</p>
+<h2 id="2-windows">2. Windows</h2>
+<h3 id="install-prerequisites">Install prerequisites</h3>
+<ol>
+<li>Install <a href="https://git-scm.com/downloads/win">Git for Windows</a>.</li>
+<li>Install <a href="https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows">PowerShell 7</a>. Open <strong>PowerShell 7</strong>, rather than the older Windows PowerShell 5.1.</li>
+<li>Follow the official <a href="https://docs.docker.com/desktop/setup/install/windows-install/">Docker Desktop for Windows installation guide</a>, including its virtualization/WSL requirements. Restart if requested.</li>
+<li>Start Docker Desktop and use Linux containers. Wait until Docker is ready.</li>
+</ol>
+<p>Check your tools:</p>
+<pre><code class="language-powershell">git --version
+$PSVersionTable.PSVersion
+docker version
+docker compose version
+</code></pre>
+<p>Both the Docker client and server must be available. Do not continue if Docker reports that it cannot connect to the daemon.</p>
+<h3 id="download-and-initialize">Download and initialize</h3>
+<p>Choose a local development directory, then run:</p>
+<pre><code class="language-powershell">git clone https://github.com/SlavchoSpasenoski/Bi-Dash.git
+Set-Location Bi-Dash
+pwsh -NoProfile -File ./scripts/start-local.ps1
+</code></pre>
+<p>The script creates <code>.env</code> with two independent random secrets if the file does not exist, builds the application, starts PostgreSQL and Redis, initializes the metadata database and starts the remaining services, including Ollama. The first build may take several minutes or longer, depending on network and hardware.</p>
+<p>If execution policy blocks the reviewed script, allow it for this process only and retry:</p>
+<pre><code class="language-powershell">Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+./scripts/start-local.ps1
+</code></pre>
+<p>Use the startup script for a <strong>fresh installation</strong>. For an existing installation, use the restart/update commands below rather than rerunning database initialization.</p>
+<p>Continue at <a href="#6-first-sign-in">First sign-in</a>.</p>
+<h2 id="3-linux">3. Linux</h2>
+<p>For automated server installation, see <a href="/en/downloads/LINUX_DEPLOYMENT.html">Linux deployment</a>, using separate <code>.env.linux</code> and <code>compose.linux.yaml</code> files. The manual local setup below remains available.</p>
+<h3 id="install-prerequisites-1">Install prerequisites</h3>
+<p>Install Docker Engine using the official instructions for your distribution, including Buildx and the Compose plugin:</p>
+<ul>
+<li><a href="https://docs.docker.com/engine/install/ubuntu/">Ubuntu</a></li>
+<li><a href="https://docs.docker.com/engine/install/debian/">Debian</a></li>
+<li><a href="https://docs.docker.com/engine/install/">Other supported distributions</a></li>
+</ul>
+<p>Install Git and OpenSSL using your distribution’s package manager. For Ubuntu/Debian:</p>
+<pre><code class="language-bash">sudo apt-get update
+sudo apt-get install -y git openssl
+</code></pre>
+<p>Start Docker and configure access according to the official <a href="https://docs.docker.com/engine/install/linux-postinstall/">Linux post-installation instructions</a>. Docker group membership grants root-level privileges; use the access method appropriate to your environment. The commands below assume your current account can run Docker.</p>
+<pre><code class="language-bash">git --version
+openssl version
+docker version
+docker compose version
+</code></pre>
+<h3 id="download-the-project">Download the project</h3>
+<pre><code class="language-bash">git clone https://github.com/SlavchoSpasenoski/Bi-Dash.git
+cd Bi-Dash
+</code></pre>
+<p>Continue at <a href="#5-initialize-on-linux-or-macos">Initialize on Linux or macOS</a>.</p>
+<h2 id="4-macos">4. macOS</h2>
+<h3 id="install-prerequisites-2">Install prerequisites</h3>
+<ol>
+<li>Install Git, for example through Apple’s Command Line Tools: run <code>xcode-select --install</code> and complete the installer.</li>
+<li>Install <a href="https://docs.docker.com/desktop/setup/install/mac-install/">Docker Desktop for Mac</a>, choosing the download for your Intel or Apple Silicon Mac.</li>
+<li>Start Docker Desktop, complete initial setup and wait until Docker is ready.</li>
+<li>Check the tools:</li>
+</ol>
+<pre><code class="language-bash">git --version
+openssl version
+docker version
+docker compose version
+</code></pre>
+<h3 id="download-the-project-1">Download the project</h3>
+<pre><code class="language-bash">git clone https://github.com/SlavchoSpasenoski/Bi-Dash.git
+cd Bi-Dash
+</code></pre>
+<p>Continue with the shared initialization below. Start with the native architecture. If a dependency cannot build on Apple Silicon, the alternative is an AMD64 build under <a href="https://docs.docker.com/build/building/multi-platform/">Docker’s supported emulation</a>:</p>
+<pre><code class="language-bash">export DOCKER_DEFAULT_PLATFORM=linux/amd64
+</code></pre>
+<p>Set this before the build and keep it consistent for later Compose commands in that terminal. Emulation can be substantially slower; it is a compatibility fallback, not a verified guarantee for every connector. Include the architecture and failed dependency when reporting a build problem.</p>
+<h2 id="5-initialize-on-linux-or-macos">5. Initialize on Linux or macOS</h2>
+<p>Run these commands from the cloned <code>Bi-Dash</code> directory. They create <code>.env</code> only if it does not already exist and restrict its permissions:</p>
+<pre><code class="language-bash">if [ ! -e .env ]; then
+  (
+    set -eu
+    umask 077
+    cookie_secret=$(openssl rand -hex 32)
+    data_secret=$(openssl rand -hex 32)
+    printf '%s\n' \
+      "REDASH_COOKIE_SECRET=$cookie_secret" \
+      "REDASH_SECRET_KEY=$data_secret" \
+      'OPENAI_API_KEY=' \
+      'REDASH_AI_PROVIDER=ollama' \
+      'REDASH_AI_MODEL=qwen2.5-coder:7b' \
+      'REDASH_OLLAMA_URL=http://ollama:11434' > .env
+  )
+fi
+</code></pre>
+<p>Keep <code>.env</code> private and preserve it for backups. Do not replace its secrets on an existing installation: saved AI keys depend on the encryption secret. Do not use the placeholder secrets from <code>.env.example</code> unchanged.</p>
+<p>Run each command in order and continue only if it succeeds:</p>
+<pre><code class="language-bash">docker compose -f compose.local.yaml config --quiet
+docker compose -f compose.local.yaml build server
+docker compose -f compose.local.yaml up -d postgres redis
+docker compose -f compose.local.yaml run --rm server create_db
+docker compose -f compose.local.yaml up -d
+</code></pre>
+<p><code>create_db</code> is for a fresh metadata database. Do not use it as an upgrade command or rerun it for an installation containing reports. The initial build downloads application dependencies; no host language runtime is required.</p>
+<h2 id="6-first-sign-in">6. First sign-in</h2>
+<ol>
+<li>Run <code>docker compose -f compose.local.yaml ps</code>. Expect server, worker, scheduler, postgres, redis and ollama services; PostgreSQL and Redis should become healthy.</li>
+<li>Open <strong><a href="http://localhost:5001/setup">http://localhost:5001/setup</a></strong> on the same computer.</li>
+<li>Create your organization and first administrator account. No default administrator password is bundled.</li>
+<li>On later visits, open <strong><a href="http://localhost:5001">http://localhost:5001</a></strong>.</li>
+<li>In <strong>Settings → Data Sources</strong>, add your business database, save and use <strong>Test Connection</strong>.</li>
+<li>Configure groups, users and <strong>Roles &#x26; Access</strong> before sharing reports.</li>
+</ol>
+<p>Inside containers, <code>localhost</code> refers to the container itself. For a database on the Docker Desktop host, use <code>host.docker.internal</code> where appropriate. On Linux Engine, use a reachable host address or explicitly configure a host gateway. Remote database access also depends on network routing, grants and SSL settings.</p>
+<h2 id="7-enable-ai">7. Enable AI</h2>
+<h3 id="option-a-local-ollama">Option A: local Ollama</h3>
+<p>The Ollama service is started automatically, but <strong>the model is downloaded separately</strong>, once per new model volume:</p>
+<pre><code class="language-bash">docker compose -f compose.local.yaml exec ollama ollama pull qwen2.5-coder:7b
+docker compose -f compose.local.yaml exec ollama ollama list
+</code></pre>
+<p>These Docker commands work in PowerShell as well. Wait for the download to finish. In <strong>Settings → AI Configuration</strong>, select <strong>Ollama</strong>, Model ID <code>qwen2.5-coder:7b</code>, and URL <code>http://ollama:11434</code>, then save. No paid API key is needed. The first prompt may take longer while the model loads; CPU execution can be slow.</p>
+<p>Models remain in the Docker volume across normal restarts. You do not need a separate Windows/macOS Ollama application for this configuration.</p>
+<h3 id="option-b-a-hosted-or-existing-compatible-provider">Option B: a hosted or existing compatible provider</h3>
+<p>Skip the model download. In <strong>Settings → AI Configuration</strong>, choose OpenAI, Anthropic or Other / OpenAI-compatible and enter your own supported model ID, credentials and base URL when required. No paid account or API key is bundled. A compatible API URL uses the base path, such as <code>https://provider.example/v1</code>, without <code>/chat/completions</code>.</p>
+<p>Choosing a hosted provider does not automatically remove the Ollama service from the local Compose stack. Bi-Dash does not fall back to a paid provider if local AI fails.</p>
+<h3 id="verify-the-workflow">Verify the workflow</h3>
+<p>Save business definitions in <strong>Settings → AI Context</strong>. Try a small <strong>Ask AI</strong> question, then use <strong>Build dashboard</strong> with a permitted PostgreSQL/MySQL source and a small selection of relevant tables. Review generated SQL and results before publishing. See the <a href="/en/downloads/USER_GUIDE.html">User Guide</a> for detailed instructions.</p>
+<h2 id="8-stop-restart-inspect-and-update">8. Stop, restart, inspect and update</h2>
+<p>Run commands from the repository directory:</p>
+<pre><code class="language-bash"># Inspect services and recent application logs
+docker compose -f compose.local.yaml ps
+docker compose -f compose.local.yaml logs --tail 100 server worker
+
+# Stop containers while retaining persistent volumes
+docker compose -f compose.local.yaml down
+
+# Start an already initialized installation
+docker compose -f compose.local.yaml up -d
+</code></pre>
+<p>These commands also work in PowerShell. Do not add <code>--volumes</code> / <code>-v</code> to <code>down</code> unless you intend to delete persistent data, including reports and downloaded models.</p>
+<p>Before updating, back up the metadata database and private <code>.env</code>, check release/migration instructions and resolve local source changes. A normal application update is:</p>
+<pre><code class="language-bash">git pull --ff-only
+docker compose -f compose.local.yaml build server
+docker compose -f compose.local.yaml stop server worker scheduler
+docker compose -f compose.local.yaml run --rm server manage db upgrade
+docker compose -f compose.local.yaml up -d
+</code></pre>
+<p>The stop command pauses application writers during migration; schedule downtime for shared deployments. If migration fails, keep writers stopped and investigate before starting the new application. Never substitute <code>create_db</code> for migrations. Keep encryption secrets with your backup in protected storage. GitHub contains source code, not your accounts, reports, data or credentials.</p>
+<h2 id="9-troubleshooting">9. Troubleshooting</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Problem</th><th>Action</th></tr></thead><tbody><tr><td>Cannot connect to Docker</td><td>Start Docker Desktop or the Linux Docker daemon; confirm <code>docker version</code> shows a server</td></tr><tr><td><code>docker compose</code> is unavailable</td><td>Install Compose v2; Docker Desktop includes it</td></tr><tr><td>Windows script fails on cryptography methods</td><td>Run it in PowerShell 7, not Windows PowerShell 5.1</td></tr><tr><td>Build exits with code 137 or runs out of memory</td><td>Increase Docker memory, close other workloads and retry the build</td></tr><tr><td>Port 5001 is already in use</td><td>Stop the conflicting application, or consistently change the Compose host port and <code>REDASH_HOST</code></td></tr><tr><td>Browser cannot open the app</td><td>Check <code>ps</code> and server logs; allow startup to finish and use HTTP on port 5001</td></tr><tr><td>Remote computer cannot reach Bi-Dash</td><td>Expected for this local stack: it binds to loopback. Configure a separate secured deployment for shared access</td></tr><tr><td>AI reports model not found</td><td>Pull the exact Model ID and verify it with <code>ollama list</code></td></tr><tr><td>AI is slow or times out</td><td>Reduce selected tables/widgets/context and check available CPU/RAM; consider a hosted provider</td></tr><tr><td>Database tables appear but queries fail</td><td>Schema can be cached. Run Test Connection and verify the actual host, credentials and network access</td></tr><tr><td>Apple Silicon build fails</td><td>Record the failing dependency; try the documented AMD64 fallback if appropriate</td></tr></tbody></table>
+<p>Further references: <a href="/en/downloads/USER_GUIDE.html">User Guide</a>, <a href="/en/downloads/LOCAL_PROJECT.html">local implementation notes</a>, <a href="/en/downloads/AI_DASHBOARDS.html">AI dashboard builder</a> and <a href="/en/downloads/ACCESS_CONTROL.html">access controls</a>.</p></main></body></html>

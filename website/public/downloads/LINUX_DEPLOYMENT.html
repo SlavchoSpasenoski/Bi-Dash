@@ -1,0 +1,30 @@
+<!doctype html><html lang="mk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Linux сервер: инсталација и операции · Bi-Dash</title><link rel="icon" href="/assets/images/bi-dash-mark.svg"><link rel="stylesheet" href="/landing.css"><style>.doc{max-width:900px;padding:55px 0 90px}.doc h1{font-size:38px;margin:30px 0}.doc h2{font-size:27px;margin:40px 0 18px}.doc h3{font-size:21px;margin:28px 0 14px}.doc p{margin:16px 0}.doc a{color:#2563eb;text-decoration:underline}.doc pre{background:#191e29;border-radius:6px;padding:22px}.doc code{overflow-wrap:anywhere}.doc p code,.doc li code{background:#eef2f8;color:#273e66;padding:2px 5px}.doc table{display:block;overflow:auto;border-collapse:collapse;font-size:13px}.doc td,.doc th{border:1px solid #dce2ec;padding:10px;text-align:left}.doc li{margin-bottom:8px}.doc img{max-width:100%}.doc blockquote{border-left:3px solid #2563eb;margin:20px 0;padding:10px 20px;background:#f4f6fa}</style><link rel="alternate" hreflang="mk" href="/downloads/LINUX_DEPLOYMENT.html"><link rel="alternate" hreflang="en" href="/en/downloads/LINUX_DEPLOYMENT.html"><script src="/language.js" defer></script></head><body><header><div class="wrap nav"><a href="/"><img src="/assets/images/bi-dash-wordmark.svg" width="152" height="40" alt="Bi-Dash"></a><a href="/#download">← Преземања</a></div><div class="language-switch" role="group" aria-label="Избери јазик"><a href="/downloads/LINUX_DEPLOYMENT.html" data-language="mk" lang="mk" hreflang="mk" aria-label="Македонски" aria-current="page">МК</a><a href="/en/downloads/LINUX_DEPLOYMENT.html" data-language="en" lang="en" hreflang="en" aria-label="English">EN</a></div></header><main class="wrap doc"><h1 id="linux-сервер-инсталација-и-операции">Linux сервер: инсталација и операции</h1>
+<p>Серверската постапка е наменета за Linux x86-64 со Docker Engine, Buildx, Compose v2, Bash, Git и OpenSSL. Ubuntu 24.04 LTS е соодветна почетна околина. ARM64 и GPU инференција не се валидирани.</p>
+<p>Планирајте почетно 4 vCPU, 8 GB RAM и 60 GB диск без локален AI, па измерете ја реалната употреба. За локален AI планирајте најмалку 16 GB RAM на хостот и проверете ја одзивноста.</p>
+<h2 id="инсталација">Инсталација</h2>
+<p>Инсталирајте Docker според упатството за вашата дистрибуција. Вашата сметка мора да има соодветен пристап до Docker. Потоа:</p>
+<pre><code class="language-bash">git clone https://github.com/SlavchoSpasenoski/Bi-Dash.git
+cd Bi-Dash
+bash scripts/linux.sh install
+</code></pre>
+<p>Скриптата создава три независни тајни во <code>.env.linux</code> со ограничени дозволи. Апликацијата се гради во Docker. Повторен повик на <code>install</code> ги зачувува податоците и тајните и иницијализира само празна база; не мигрира постоечка шема. Не извршувајте повеќе инсталации истовремено.</p>
+<h2 id="приватен-пристап">Приватен пристап</h2>
+<p>На вашиот компјутер отворете SSH тунел, заменувајќи ги корисникот и серверот:</p>
+<pre><code class="language-bash">ssh -N -L 5001:127.0.0.1:5001 your-user@your-server
+</code></pre>
+<p>Отворете <code>http://localhost:5001/setup</code> за првиот администратор, а потоа <code>http://localhost:5001</code>. Чувајте го тунелот отворен додека работите. Апликацијата слуша само на loopback; портите на PostgreSQL, Redis и Ollama не се објавени.</p>
+<h2 id="ai-по-избор">AI по избор</h2>
+<pre><code class="language-bash">bash scripts/linux.sh ai
+</code></pre>
+<p>Ова го стартува Ollama и го презема <code>qwen2.5-coder:7b</code> во траен волумен. По <code>stop</code>, употребете <code>ai</code> повторно за да го стартувате Ollama. Нема конфигурирано GPU проследување. Можете да изберете надворешен провајдер во <strong>Settings → AI Configuration</strong>.</p>
+<h2 id="секојдневни-операции">Секојдневни операции</h2>
+<pre><code class="language-bash">bash scripts/linux.sh status
+bash scripts/linux.sh logs
+bash scripts/linux.sh stop
+bash scripts/linux.sh start
+bash scripts/linux.sh check
+</code></pre>
+<p><code>stop</code> ги зачувува волумените. Не користете <code>down -v</code> освен ако намерно ги бришете податоците.</p>
+<h2 id="резервни-копии-и-надградба">Резервни копии и надградба</h2>
+<p>Чувајте резервна копија на PostgreSQL <strong>и</strong> <code>.env.linux</code>. Оригиналниот клуч е потребен за зачуваните пристапни податоци. Не менувајте <code>POSTGRES_PASSWORD</code> на постоечки волумен без соодветна промена на лозинката на улогата во базата.</p>
+<p>Пред надградба направете резервна копија и следете ја <a href="/en/downloads/LINUX_DEPLOYMENT.html">деталната постапка за надградба и враќање (EN)</a>. Не мешајте ги <code>.env.linux</code> и <code>compose.linux.yaml</code> со локалниот стек.</p></main></body></html>
