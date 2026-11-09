@@ -99,7 +99,8 @@ class TestQueryResourcePost(BaseTestCase):
         self.assertEqual(rv.json["last_modified_by"]["id"], admin.id)
         self.assertEqual(rv.json["query"], data["query"])
         self.assertEqual(rv.json["data_source_id"], data["data_source_id"])
-        self.assertEqual(rv.json["latest_query_data_id"], data["latest_query_data_id"])
+        # Result associations are set by execution, never by client-supplied IDs.
+        self.assertIsNone(rv.json["latest_query_data_id"])
 
     def test_raises_error_in_case_of_conflict(self):
         q = self.factory.create_query()
@@ -257,6 +258,10 @@ class TestQueryListResourceGet(BaseTestCase):
 
 
 class TestQueryListResourcePost(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_schedule": True}}
+
     def test_create_query(self):
         query_data = {
             "name": "Testing",

@@ -86,7 +86,7 @@ def query_limits(user, org):
 
 
 def can_view_sql(user):
-    return bool(user.is_authenticated and not user.is_api_user() and user.has_permission("view_query"))
+    return bool(user and user.is_authenticated and not user.is_api_user() and user.has_permission("view_query"))
 
 
 def enforce_resource_policy(user, resource, method):

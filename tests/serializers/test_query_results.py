@@ -1,6 +1,8 @@
 import csv
 import io
 
+from flask_login import login_user
+
 from redash.serializers import (
     serialize_query_result,
     serialize_query_result_to_dsv,
@@ -26,8 +28,16 @@ data = {
 class QueryResultSerializationTest(BaseTestCase):
     def test_serializes_all_keys_for_authenticated_users(self):
         query_result = self.factory.create_query_result(data={})
-        serialized = serialize_query_result(query_result, False)
+        with self.app.test_request_context("/"):
+            login_user(self.factory.user)
+            serialized = serialize_query_result(query_result, False)
         self.assertSetEqual(set(query_result.to_dict().keys()), set(serialized.keys()))
+
+    def test_serialization_without_a_request_hides_sql(self):
+        query_result = self.factory.create_query_result(data={})
+        serialized = serialize_query_result(query_result, False)
+        self.assertNotIn("query", serialized)
+        self.assertNotIn("query_hash", serialized)
 
     def test_doesnt_serialize_sensitive_keys_for_unauthenticated_users(self):
         query_result = self.factory.create_query_result(data={})

@@ -57,8 +57,6 @@ def setup():
         return redirect("/")
 
     form = SetupForm(request.form)
-    form.newsletter.data = True
-    form.security_notifications.data = True
 
     if request.method == "POST" and form.validate():
         default_org, user = create_org(form.org_name.data, form.name.data, form.email.data, form.password.data)
@@ -67,8 +65,10 @@ def setup():
         login_user(user)
 
         # signup to newsletter if needed
-        if form.newsletter.data or form.security_notifications:
-            subscribe.delay(form.data)
+        if form.newsletter.data or form.security_notifications.data:
+            subscribe.delay({key: form.data[key] for key in (
+                "name", "email", "org_name", "security_notifications", "newsletter"
+            )})
 
         return redirect(url_for("redash.index", org_slug=None))
 

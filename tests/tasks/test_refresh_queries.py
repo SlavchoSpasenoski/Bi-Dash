@@ -8,6 +8,10 @@ ENQUEUE_QUERY = "redash.tasks.queries.maintenance.enqueue_query"
 
 
 class TestRefreshQuery(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_schedule": True}}
+
     def test_scheduled_query_metadata_uses_user_id(self):
         query = self.factory.create_query()
         with patch(ENQUEUE_QUERY) as enqueue, patch.object(Query, "outdated_queries", return_value=[query]):

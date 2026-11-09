@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 """Server-side AI clients with explicit providers for chat and validated dashboard plans."""
 
+import http.client
 import json
 import re
 import urllib.error
@@ -150,7 +151,7 @@ def ask_assistant(
     try:
         with open_provider_request(request, timeout=timeout) as response:
             result = json.load(response)
-    except (urllib.error.URLError, TimeoutError, ValueError) as error:
+    except (OSError, http.client.HTTPException, ValueError) as error:
         if isinstance(error, TimeoutError) or isinstance(getattr(error, "reason", None), TimeoutError):
             message = (
                 f"Local AI did not finish within {timeout} seconds. This is a timeout, not proof that Ollama stopped. "

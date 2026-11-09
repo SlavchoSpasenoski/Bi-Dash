@@ -32,6 +32,11 @@ def create_job(*args, **kwargs):
 @patch("redash.tasks.queries.execution.Job.fetch", side_effect=fetch_job)
 @patch("redash.tasks.queries.execution.Queue.enqueue", side_effect=create_job)
 class TestEnqueueTask(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        # These tests isolate queue deduplication from per-editor admission limits.
+        self.factory._user = self.factory.create_admin()
+
     def test_multiple_enqueue_of_same_query(self, enqueue, _):
         query = self.factory.create_query()
 
@@ -168,6 +173,10 @@ class TestEnqueueTask(BaseTestCase):
 
 @patch("redash.tasks.queries.execution.get_current_job", side_effect=fetch_job)
 class QueryExecutorTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_schedule": True}}
+
     def test_legacy_api_job_uses_query_identity_label(self, _):
         query = self.factory.create_query(query_text="SELECT 1")
         api_key = query.api_key

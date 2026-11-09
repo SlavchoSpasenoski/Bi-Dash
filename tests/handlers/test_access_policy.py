@@ -177,3 +177,11 @@ class TestAccessPolicy(BaseTestCase):
         self.assertNotIn("private_sql_marker", response.get_data(as_text=True))
         self.assertEqual(client.get(f"{prefix}/query_snippets", headers=headers).status_code, 403)
         self.assertEqual(client.get(f"{prefix}/data_sources/{query.data_source_id}/schema", headers=headers).status_code, 403)
+
+    def test_query_serialization_without_a_request_hides_sql_and_credentials(self):
+        from redash.serializers import serialize_query
+
+        query = self.factory.create_query(query_text="SELECT 'private_sql_marker'")
+        result = serialize_query(query)
+        for field in ("query", "query_hash", "api_key", "schedule"):
+            self.assertNotIn(field, result)

@@ -118,7 +118,9 @@ class TestUserListGet(BaseTestCase):
         return result
 
     def make_request_and_return_ids(self, *args, **kwargs):
+        kwargs.setdefault("user", self.factory.create_admin())
         rv = self.make_request(*args, **kwargs)
+        self.assertEqual(rv.status_code, 200)
         return [user["id"] for user in rv.json["results"]]
 
     def assertUsersListMatches(self, actual_ids, expected_ids, unexpected_ids):
@@ -236,7 +238,7 @@ class TestUserResourceGet(BaseTestCase):
         org = self.factory.create_org()
         other_user = self.factory.create_user(org=org)
 
-        rv = self.make_request("get", "/api/users/{}".format(other_user.id))
+        rv = self.make_request("get", "/api/users/{}".format(other_user.id), user=self.factory.create_admin())
         self.assertEqual(rv.status_code, 404)
 
 

@@ -1,5 +1,6 @@
 """Run with an isolated test database, as required by BaseTestCase."""
 
+from http.client import RemoteDisconnected
 from unittest.mock import patch
 
 from flask import g
@@ -71,3 +72,13 @@ class TestAiSettings(BaseTestCase):
     def test_context_validation(self):
         for context in (None, [], "x" * 24001):
             self.assertEqual(self.post("/api/settings/ai/context", {"context": context}).status_code, 400)
+
+    def test_provider_disconnect_returns_actionable_gateway_error(self):
+        self.post("/api/settings/ai", {
+            "provider": "compatible", "model": "test", "base_url": "http://local-ai:1234/v1",
+        })
+        with patch("redash.ai_assistant.open_provider_request", side_effect=RemoteDisconnected("private detail")):
+            response = self.post("/api/ai/chat", {"messages": [{"role": "user", "content": "SELECT 1"}]})
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("unavailable", response.json["message"])
+        self.assertNotIn("private detail", response.get_data(as_text=True))

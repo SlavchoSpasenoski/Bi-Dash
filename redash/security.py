@@ -36,7 +36,7 @@ def init_app(app):
 
         @app.before_request
         def check_csrf():
-            if not current_user.is_authenticated or "user_id" in session:
+            if not current_user.is_authenticated or "user_id" in session or "_user_id" in session:
                 csrf.protect(apply_exemptions=True)
 
     talisman.init_app(

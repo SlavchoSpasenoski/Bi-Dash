@@ -57,6 +57,7 @@ class TestDashboardResourceGet(BaseTestCase):
         self.assertResponseEqual(expected, actual)
 
     def test_returns_enabled_sharing_link_to_dashboard_viewers(self):
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_public_sharing": True}}
         d1 = self.factory.create_dashboard()
         ApiKey.create_for_object(d1, self.factory.user)
         db.session.commit()
@@ -188,6 +189,7 @@ class TestDashboardForkResourcePost(BaseTestCase):
 
 class TestDashboardResourceDelete(BaseTestCase):
     def test_delete_dashboard(self):
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_delete": True}}
         d = self.factory.create_dashboard()
 
         rv = self.make_request("delete", "/api/dashboards/{0}".format(d.id))
@@ -208,6 +210,10 @@ class TestDashboardResourceDelete(BaseTestCase):
 
 
 class TestDashboardShareResourcePost(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_public_sharing": True}}
+
     def test_creates_api_key(self):
         dashboard = self.factory.create_dashboard()
 
@@ -229,6 +235,10 @@ class TestDashboardShareResourcePost(BaseTestCase):
 
 
 class TestDashboardShareResourceDelete(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.factory.org.settings["access_policy"] = {"editor": {"allow_public_sharing": True}}
+
     def test_disables_api_key(self):
         dashboard = self.factory.create_dashboard()
         ApiKey.create_for_object(dashboard, self.factory.user)

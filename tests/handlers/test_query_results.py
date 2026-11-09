@@ -27,7 +27,7 @@ class TestQueryResultsCacheHeaders(BaseTestCase):
         query = self.factory.create_query(latest_query_data=query_result)
 
         rv = self.make_request("get", "/api/queries/{}/results.json".format(query.id))
-        self.assertNotIn("Cache-Control", rv.headers)
+        self.assertEqual(rv.headers["Cache-Control"], "private, no-store")
 
     def test_returns_404_if_no_cached_result_found(self):
         query = self.factory.create_query(latest_query_data=None)

@@ -66,6 +66,7 @@ class VisualizationResourceTest(BaseTestCase):
         self.make_request(
             "post",
             "/api/queries/{}/acl".format(query.id),
+            user=admin,
             data={"access_type": "modify", "user_id": other_user.id},
         )
         rv = self.make_request("post", "/api/visualizations", data=data, user=other_user)
@@ -97,6 +98,7 @@ class VisualizationResourceTest(BaseTestCase):
         self.make_request(
             "post",
             "/api/queries/{}/acl".format(vis.query_id),
+            user=admin,
             data={"access_type": "modify", "user_id": other_user.id},
         )
         rv = self.make_request("post", path, user=other_user, data=data)
@@ -131,6 +133,7 @@ class VisualizationResourceTest(BaseTestCase):
         self.make_request(
             "post",
             "/api/queries/{}/acl".format(vis.query_id),
+            user=admin,
             data={"access_type": "modify", "user_id": other_user.id},
         )
 

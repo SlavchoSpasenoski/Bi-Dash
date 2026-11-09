@@ -2,7 +2,9 @@
 import importlib.util
 import io
 import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from threading import Thread
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -13,6 +15,38 @@ spec.loader.exec_module(client)
 
 
 class AssistantTests(unittest.TestCase):
+    def test_provider_disconnects_and_truncated_responses_are_actionable(self):
+        class InterruptedProvider(BaseHTTPRequestHandler):
+            truncate = False
+
+            def do_POST(self):
+                self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                if self.truncate:
+                    self.send_response(200)
+                    self.send_header("Content-Length", "100")
+                    self.end_headers()
+                    self.wfile.write(b'{"message":')
+                self.close_connection = True
+
+            def log_message(self, *args):
+                pass
+
+        for truncate in (False, True):
+            for provider in ("ollama", "compatible"):
+                with self.subTest(truncate=truncate, provider=provider):
+                    InterruptedProvider.truncate = truncate
+                    with HTTPServer(("127.0.0.1", 0), InterruptedProvider) as server:
+                        worker = Thread(target=server.handle_request, daemon=True)
+                        worker.start()
+                        with self.assertRaises(client.AssistantError) as raised:
+                            client.ask_assistant("", "test", [{"role": "user", "content": "SELECT 1"}],
+                                                 provider=provider,
+                                                 base_url=f"http://127.0.0.1:{server.server_port}")
+                        worker.join(timeout=5)
+                        self.assertFalse(worker.is_alive())
+                        self.assertIn("unavailable", str(raised.exception))
+                        self.assertNotIsInstance(raised.exception, client.AssistantTimeoutError)
+
     def test_saved_prefix_and_schema_follow_history_next_to_current_question(self):
         response = {"message": {"content": "SELECT COUNT(*) FROM wnbe_users;"}}
         context = "The table prefix is wnbe_, not wp_.\nwnbe_users(ID, user_email)\nwnbe_wc_orders(id)"
