@@ -108,7 +108,7 @@ def enforce_resource_policy(user, resource, method):
         readable = {"DashboardListResource", "MyDashboardsResource", "DashboardResource", "DashboardTagsResource",
                     "DashboardFavoriteListResource", "QueryResultResource", "QueryResultDropdownResource",
                     "QueryDropdownsResource", "UserResource", "GroupListResource", "GroupResource",
-                    "CheckPermissionResource", "SessionResource", "OrganizationStatusResource"}
+                    "CheckPermissionResource", "SessionResource", "OrganizationStatusResource", "JobResource"}
         writable = {"QueryResultResource", "DashboardFavoriteResource", "EventsResource", "UserResource",
                     "UserRegenerateApiKeyResource"}
         allowed = readable if method in ("GET", "HEAD", "OPTIONS") else writable

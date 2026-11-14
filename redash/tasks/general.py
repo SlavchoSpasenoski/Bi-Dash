@@ -65,7 +65,16 @@ def send_mail(to, subject, html, text):
 def test_connection(data_source_id):
     try:
         data_source = models.DataSource.get_by_id(data_source_id)
-        data_source.query_runner.test_connection()
+        from redash.data_access_runtime import DataAccessDenied, is_internal, is_protected
+        if is_internal(data_source):
+            raise DataAccessDenied("Retired private connections cannot be tested.")
+        if is_protected(data_source):
+            if data_source.type != "mysql":
+                raise DataAccessDenied("Protected connection tests require the mysql connector.")
+            from redash.data_access_shared import validate_shared_source
+            validate_shared_source(data_source)
+        else:
+            data_source.query_runner.test_connection()
     except Exception as e:
         return e
     else:
@@ -76,6 +85,9 @@ def test_connection(data_source_id):
 def get_schema(data_source_id, refresh):
     try:
         data_source = models.DataSource.get_by_id(data_source_id)
+        from redash.data_access_runtime import is_protected
+        if is_protected(data_source):
+            return {"error": {"code": 3, "message": "Protected schemas require an assigned user profile."}}
         return data_source.get_schema(refresh)
     except NotSupported:
         return {

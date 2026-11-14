@@ -9,6 +9,10 @@ logger = get_job_logger(__name__)
 
 
 def notify_subscriptions(alert, new_state, metadata):
+    from redash.data_access_runtime import is_protected, is_internal
+    source = alert.query_rel.data_source
+    if source and (is_protected(source) or is_internal(source)):
+        return
     host = utils.base_url(alert.query_rel.org)
     for subscription in alert.subscriptions:
         try:
@@ -30,6 +34,9 @@ def check_alerts_for_query(query_id, metadata):
     logger.debug("Checking query %d for alerts", query_id)
 
     query = models.Query.query.get(query_id)
+    from redash.data_access_runtime import is_protected, is_internal
+    if query.data_source and (is_protected(query.data_source) or is_internal(query.data_source)):
+        return
 
     for alert in query.alerts:
         logger.info("Checking alert (%d) of query %d.", alert.id, query_id)

@@ -85,7 +85,7 @@ def ask_assistant(
             '{"title":"...","description":"...","widgets":[{"title":"...","sql":"SELECT ...",'
             '"visualization":"table|bar|line|pie|counter","x":"result_column_alias","y":["numeric_alias"]}]}. '
             "Use 1 to 6 widgets. Each SQL must be a single read-only SELECT or WITH ... SELECT, without comments, "
-            "parameters, locking, schema changes or commands. Use explicit output aliases. Do not add LIMIT unless the user explicitly requests a top-N or a row limit. "
+            "locking, schema changes or commands. Use explicit output aliases. Do not add LIMIT unless the user explicitly requests a top-N or a row limit. "
             "Use only standard reporting functions: count, sum, avg, min, max, coalesce, nullif, round, "
             "date_trunc, date_format, from_unixtime, year, month, date, cast, concat, lower, upper. "
             "For charts x and y must exactly match SQL output aliases. Every counter MUST include y as an array "
@@ -93,6 +93,14 @@ def ask_assistant(
             'Counter example: {"title":"Revenue","description":"Sum of sales","widgets":[{"title":"Total revenue",'
             '"sql":"SELECT SUM(total) AS revenue FROM demo_orders","visualization":"counter","x":"","y":["revenue"]}]}. '
             "This is a format example only: use the actual supplied schema for the user's report. "
+            "When the user requests a selectable date range, include a parameters array on each affected widget: "
+            '{"name":"date_range","title":"Date range","type":"date-range"}. '
+            "Use the same parameter name across widgets for one dashboard filter. "
+            "Use quoted placeholders '{{date_range.start}}' and '{{date_range.end}}' in SQL predicates. "
+            "For timestamp columns include the entire last day (MySQL: >= '{{date_range.start}}' "
+            "AND < DATE_ADD('{{date_range.end}}', INTERVAL 1 DAY)). "
+            "Omit value for a default of the last 30 days; or provide value with ISO start/end dates. "
+            "No other parameter types or template syntax are supported. If requested date filtering is ambiguous ask for clarification. "
             "Use the user's language for titles and descriptions. Do not claim queries have run."
         )
     conversation = validate_messages(messages)

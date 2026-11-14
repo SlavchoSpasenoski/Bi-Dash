@@ -276,6 +276,9 @@ class DataSource(BelongsToOrgMixin, db.Model):
 
     @property
     def query_runner(self):
+        from redash.data_access_runtime import is_protected, ProtectedRunner
+        if is_protected(self):
+            return ProtectedRunner(self)
         query_runner = get_query_runner(self.type, self.options)
 
         if self.uses_ssh_tunnel:
@@ -316,6 +319,7 @@ class QueryResult(db.Model, BelongsToOrgMixin):
     data_source_id = Column(key_type("DataSource"), db.ForeignKey("data_sources.id"))
     data_source = db.relationship(DataSource, backref=backref("query_results"))
     query_hash = Column(db.String(32), index=True)
+    policy_scope = Column(db.String(64), nullable=True, index=True)
     query_text = Column("query", db.Text)
     data = Column(JSONText, nullable=True)
     runtime = Column(DOUBLE_PRECISION)
@@ -345,7 +349,7 @@ class QueryResult(db.Model, BelongsToOrgMixin):
         )
 
     @classmethod
-    def get_latest(cls, data_source, query, max_age=0):
+    def get_latest(cls, data_source, query, max_age=0, policy_scope=None, any_policy_scope=False):
         query_hash = gen_query_hash(query)
 
         if max_age == -1 and settings.QUERY_RESULTS_EXPIRED_TTL_ENABLED:
@@ -363,13 +367,16 @@ class QueryResult(db.Model, BelongsToOrgMixin):
                 ),
             )
 
+        if not any_policy_scope:
+            query = query.filter(cls.policy_scope == policy_scope)
         return query.order_by(cls.retrieved_at.desc()).first()
 
     @classmethod
-    def store_result(cls, org, data_source, query_hash, query, data, run_time, retrieved_at):
+    def store_result(cls, org, data_source, query_hash, query, data, run_time, retrieved_at, policy_scope=None):
         query_result = cls(
             org_id=org,
             query_hash=query_hash,
+            policy_scope=policy_scope,
             query_text=query,
             runtime=run_time,
             # Set the id rather than the relationship: the caller's data source may be
@@ -1142,7 +1149,13 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
         return utils.slugify(self.name)
 
     @classmethod
-    def all(cls, org, group_ids, user_id):
+    def all(cls, org, group_ids, user_id, include_all=False):
+        # Only trusted administrator callers opt out of group/owner/draft
+        # visibility. Organization and archive boundaries still apply.
+        if include_all:
+            return Dashboard.query.options(
+                joinedload(Dashboard.user).load_only(User.id, User.name, User.details, User.email)
+            ).filter(Dashboard.org == org, Dashboard.is_archived.is_(False))
         query = (
             Dashboard.query.options(joinedload(Dashboard.user).load_only(User.id, User.name, User.details, User.email))
             .distinct(cls.lowercase_name, Dashboard.created_at, Dashboard.slug)
@@ -1162,9 +1175,9 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
         return query
 
     @classmethod
-    def search(cls, org, groups_ids, user_id, search_term):
+    def search(cls, org, groups_ids, user_id, search_term, include_all=False):
         # TODO: switch to FTS
-        return cls.all(org, groups_ids, user_id).filter(cls.name.ilike("%{}%".format(search_term)))
+        return cls.all(org, groups_ids, user_id, include_all=include_all).filter(cls.name.ilike("%{}%".format(search_term)))
 
     @classmethod
     def search_by_user(cls, term, user, limit=None):
@@ -1172,7 +1185,7 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
 
     @classmethod
     def all_tags(cls, org, user):
-        dashboards = cls.all(org, user.group_ids, user.id)
+        dashboards = cls.all(org, user.group_ids, user.id, include_all=user.has_permission("admin"))
 
         tag_column = func.unnest(cls.tags).label("tag")
         usage_count = func.count(1).label("usage_count")
@@ -1188,7 +1201,7 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
     @classmethod
     def favorites(cls, user, base_query=None):
         if base_query is None:
-            base_query = cls.all(user.org, user.group_ids, user.id)
+            base_query = cls.all(user.org, user.group_ids, user.id, include_all=user.has_permission("admin"))
         return (
             base_query.distinct(cls.lowercase_name, Dashboard.created_at, Dashboard.slug, Favorite.created_at)
             .join(
@@ -1203,7 +1216,7 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
 
     @classmethod
     def by_user(cls, user):
-        return cls.all(user.org, user.group_ids, user.id).filter(Dashboard.user == user)
+        return cls.all(user.org, user.group_ids, user.id, include_all=user.has_permission("admin")).filter(Dashboard.user == user)
 
     @classmethod
     def get_by_slug_and_org(cls, slug, org):

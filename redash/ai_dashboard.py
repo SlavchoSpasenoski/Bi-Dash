@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 """Validated reporting plans. Model output never supplies application code or options."""
 
+from datetime import date, timedelta
 import json
 import re
 
@@ -56,6 +57,42 @@ def text(value, label, limit):
     return value.strip()
 
 
+def reporting_parameters(sql, definitions):
+    """Only typed date ranges may be supplied by a dashboard plan."""
+    if not isinstance(sql, str) or not isinstance(definitions, list) or len(definitions) > 4:
+        raise ValueError("Invalid date range parameters in AI plan.")
+    parameters, names = [], set()
+    rendered = sql
+    for definition in definitions:
+        if not isinstance(definition, dict):
+            raise ValueError("Invalid date range parameter.")
+        name = definition.get("name")
+        if (not isinstance(name, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,63}", name)
+                or name in names or definition.get("type") != "date-range"):
+            raise ValueError("AI reports support unique, typed date-range parameters only.")
+        names.add(name)
+        value = definition.get("value", {"start": (date.today() - timedelta(days=30)).isoformat(),
+                                         "end": date.today().isoformat()})
+        try:
+            if (not isinstance(value, dict) or set(value) != {"start", "end"}
+                    or any(not isinstance(v, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v) for v in value.values())
+                    or date.fromisoformat(value["start"]) > date.fromisoformat(value["end"])):
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ValueError("Date ranges need valid YYYY-MM-DD start/end defaults in order.")
+        for field in ("start", "end"):
+            pattern = r"'{{\s*" + re.escape(name) + r"\." + field + r"\s*}}'"
+            if not re.search(pattern, rendered):
+                raise ValueError("Use both quoted date range placeholders in the query.")
+            rendered = re.sub(pattern, "'" + value[field] + "'", rendered)
+        parameters.append({"name": name, "title": text(definition.get("title", name), "parameter title", 100),
+                           "type": "date-range", "value": dict(value), "global": True})
+    if "{{" in rendered or "}}" in rendered:
+        raise ValueError("Undeclared or unsupported SQL parameter placeholder.")
+    validate_readonly_sql(rendered)
+    return sql.strip().rstrip(";").strip(), parameters
+
+
 def parse_plan(answer):
     if not isinstance(answer, str) or len(answer) > 100000:
         raise ValueError("The AI dashboard plan is too large.")
@@ -75,6 +112,7 @@ def parse_plan(answer):
         raise ValueError("A dashboard must contain between 1 and 6 visualizations.")
     result = {"title": text(plan.get("title"), "dashboard title", 200),
               "description": str(plan.get("description", ""))[:4000], "widgets": []}
+    shared_parameters = {}
     for widget in widgets:
         if not isinstance(widget, dict) or widget.get("visualization") not in ("table", "bar", "line", "pie", "counter"):
             raise ValueError("Unsupported visualization in AI dashboard plan.")
@@ -88,9 +126,13 @@ def parse_plan(answer):
             raise ValueError("Charts require a category/time column and numeric value aliases.")
         if kind == "counter" and len(y) != 1:
             raise ValueError("Counters require one numeric result alias.")
-        sql = validate_readonly_sql(widget.get("sql"))
+        sql, parameters = reporting_parameters(widget.get("sql"), widget.get("parameters", []))
+        for parameter in parameters:
+            previous = shared_parameters.setdefault(parameter["name"], parameter["value"])
+            if previous != parameter["value"]:
+                raise ValueError("Shared dashboard date parameters must have identical defaults.")
         result["widgets"].append({"title": text(widget.get("title"), "visualization title", 200),
-                                  "sql": sql, "visualization": kind, "x": x, "y": y})
+                                  "sql": sql, "parameters": parameters, "visualization": kind, "x": x, "y": y})
     return result
 
 
@@ -106,9 +148,15 @@ def visualization_options(widget):
 
 
 def reference_schema(schema, selected, dialect):
-    if not isinstance(selected, list) or not 1 <= len(selected) <= 12 or any(not isinstance(t, str) for t in selected):
-        raise ValueError("Choose between 1 and 12 relevant tables.")
+    if selected is None:
+        selected = []
+    if not isinstance(selected, list) or any(not isinstance(t, str) for t in selected):
+        raise ValueError("Selected tables must be a list of table names.")
     tables = {table["name"]: table for table in schema}
+    if not selected:
+        selected = list(tables)
+    if not selected:
+        raise ValueError("No tables are available in this data source. Refresh its schema.")
     if any(name not in tables for name in selected):
         raise ValueError("A selected table is not present in this data source's cached schema. Refresh the schema.")
     lines = ["SQL dialect: " + ("MySQL / MariaDB" if dialect == "mysql" else "PostgreSQL")]
@@ -118,5 +166,5 @@ def reference_schema(schema, selected, dialect):
         lines.append(name + "(" + ", ".join(names) + ")")
     reference = "\n".join(lines)
     if len(reference) > 16000:
-        raise ValueError("The selected schema is too large. Choose fewer tables.")
+        raise ValueError("The table definitions exceed the AI context size limit. Select fewer tables; no tables were silently omitted.")
     return reference

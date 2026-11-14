@@ -32,6 +32,18 @@ def ai_configuration(org):
         abort(503, message=str(error))
 
 
+def require_unprotected_ai(org, ai_user=None):
+    # Organization-wide context cannot yet be separated into access-profile scopes.
+    if org.settings.get("data_access_protected_sources"):
+        # Administrators may use shared context. Builders must additionally
+        # bind generated queries to the current access scope when saving.
+        if (ai_user is not None and not ai_user.is_api_user()
+                and not ai_user.is_disabled and ai_user.org_id == org.id
+                and ai_user.has_permission("admin")):
+            return
+        abort(403, message="AI is unavailable while protected data sources are configured; profile-scoped AI context is not supported yet.")
+
+
 class AssistantSettingsResource(BaseResource):
     @require_admin
     def get(self):
@@ -73,6 +85,7 @@ class AssistantContextResource(BaseResource):
 class AssistantResource(BaseResource):
     @require_permission("use_ai")
     def get(self):
+        require_unprotected_ai(self.current_org, ai_user=self.current_user)
         configuration = ai_configuration(self.current_org)
         return {key: configuration[key] for key in ("provider", "model", "enabled", "timeout_seconds")} | {
             "has_context": bool(self.current_org.settings.get("ai_context")),
@@ -82,6 +95,7 @@ class AssistantResource(BaseResource):
     @require_permission("use_ai")
     @limiter.limit("10/minute")
     def post(self):
+        require_unprotected_ai(self.current_org, ai_user=self.current_user)
         body = json_body()
         configuration = ai_configuration(self.current_org)
         if not configuration["enabled"]:

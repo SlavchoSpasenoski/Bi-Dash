@@ -46,6 +46,10 @@ def extract_cached_query_ids(query):
 def _load_query(user, query_id):
     query = models.Query.get_by_id(query_id)
 
+    from redash.data_access_runtime import is_protected
+    if query.data_source is not None and is_protected(query.data_source):
+        raise PermissionError("Protected sources cannot be used through Query Results dependencies.")
+
     if user.org_id != query.org_id:
         raise PermissionError("Query id {} not found.".format(query.id))
 

@@ -16,6 +16,34 @@ class TestDashboardListResource(BaseTestCase):
 
 
 class TestDashboardListGetResource(BaseTestCase):
+    def test_admin_list_search_tags_and_favorites_include_other_owners_drafts(self):
+        admin=self.factory.create_admin()
+        owner=self.factory.create_user()
+        draft=self.factory.create_dashboard(user=owner,name="Admin visibility draft",is_draft=True,tags=["private-draft"])
+        empty=self.factory.create_dashboard(user=owner,name="Admin visibility empty")
+        archived=self.factory.create_dashboard(user=owner,name="Admin visibility archived",is_archived=True)
+        foreign=self.factory.create_dashboard(org=self.factory.create_org(),name="Admin visibility foreign")
+        db.session.commit()
+        from redash.models import Favorite
+        db.session.add(Favorite(user=admin,object=draft,org_id=self.factory.org.id))
+        db.session.commit()
+        for path in ("/api/dashboards","/api/dashboards?q=Admin%20visibility"):
+            response=self.make_request("get",path,user=admin)
+            self.assertEqual(response.status_code,200,response.get_data()[:200])
+            ids={item["id"] for item in response.json["results"]}
+            self.assertTrue({draft.id,empty.id}.issubset(ids))
+            self.assertNotIn(archived.id,ids)
+            self.assertNotIn(foreign.id,ids)
+        response=self.make_request("get","/api/dashboards/tags",user=admin)
+        self.assertIn("private-draft",[tag["name"] for tag in response.json["tags"]])
+        for path in ("/api/dashboards/favorites","/api/dashboards/favorites?q=Admin%20visibility"):
+            response=self.make_request("get",path,user=admin)
+            self.assertEqual(response.status_code,200,response.get_data()[:200])
+            self.assertIn(draft.id,[item["id"] for item in response.json["results"]])
+        outsider=self.factory.create_user(details={"role":"editor"})
+        response=self.make_request("get","/api/dashboards?include_all=true",user=outsider)
+        self.assertNotIn(draft.id,[item["id"] for item in response.json["results"]])
+
     def test_returns_dashboards(self):
         d1 = self.factory.create_dashboard()
         d2 = self.factory.create_dashboard()

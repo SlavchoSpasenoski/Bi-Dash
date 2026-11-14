@@ -1,0 +1,61 @@
+# Bi-Dash shared project context
+
+Last updated: 2026-11-15.
+
+## Purpose and provenance
+
+Bi-Dash is a business intelligence workspace based on Redash, customized with AI assistance, access controls, branding, deployment tooling and bilingual documentation/marketing content. This workspace is `Redash-customization`; README identifies the public repository as `SlavchoSpasenoski/Bi-Dash`.
+
+This context was reconstructed from repository documentation and Git history, plus the current chat. It is not an import of previous chats. Requirements or decisions that exist only in other chats remain unknown until recorded here. `LOCAL_PROJECT.md` describes the original upstream source-archive import; the current workspace has Git history.
+
+## Documented capabilities and decisions
+
+- Connect data sources, write queries, create charts and interactive dashboards.
+- AI chat drafts SQL. AI Build dashboard creates saved draft queries, visualizations and dashboard layouts for PostgreSQL and MySQL/MariaDB.
+- Default AI is local Ollama with `qwen2.5-coder:7b`. Organization administrators can select OpenAI, Anthropic or an OpenAI-compatible endpoint and save shared AI context. Each installation uses its own credentials.
+- Admin, Editor and Reader access policies include export permissions and query limits.
+- AI dashboard queries retain read-only execution and timeout controls. The later row-limit correction supersedes older text describing a mandatory 1,000-row cap: generated queries default to `apply_auto_limit: false`; optional editor limits and requested top-N behavior remain available.
+- Identity uses the Rising Signal logo, blue actions, yellow accents and anthracite navigation. Preserve BSD-2-Clause licensing and upstream notices; original Bi-Dash contributions are attributed to Slavcho Spasenoski.
+- Local deployment uses Docker with persistent PostgreSQL, Redis, workers, scheduler and Ollama. Documented local app address is `http://localhost:5001`; live availability must be checked when needed.
+- There are private Linux and public-domain HTTPS deployment workflows. Instructions and successful local checks do not establish that a public deployment exists.
+- Marketing pages and guides support Macedonian and English. Website publication was previously recorded as blocked; this context setup does not authorize publication.
+
+## Code and documentation map
+
+| Topic | Main sources |
+| --- | --- |
+| Overview and local operation | `README.md`, `LOCAL_PROJECT.md`, `INSTALLATION.md` |
+| Product usage | `USER_GUIDE.md`, `USER_GUIDE.mk.md` |
+| AI | `AI_DASHBOARDS.md`, `redash/ai_assistant.py`, `redash/ai_dashboard.py`, `redash/ai_settings.py`, `tests_local/` |
+| Roles and access | `ACCESS_CONTROL.md`, `redash/access_policy.py`, `redash/permissions.py` |
+| Backend / frontend / charts | `redash/`, `client/`, `viz-lib/` |
+| Branding and licensing | `BRANDING.md`, `branding/`, `LICENSE`, `NOTICE`, `COPYRIGHT.md` |
+| Deployment | `compose.local.yaml`, `compose.linux.yaml`, `compose.public.yaml`, `scripts/`, `LINUX_DEPLOYMENT.md`, `PUBLIC_DEPLOYMENT.md` |
+| Website | `website/bi-dash-site/README.md`, `website/bi-dash-site/`, `website/scripts/`, `website/public/` |
+| Historical verification | `VERIFICATION.md` |
+
+The frontend uses React/TypeScript with pnpm; the backend is Python/Flask with worker jobs. The documentation website uses Astro/Starlight alongside the standalone Bi-Dash landing-page sources. `website/MIGRATION_PLAN.md` contains inherited upstream planning and must not be assumed to describe current Bi-Dash priorities.
+
+## Continuity agreement
+
+Protected source maintenance (2026-11-15): Admin can edit/test an existing protected MySQL connection. Candidate settings are SELECT-only validated before persistence; validation failure keeps prior settings, connector type cannot change, and retired private sources remain denied. Source ID/rules stay stable while connection-keyed scopes invalidate old Editor results/jobs and schema cache is cleared. This replaces the obsolete immutable-source/activation gate. See DATA_ACCESS.md and tests/handlers/test_protected_source_updates.py.
+
+MySQL package recognition correction (2026-11-14): supported MySQL 8.0/8.4 includes Ubuntu-distributed upstream packages with a matching Ubuntu version suffix and Ubuntu server comment. An earlier detector incorrectly required the word MySQL in version_comment and rejected FreeDB's 8.0.46 Ubuntu server despite successful authentication. Percona/Aurora and unsupported versions remain rejected. SELECT-only/session/column enforcement is unchanged. Live FreeDB SELECT 1 and the actual Test Connection API/RQ worker passed after local rebuild; see STATUS.md.
+
+New approved roadmap (2026-11-14): see ROADMAP.md for ordered scheduled delivery and acceptance criteria. First verify current functionality and, if checks pass, commit/push the verified baseline to GitHub. Then enable access-scoped Editor AI under Admin-managed data rules, followed by per-user dashboard visibility for Editors/Readers, Admin visibility management, owner-Editor sharing and owner-only content edits. These are approved requirements, not implemented behavior; earlier Reader-ACL deferral and protected-source Admin-only AI describe the current implementation, not the new target. The user reports a replacement data source now works; this needs new live verification. Commit/push authorization applies to roadmap task 1 only.
+
+Data-access direction corrected on 2026-11-09 at the user's explicit request: remove separate DB accounts/private-profile activation. Required model is one existing shared data source with schema/table/column allowlists managed in Bi-Dash and assigned to groups; users receive rules through group membership. New group rules apply on Save, no prepared connection. Initial execution support targets MySQL 8.0/8.4 and MariaDB 10.6 only; other engines must not be advertised as enforced until audited adapters exist.
+
+The replacement implementation uses conservative AST authorization/canonical SQL with explicit projected base-table wrappers, default-deny Editor access without group rules on protected sources, union of matching group allowlists and immutable permission scopes for queries/results/cache/jobs. Administrators are trusted and can read all same-organization non-retired saved queries/results, including legacy unscoped reports and results from other permission scopes. New administrator execution still receives its own scope; Editor cache/result/job checks remain exact-scope. Saved query definitions may cross Editor scopes when the recipient's allowed schema validates their SQL dependencies. Admin dashboard listing/search/tags/favorites includes all non-archived dashboards in the same organization, including other owners' drafts and dashboards outside the Admin's source-group memberships. My Dashboards remains owner-only. This does not expose other organizations or restore archived records. Never require a legacy query to have an administrator scope marker merely to be listed or opened. User correction on 2026-11-10: the existing account has full DB permissions and must be accepted unchanged. Every submitted MySQL query, including admin/unprotected-source execution, uses closed canonical SELECT-only compilation and a read-only session. No grants audit or per-policy account is required. Data source/schema/table/column rules apply only to Editors. Readers retain existing source-group-authorized report/result access and may refresh server-stored dashboard queries with typed parameters on MySQL/MariaDB and PostgreSQL; they cannot submit arbitrary SQL; per-Reader dashboard visibility is a separate future feature, with no new dashboard grants introduced here. Existing drafts are retained for editing, not automatically activated. Protected-source tombstones and retired private IDs prevent fallback to old broad access. See DATA_ACCESS.md for SQL subset, sharing boundaries, migration and disabled derived/AI/public paths; STATUS.md records actual validation and deployment.
+
+AI access clarification (2026-11-10): with protected sources configured, active same-organization administrators using user authentication can use Ask AI chat, which returns text without executing SQL or saving resources. Other users remain blocked pending access-scoped context. AI Build dashboard is also available to those administrators; generated queries use scope_query_options before persistence and permissions are rechecked after generation. Editor/Reader AI remains blocked with protected sources. Builder table selection has no count cap; empty or omitted selection includes all cached tables, with explicit schema/combined context size limits and no silent truncation. See AI_DASHBOARDS.md.
+
+AI builder date ranges (2026-11-10): widget plans support typed date-range definitions with quoted start/end placeholders, ISO defaults (last 30 days when omitted), dashboard-level mappings and initial execution values. Arbitrary text/undeclared parameters are rejected; existing dashboards are not retrofitted. SQL compiler resolves GROUP BY output aliases explicitly while preserving forbidden-column checks in WHERE; never enable general alias expansion without checking its WHERE behavior.
+
+Reader refresh (2026-11-10): dashboard widgets send dashboard_id with saved-query result requests. A dedicated Reader authorization branch verifies current dashboard visibility, widget/query membership, source permissions, typed parameters and read-only SQL. Queue/worker/job polling revalidate a server-generated report scope; arbitrary execution remains denied and Reader permissions do not gain execute_query. MySQL/MariaDB uses the existing canonical SELECT-only/read-only adapter; PostgreSQL uses read-only transactions. Report jobs share normal limits, keep separate scoped results and never update shared query result pointers or alerts. Other connectors and unsafe text parameters remain unsupported. See ACCESS_CONTROL.md and redash/reader_reports.py.
+
+Authorization audit (2026-11-10): see PERMISSIONS_AUDIT.md for confirmed current behavior and unresolved defects. Reader per-dashboard read grants are not implemented; source groups expose same-source published reports, and direct draft/archive links/results do not form a dashboard privacy boundary. The initial mixed-scope widget serialization and query-count defects have now been fixed by the Editor sharing update below. No new permission precedence or ACL was applied in the audit.
+
+Editor sharing implemented (2026-11-10, user-authorized): redash/data_access_reports.py authorizes cross-profile saved MySQL/MariaDB query definitions using recipient SQL dependencies, instead of full author/viewer fingerprint equality. Cache/jobs/results/exports stay recipient-scoped; owner/edit permissions stay separate. Same-profile definitions preserve compatibility. Cross-profile reports require explicit columns (COUNT(*) allowed), typed date/number/value-enum parameters, and no conditional/text/query-dropdown/dynamic-identifier templates. Restricted widgets expose only position metadata and no longer abort the whole dashboard; protected definition checks run before query list pagination/counting. No Reader dashboard ACL or group-priority change was introduced. See DATA_ACCESS.md and STATUS.md for actual checks.
+
+The user requested shared project context so new chats in this project do not require repeated summaries. `AGENTS.md` directs future agents to read this file and `STATUS.md`, then maintain them as work progresses. Shared files must be available in the checkout used by the new chat; separate worktrees or machines need the corresponding changes synchronized.

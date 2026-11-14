@@ -13,6 +13,7 @@ from redash.handlers.alerts import (
 from redash.handlers.base import org_scoped_rule
 from redash.handlers.ai import AssistantContextResource, AssistantResource, AssistantSettingsResource
 from redash.handlers.access_policy import AccessPolicyResource, UserAccessResource
+from redash.handlers.data_access import DataAccessEffectiveResource, DataAccessMetadataResource, DataAccessResource
 from redash.handlers.ai_dashboards import AssistantDashboardResource
 from redash.handlers.dashboards import (
     DashboardFavoriteListResource,
@@ -111,6 +112,9 @@ api.add_org_resource(AssistantResource, "/api/ai/chat", endpoint="ai_chat")
 api.add_org_resource(AssistantDashboardResource, "/api/ai/dashboards", endpoint="ai_dashboards")
 api.add_org_resource(AccessPolicyResource, "/api/settings/access-policy", endpoint="access_policy")
 api.add_org_resource(UserAccessResource, "/api/users/<int:user_id>/access", endpoint="user_access")
+api.add_org_resource(DataAccessResource, "/api/settings/data-access", endpoint="data_access")
+api.add_org_resource(DataAccessEffectiveResource, "/api/settings/data-access/effective", endpoint="data_access_effective")
+api.add_org_resource(DataAccessMetadataResource, "/api/settings/data-access/metadata", endpoint="data_access_metadata")
 api.add_org_resource(AssistantSettingsResource, "/api/settings/ai", endpoint="ai_settings")
 api.add_org_resource(AssistantContextResource, "/api/settings/ai/context", endpoint="ai_context")
 

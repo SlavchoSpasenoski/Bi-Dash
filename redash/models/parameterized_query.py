@@ -22,6 +22,20 @@ def _load_result(query_id, org):
 
     query = models.Query.get_by_id_and_org(query_id, org)
 
+    from redash.data_access_runtime import is_protected, can_read_all_scopes
+    if query.data_source is not None and is_protected(query.data_source):
+        from flask import has_request_context
+        from flask_login import current_user
+        if has_request_context() and can_read_all_scopes(current_user):
+            from redash.permissions import require_access, view_only
+            require_access(query.data_source, current_user, view_only)
+            text = query.data_source.query_runner.apply_auto_limit(query.query_text, query.options.get("apply_auto_limit", False))
+            result = models.QueryResult.get_latest(query.data_source, text, -1, any_policy_scope=True)
+            if result is None:
+                raise InvalidParameterError("No saved dropdown result is available.")
+            return result.data
+        raise InvalidParameterError("Protected sources do not support query dropdown dependencies.")
+
     if query.data_source:
         query_result = models.QueryResult.get_by_id_and_org(query.latest_query_data_id, org)
         return query_result.data

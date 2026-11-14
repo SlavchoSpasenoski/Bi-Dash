@@ -129,6 +129,9 @@ class GroupDataSourceListResource(BaseResource):
     def post(self, group_id):
         data_source_id = request.json["data_source_id"]
         data_source = models.DataSource.get_by_id_and_org(data_source_id, self.current_org)
+        from redash.data_access_runtime import is_internal
+        if is_internal(data_source):
+            abort(403, message="Private data-access profiles cannot be assigned through source groups.")
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
 
         data_source_group = data_source.add_group(group)
@@ -156,13 +159,17 @@ class GroupDataSourceListResource(BaseResource):
 
         self.record_event({"action": "list", "object_id": group_id, "object_type": "group"})
 
-        return [ds.to_dict(with_permissions_for=group) for ds in data_sources]
+        from redash.data_access_runtime import is_internal
+        return [ds.to_dict(with_permissions_for=group) for ds in data_sources if not is_internal(ds)]
 
 
 class GroupDataSourceResource(BaseResource):
     @require_admin
     def post(self, group_id, data_source_id):
         data_source = models.DataSource.get_by_id_and_org(data_source_id, self.current_org)
+        from redash.data_access_runtime import is_internal
+        if is_internal(data_source):
+            abort(403, message="Private data-access profiles cannot be changed through source groups.")
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
         view_only = request.json["view_only"]
 

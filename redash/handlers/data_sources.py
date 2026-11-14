@@ -1,5 +1,7 @@
+import copy
 import logging
 import time
+from types import SimpleNamespace
 
 from flask import make_response, request
 from flask_restful import abort
@@ -7,6 +9,7 @@ from funcy import project
 from sqlalchemy.exc import IntegrityError
 
 from redash import models
+from redash.data_access_runtime import is_internal, is_protected, resolve_source
 from redash.handlers.base import (
     BaseResource,
     get_object_or_404,
@@ -38,6 +41,8 @@ class DataSourceTypeListResource(BaseResource):
 class DataSourceResource(BaseResource):
     def get(self, data_source_id):
         data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
+        if is_internal(data_source):
+            abort(404)
         require_access(data_source, self.current_user, view_only)
 
         ds = {}
@@ -52,18 +57,33 @@ class DataSourceResource(BaseResource):
 
     @require_admin
     def post(self, data_source_id):
-        data_source = models.DataSource.get_by_id_and_org(data_source_id, self.current_org)
+        data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
+        if is_internal(data_source):
+            abort(400, message="Retired private connections cannot be updated.")
+        protected = is_protected(data_source)
         req = request.get_json(True)
+        if protected and (data_source.type != "mysql" or req.get("type") != "mysql"):
+            abort(400, message="Protected data sources must keep the mysql connector.")
 
         schema = get_configuration_schema_for_query_runner_type(req["type"])
         if schema is None:
             abort(400)
         try:
-            data_source.options.set_schema(schema)
-            data_source.options.update(filter_none(req["options"]))
+            options = ConfigurationContainer(copy.deepcopy(data_source.options.to_dict()), schema)
+            options.update(filter_none(req["options"]))
         except ValidationError:
             abort(400)
 
+        if protected:
+            from redash.data_access_shared import validate_shared_source
+            candidate = SimpleNamespace(type="mysql", options=options,
+                                        uses_ssh_tunnel="ssh_tunnel" in options)
+            try:
+                validate_shared_source(candidate)
+            except ValueError:
+                abort(400, message="The updated connection failed SELECT-only validation. Existing settings were kept.")
+
+        data_source.options = options
         data_source.type = req["type"]
         data_source.name = req["name"]
         models.db.session.add(data_source)
@@ -82,6 +102,10 @@ class DataSourceResource(BaseResource):
         if data_source.type == "databricks":
             # The cached database and table lists belong to the previous configuration (e.g. catalog).
             clear_databricks_schema_cache(data_source.id)
+        if protected:
+            # Connection identity is part of execution/result scopes. Retain the
+            # source and its rules, but discard metadata from the old connection.
+            models.redis_connection.delete(data_source._schema_key)
 
         self.record_event({"action": "edit", "object_id": data_source.id, "object_type": "datasource"})
 
@@ -90,6 +114,8 @@ class DataSourceResource(BaseResource):
     @require_admin
     def delete(self, data_source_id):
         data_source = models.DataSource.get_by_id_and_org(data_source_id, self.current_org)
+        if is_internal(data_source) or is_protected(data_source):
+            abort(400, message="Protected connections cannot be deleted through this endpoint.")
         data_source.delete()
 
         self.record_event(
@@ -113,6 +139,12 @@ class DataSourceListResource(BaseResource):
 
         response = {}
         for ds in data_sources:
+            if is_internal(ds):
+                continue
+            if is_protected(ds) and not self.current_user.has_permission("admin"):
+                from redash.data_access_runtime import can_access_source
+                if can_access_source(ds, self.current_user) is False:
+                    continue
             if ds.id in response:
                 continue
 
@@ -176,6 +208,14 @@ class DataSourceSchemaResource(BaseResource):
     def get(self, data_source_id):
         data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
         require_access(data_source, self.current_user, view_only)
+        if is_internal(data_source):
+            abort(404)
+        if is_protected(data_source):
+            from redash.data_access_runtime import schema_for
+            try:
+                return {"schema": schema_for(data_source, self.current_user)}
+            except ValueError:
+                abort(403, message="No unambiguous protected data profile is available.")
         refresh = request.args.get("refresh") is not None
 
         if not refresh:
@@ -196,6 +236,8 @@ class DataSourcePauseResource(BaseResource):
     @require_admin
     def post(self, data_source_id):
         data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
+        if is_internal(data_source):
+            abort(404)
         data = request.get_json(force=True, silent=True)
         if data:
             reason = data.get("reason")
@@ -216,6 +258,8 @@ class DataSourcePauseResource(BaseResource):
     @require_admin
     def delete(self, data_source_id):
         data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
+        if is_internal(data_source):
+            abort(404)
         data_source.resume()
 
         self.record_event(
@@ -232,6 +276,10 @@ class DataSourceTestResource(BaseResource):
     @require_admin
     def post(self, data_source_id):
         data_source = get_object_or_404(models.DataSource.get_by_id_and_org, data_source_id, self.current_org)
+        if is_internal(data_source):
+            abort(400, message="Retired private connections cannot be tested.")
+        if is_protected(data_source) and data_source.type != "mysql":
+            abort(400, message="Protected connection tests require the mysql connector.")
 
         response = {}
 

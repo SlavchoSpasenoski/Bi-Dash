@@ -225,6 +225,10 @@ class Python(BaseQueryRunner):
         if not has_access(data_source, user, access_level):
             raise Exception("You do not have access to data source: %s." % data_source_name_or_id)
 
+        from redash.data_access_runtime import is_protected
+        if is_protected(data_source):
+            raise Exception("Protected sources cannot be used through Python query helpers.")
+
         return data_source
 
     def execute_query(self, data_source_name_or_id, query, result_type=None):
@@ -276,6 +280,10 @@ class Python(BaseQueryRunner):
 
         if query.data_source is None or not has_access(query.data_source, user, view_only):
             raise Exception("You do not have access to query id %s." % query_id)
+
+        from redash.data_access_runtime import is_protected
+        if is_protected(query.data_source):
+            raise Exception("Protected sources cannot be used through Python query helpers.")
 
         if query.latest_query_data is None:
             raise Exception("Query does not have results yet.")

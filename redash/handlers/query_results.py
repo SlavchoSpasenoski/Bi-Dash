@@ -63,9 +63,48 @@ error_messages = {
 }
 
 
+def _require_result_access(result, user):
+    from redash.data_access_runtime import result_access_allowed
+    if not result_access_allowed(result, user):
+        abort(403, message="This result is outside your current group access scope.")
+
+
+def _require_job_access(job, user):
+    if job.meta.get("reader_report"):
+        from redash.reader_reports import authorize_report
+        from redash.data_access_runtime import DataAccessDenied
+        try:
+            _, _, scope = authorize_report(user, job.meta["reader_report"])
+            if scope != job.meta.get("policy_scope"):
+                abort(403, message="Report access changed while refresh was queued.")
+        except DataAccessDenied as error:
+            abort(403, message=str(error))
+        return
+    source_id = job.meta.get("data_source_id")
+    if source_id:
+        source = models.DataSource.query.get(source_id)
+        if source is not None:
+            from redash.data_access_runtime import access_scope, can_access_source, is_protected
+            if can_access_source(source, user) is False:
+                abort(403, message="This job's data source is no longer accessible.")
+            if is_protected(source):
+                if job.meta.get("schema") or job.meta.get("policy_scope") != access_scope(source, user):
+                    abort(403, message="Legacy schema jobs are unavailable for protected sources.")
+                require_access(source, user, view_only)
+
+
 def run_query(query, parameters, data_source, query_id, should_apply_auto_limit, max_age=0):
     if not data_source:
         return error_messages["no_data_source"]
+
+    from redash.data_access_runtime import can_read_all_scopes, DataAccessDenied, access_scope, is_internal, is_reader, resolve_source
+    # Internal profile IDs are execution identities, never user-selectable sources.
+    if is_internal(data_source):
+        abort(403, message="Internal execution profiles cannot be selected directly.")
+    try:
+        data_source = resolve_source(data_source, current_user)
+    except DataAccessDenied as error:
+        abort(403, message=str(error))
 
     if data_source.paused:
         if data_source.pause_reason:
@@ -85,13 +124,14 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
     if query.missing_params:
         return error_response("Missing parameter value for: {}".format(", ".join(query.missing_params)))
 
-    reader = not current_user.is_api_user() and not current_user.has_permission("execute_query")
+    reader = is_reader(current_user) or (not current_user.is_api_user() and not current_user.has_permission("execute_query"))
     if reader:
         max_age = -1
     if max_age == 0:
         query_result = None
     else:
-        query_result = models.QueryResult.get_latest(data_source, query_text, max_age)
+        query_result = models.QueryResult.get_latest(data_source, query_text, max_age,
+            policy_scope=access_scope(data_source, current_user), any_policy_scope=can_read_all_scopes(current_user))
 
     if reader and query_result is None:
         return error_response("No saved result is available for these parameters. Ask an editor to refresh the report.", 403)
@@ -171,6 +211,9 @@ class QueryResultListResource(BaseResource):
         :qparam number data_source_id: ID of data source to query
         :qparam object parameters: A set of parameter values to apply to the query.
         """
+        from redash.data_access_runtime import is_reader
+        if is_reader(self.current_user):
+            abort(403, message="Readers cannot execute queries.")
         params = request.get_json(force=True)
 
         query = params["query"]
@@ -211,6 +254,9 @@ class QueryResultDropdownResource(BaseResource):
     def get(self, query_id):
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
         require_access(query.data_source, current_user, view_only)
+        from redash.data_access_runtime import can_read_all_scopes, is_protected
+        if is_protected(query.data_source) and not can_read_all_scopes(current_user):
+            abort(403, message="Protected sources do not support query dropdowns.")
         try:
             return dropdown_values(query_id, self.current_org)
         except QueryDetachedFromDataSourceError as e:
@@ -221,6 +267,10 @@ class QueryDropdownsResource(BaseResource):
     def get(self, query_id, dropdown_query_id):
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
         require_access(query, current_user, view_only)
+        from redash.data_access_runtime import can_read_all_scopes, is_protected
+        dropdown_query = get_object_or_404(models.Query.get_by_id_and_org, dropdown_query_id, self.current_org)
+        if is_protected(dropdown_query.data_source) and not can_read_all_scopes(current_user):
+            abort(403, message="Protected sources do not support query dropdowns.")
 
         related_queries_ids = [p["queryId"] for p in query.parameters if p["type"] == "query"]
         if int(dropdown_query_id) not in related_queries_ids:
@@ -279,6 +329,25 @@ class QueryResultResource(BaseResource):
 
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
 
+        from redash.data_access_runtime import is_reader
+        if is_reader(self.current_user) and params.get("dashboard_id") is not None:
+            from redash.reader_reports import authorize_report
+            from redash.data_access_runtime import DataAccessDenied
+            report = {"dashboard_id": params["dashboard_id"], "query_id": query.id, "parameters": parameter_values}
+            try:
+                source, sql, scope = authorize_report(self.current_user, report)
+                if max_age != 0:
+                    cached = models.QueryResult.get_latest(source, sql, max_age, policy_scope=scope)
+                    if cached:
+                        return {"query_result": serialize_query_result(cached, False)}
+                job = enqueue_query(sql, source, self.current_user.id,
+                                    metadata={"query_id": query.id, "reader_report": report})
+                return serialize_job(job)
+            except DataAccessDenied as error:
+                abort(403, message=str(error))
+            except (QueryExecutionError, LockError) as error:
+                return error_response(str(error), 429)
+
         allow_executing_with_view_only_permissions = query.parameterized.is_safe
         if "apply_auto_limit" in params:
             should_apply_auto_limit = params.get("apply_auto_limit", False)
@@ -305,6 +374,7 @@ class QueryResultResource(BaseResource):
 
     @require_any_of_permission(("view_query", "execute_query", "view_results"))
     def get(self, query_id=None, query_result_id=None, filetype="json"):
+        from redash.data_access_runtime import is_reader
         """
         Retrieve query results.
 
@@ -336,8 +406,19 @@ class QueryResultResource(BaseResource):
 
         if query_id is not None:
             query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
+            require_access(query, self.current_user, view_only)
 
-            if query_result is None and query is not None and query.latest_query_data_id is not None:
+            from redash.data_access_runtime import can_read_all_scopes, DataAccessDenied, access_scope, is_protected, is_reader, resolve_source
+            if query_result is None and query is not None and is_protected(query.data_source):
+                require_access(query, self.current_user, view_only)
+                try:
+                    source = resolve_source(query.data_source, self.current_user)
+                except DataAccessDenied as error:
+                    abort(403, message=str(error))
+                text = source.query_runner.apply_auto_limit(query.query_text, query.options.get("apply_auto_limit", False))
+                query_result = models.QueryResult.get_latest(source, text, -1,
+                    policy_scope=access_scope(source, self.current_user), any_policy_scope=can_read_all_scopes(self.current_user))
+            elif query_result is None and query is not None and query.latest_query_data_id is not None:
                 query_result = get_object_or_404(
                     models.QueryResult.get_by_id_and_org,
                     query.latest_query_data_id,
@@ -349,6 +430,7 @@ class QueryResultResource(BaseResource):
                     abort(404, message="No cached result found for this query.")
 
         if query_result:
+            _require_result_access(query_result, self.current_user)
             require_access(query_result.data_source, self.current_user, view_only)
 
             # If the result was produced via the Query Results data source,
@@ -363,6 +445,9 @@ class QueryResultResource(BaseResource):
                     try:
                         source_query = models.Query.get_by_id(qid)
                         if source_query.data_source:
+                            from redash.data_access_runtime import is_protected
+                            if is_protected(source_query.data_source) and not is_reader(self.current_user):
+                                abort(403, message="Protected Query Results dependencies are unavailable.")
                             require_access(source_query.data_source, self.current_user, view_only)
                     except models.NoResultFound:
                         abort(403, message="Access denied - referenced query no longer exists.")
@@ -443,6 +528,7 @@ class JobResource(BaseResource):
             abort(404)
         if not self.current_user.has_permission("admin") and job.meta.get("user_id") != self.current_user.id:
             abort(403)
+        _require_job_access(job, self.current_user)
         return serialize_job(job)
 
     def delete(self, job_id):
@@ -454,4 +540,5 @@ class JobResource(BaseResource):
             abort(404)
         if not self.current_user.has_permission("admin") and job.meta.get("user_id") != self.current_user.id:
             abort(403)
+        _require_job_access(job, self.current_user)
         job.cancel()

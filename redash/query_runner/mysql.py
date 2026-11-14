@@ -157,7 +157,7 @@ class Mysql(BaseSQLQueryRunner):
         WHERE LOWER(col.table_schema) NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys');
         """
 
-        results, error = self.run_query(query, None)
+        results, error = self._run_metadata_query(query)
 
         if error is not None:
             self._handle_run_query_error(error)
@@ -187,7 +187,7 @@ class Mysql(BaseSQLQueryRunner):
                       WHERE LOWER(col.table_schema) NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys'); \
                       """
 
-        results, error = self.run_query(table_query, None)
+        results, error = self._run_metadata_query(table_query)
 
         if error is not None:
             self._handle_run_query_error(error)
@@ -207,6 +207,23 @@ class Mysql(BaseSQLQueryRunner):
         return list(schema.values())
 
     def run_query(self, query, user):
+        if user is not None and not user.is_api_user():
+            if getattr(user, "role", None) == "reader" or not user.has_permission("execute_query"):
+                return None, "This user cannot execute SQL queries."
+        from types import SimpleNamespace
+        from redash.data_access_shared import run_shared_query
+        # Every submitted query, including administrator/unprotected queries,
+        # uses the same canonical SELECT-only compiler and read-only session.
+        source = SimpleNamespace(type=self.type(), options=self.configuration,
+                                 uses_ssh_tunnel=False)
+        try:
+            return run_shared_query(source, {"unrestricted": True}, query)
+        except ValueError as error:
+            return None, str(error)
+
+    def _run_metadata_query(self, query):
+        """Private path called only with the connector's fixed catalog queries."""
+        user = None
         ev = threading.Event()
         thread_id = ""
         r = Result()

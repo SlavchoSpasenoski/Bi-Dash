@@ -62,6 +62,36 @@ class DashboardPlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             builder.reference_schema(schema, ["user"], "mysql")
 
+    def test_empty_or_missing_selection_includes_all_tables_without_count_cap(self):
+        schema = [{"name": "table_" + str(i), "columns": ["id"]} for i in range(25)]
+        for selected in ([], None, [t["name"] for t in schema]):
+            reference = builder.reference_schema(schema, selected, "mysql")
+            for table in schema:
+                self.assertIn(table["name"] + "(id)", reference)
+
+    def test_invalid_selection_empty_schema_and_context_overflow_are_explicit(self):
+        for schema, selected in (([], []), ([{"name": "t", "columns": ["x" * 16000]}], []),
+                                 ([{"name": "t", "columns": []}], "t")):
+            with self.assertRaises(ValueError):
+                builder.reference_schema(schema, selected, "mysql")
+
+    def test_date_range_parameters_are_typed_and_preserve_placeholders(self):
+        widget = self.widget(sql="SELECT COUNT(*) AS count FROM mdl_orders WHERE created_at >= '{{period.start}}' AND created_at < DATE_ADD('{{period.end}}', INTERVAL 1 DAY)",
+                             parameters=[{"name": "period", "title": "Period", "type": "date-range"}])
+        result = builder.parse_plan(json.dumps({"title": "Report", "widgets": [widget]}))["widgets"][0]
+        self.assertIn("{{period.start}}", result["sql"])
+        self.assertEqual(result["parameters"][0]["type"], "date-range")
+        self.assertTrue(result["parameters"][0]["global"])
+        self.assertIn("start", result["parameters"][0]["value"])
+
+    def test_unsafe_or_undeclared_parameter_definitions_are_rejected(self):
+        sql = "SELECT COUNT(*) AS count FROM mdl_orders WHERE created_at BETWEEN '{{period.start}}' AND '{{period.end}}'"
+        for parameters in ([], [{"name": "period", "type": "text"}],
+                           [{"name": "period", "type": "date-range", "value": {"start": "2026-02-30", "end": "2026-03-01"}}],
+                           [{"name": "period", "type": "date-range", "value": {"start": "2026-03-02", "end": "2026-03-01"}}]):
+            with self.subTest(parameters=parameters), self.assertRaises(ValueError):
+                builder.parse_plan(json.dumps({"title": "Report", "widgets": [self.widget(sql=sql, parameters=parameters)]}))
+
 
 if __name__ == "__main__":
     unittest.main()

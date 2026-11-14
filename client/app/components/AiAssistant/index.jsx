@@ -26,6 +26,9 @@ export default function AiAssistant() {
   useEffect(() => {
     if (open) {
       setEnabled(null);
+      setError("");
+      setProvider(null);
+      setDestination("");
       axios
         .get("api/ai/chat")
         .then((data) => {
@@ -35,9 +38,9 @@ export default function AiAssistant() {
           setHasContext(data.has_context);
           setDestination(data.destination);
         })
-        .catch(() => {
-          setEnabled(false);
-          setError("AI assistant is unavailable. Check your permissions and AI Configuration.");
+        .catch((err) => {
+          setEnabled(null);
+          setError(err.response?.data?.message || "AI assistant is unavailable. Check your permissions and AI Configuration.");
         });
     }
   }, [open]);

@@ -15,6 +15,21 @@ const providers = [
   { value: "compatible", label: "Other · OpenAI-compatible API" },
 ];
 
+function validateApiBaseUrl(_, value) {
+  if (!value) return Promise.resolve(); // The required rule handles empty values.
+  try {
+    const url = new URL(value);
+    if (value.length > 2048 || /[\s\u0000-\u001f]/.test(value)
+      || !/^https?:\/\//i.test(value) || !["http:", "https:"].includes(url.protocol)
+      || !url.hostname || url.username || url.password || url.search || url.hash) {
+      throw new Error("Invalid API URL");
+    }
+    return Promise.resolve();
+  } catch (_) {
+    return Promise.reject(new Error("Enter an HTTP(S) API base URL without credentials, query parameters or fragments."));
+  }
+}
+
 function AiSettings({ contextOnly = false }) {
   const [form] = Form.useForm();
   const [profiles, setProfiles] = useState({});
@@ -100,7 +115,7 @@ function AiSettings({ contextOnly = false }) {
                 extra="Enter the exact model ID offered by your provider or installed in Ollama.">
                 <Input maxLength={200} placeholder={provider === "ollama" ? "qwen2.5-coder:7b" : "Your provider's model ID"} />
               </Form.Item>
-              <Form.Item name="base_url" label="API base URL" rules={[{ required: true, type: "url" }]}
+              <Form.Item name="base_url" label="API base URL" rules={[{ required: true }, { validator: validateApiBaseUrl }]}
                 extra={provider === "ollama"
                   ? "Address reachable from the Bi-Dash server. Docker Ollama: http://ollama:11434; host Ollama: http://host.docker.internal:11434."
                   : "For compatible services, include the API version path (for example /v1), without /chat/completions. Use HTTPS for hosted services."}>

@@ -101,3 +101,54 @@ class TestAiDashboards(BaseTestCase):
         response = self.make_request("post", "/api/ai/dashboards", data=self.body, user=self.editor)
         self.assertEqual(response.status_code, 400)
         self.assertIn("CSRF", response.get_data(as_text=True))
+
+    def test_protected_admin_builder_binds_queries_and_denies_editor(self):
+        from redash.data_access_runtime import access_scope
+        org = models.Organization.get_by_id(self.source.org_id)
+        org.settings["data_access_protected_sources"] = [self.source.id]
+        models.db.session.commit()
+        response = self.make_request("get", "/api/ai/dashboards", user=self.admin)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.source.id, [s["id"] for s in response.json["data_sources"]])
+        denied, ask = self.build(user=self.editor)
+        self.assertEqual(denied.status_code, 403)
+        ask.assert_not_called()
+        response, _ = self.build(user=self.admin, body={**self.body, "tables": []})
+        self.assertEqual(response.status_code, 200, response.json)
+        dashboard = models.db.session.get(models.Dashboard, response.json["dashboard_id"])
+        query = dashboard.widgets[0].visualization.query_rel
+        self.assertEqual(query.options["data_access_scope"], access_scope(self.source, self.admin))
+        self.assertEqual(len(query.options["data_access_scope"]), 64)
+
+    def test_admin_demotion_with_protection_prevents_persistence(self):
+        org = models.Organization.get_by_id(self.source.org_id)
+        org.settings["data_access_protected_sources"] = [self.source.id]
+        models.db.session.commit()
+        def demote(*args, **kwargs):
+            user = models.User.get_by_id(self.admin.id)
+            user.group_ids = [self.factory.default_group.id]
+            user.details = {"role": "editor"}
+            models.db.session.commit()
+            return json.dumps(self.plan)
+        with patch("redash.handlers.ai.csrf.protect"), patch("redash.handlers.ai_dashboards.ask_assistant", side_effect=demote):
+            response = self.make_request("post", "/api/ai/dashboards", data=self.body, user=self.admin)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(models.Dashboard.query.count(), 0)
+
+    def test_date_range_defaults_mappings_and_response_are_persisted(self):
+        from redash.models.parameterized_query import ParameterizedQuery
+        plan = {**self.plan, "widgets": [{**self.plan["widgets"][0],
+            "sql": "SELECT month, SUM(total) AS revenue FROM mdl_orders WHERE month BETWEEN '{{period.start}}' AND '{{period.end}}' GROUP BY month",
+            "parameters": [{"name": "period", "type": "date-range", "title": "Period",
+                            "value": {"start": "2026-01-01", "end": "2026-01-31"}}]}]}
+        response, _ = self.build(plan=plan, user=self.admin)
+        self.assertEqual(response.status_code, 200, response.json)
+        dashboard = models.db.session.get(models.Dashboard, response.json["dashboard_id"])
+        widget = dashboard.widgets[0]
+        query = widget.visualization.query_rel
+        self.assertEqual(widget.options["parameterMappings"]["period"]["type"], "dashboard-level")
+        self.assertEqual(response.json["queries"][0]["parameters"]["period"]["start"], "2026-01-01")
+        rendered = ParameterizedQuery(query.query_text, query.options["parameters"]).apply(response.json["queries"][0]["parameters"])
+        self.assertTrue(rendered.is_safe)
+        self.assertNotIn("{{", rendered.text)
+        self.assertIn("2026-01-31", rendered.text)

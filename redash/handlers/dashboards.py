@@ -57,9 +57,11 @@ class DashboardListResource(BaseResource):
                 self.current_user.group_ids,
                 self.current_user.id,
                 search_term,
+                include_all=self.current_user.has_permission("admin"),
             )
         else:
-            results = models.Dashboard.all(self.current_org, self.current_user.group_ids, self.current_user.id)
+            results = models.Dashboard.all(self.current_org, self.current_user.group_ids, self.current_user.id,
+                                          include_all=self.current_user.has_permission("admin"))
 
         results = filter_by_tags(results, models.Dashboard.tags)
 
@@ -294,6 +296,11 @@ class PublicDashboardResource(BaseResource):
         else:
             dashboard = self.current_user.object
 
+        from redash.data_access_runtime import is_protected, is_internal
+        if any(w.visualization and w.visualization.query_rel.data_source
+               and (is_protected(w.visualization.query_rel.data_source) or is_internal(w.visualization.query_rel.data_source))
+               for w in dashboard.widgets):
+            abort(403, message="Protected reports cannot be shared publicly.")
         return public_dashboard(dashboard)
 
 
@@ -308,6 +315,11 @@ class DashboardShareResource(BaseResource):
         """
         dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
         require_admin_or_owner(dashboard.user_id)
+        from redash.data_access_runtime import is_protected, is_internal
+        if any(w.visualization and w.visualization.query_rel.data_source
+               and (is_protected(w.visualization.query_rel.data_source) or is_internal(w.visualization.query_rel.data_source))
+               for w in dashboard.widgets):
+            abort(403, message="Protected reports cannot be shared publicly.")
         api_key = models.ApiKey.create_for_object(dashboard, self.current_user)
         models.db.session.flush()
         models.db.session.commit()
@@ -373,6 +385,7 @@ class DashboardFavoriteListResource(BaseResource):
                 self.current_user.group_ids,
                 self.current_user.id,
                 search_term,
+                include_all=self.current_user.has_permission("admin"),
             )
             favorites = models.Dashboard.favorites(self.current_user, base_query=base_query)
         else:

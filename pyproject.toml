@@ -64,6 +64,7 @@ dependencies = [
     "sqlalchemy-searchable==2.2.0",
     "sqlalchemy-utils==0.42.1",
     "sqlparse==0.6.0",
+    "sqlglot==30.30.0",
     "sshtunnel==0.4.0",
     "statsd==4.0.1",
     "supervisor==4.3.0",

@@ -1,4 +1,5 @@
 from flask import request
+from flask_restful import abort
 from funcy import project
 
 from redash import models, utils
@@ -57,6 +58,9 @@ class AlertResource(BaseResource):
 class AlertEvaluateResource(BaseResource):
     def post(self, alert_id):
         alert = get_object_or_404(models.Alert.get_by_id_and_org, alert_id, self.current_org)
+        from redash.data_access_runtime import is_protected
+        if alert.query_rel.data_source and is_protected(alert.query_rel.data_source):
+            abort(403, message="Alerts are unavailable for protected data sources.")
         require_admin_or_owner(alert.user.id)
         require_access(alert, self.current_user, view_only)
 

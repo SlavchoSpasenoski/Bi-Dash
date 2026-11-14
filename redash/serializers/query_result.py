@@ -73,7 +73,15 @@ def _get_column_lists(columns):
     return fieldnames, special_columns
 
 
+def require_result_access(query_result):
+    from flask_restful import abort
+    from redash.data_access_runtime import result_access_allowed
+    if not result_access_allowed(query_result, current_user):
+        abort(403, message="Result is outside your current group access scope.")
+
+
 def serialize_query_result(query_result, is_api_user):
+    require_result_access(query_result)
     if is_api_user:
         publicly_needed_keys = ["data", "retrieved_at"]
         return project(query_result.to_dict(), publicly_needed_keys)
@@ -87,6 +95,7 @@ def serialize_query_result(query_result, is_api_user):
 
 
 def serialize_query_result_to_dsv(query_result, delimiter):
+    require_result_access(query_result)
     s = io.StringIO()
 
     query_data = query_result.data
@@ -107,6 +116,7 @@ def serialize_query_result_to_dsv(query_result, delimiter):
 
 
 def serialize_query_result_to_xlsx(query_result):
+    require_result_access(query_result)
     output = io.BytesIO()
 
     query_data = query_result.data

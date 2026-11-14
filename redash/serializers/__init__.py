@@ -81,9 +81,12 @@ class QuerySerializer(Serializer):
             if self.options.get("with_favorite_state", True) and not current_user.is_api_user():
                 result["is_favorite"] = models.Favorite.is_favorite(current_user.id, self.object_or_list)
         else:
-            result = [serialize_query(query, **self.options) for query in self.object_or_list]
+            from redash.data_access_runtime import can_access_source, is_protected
+            queries = [query for query in self.object_or_list if not query.data_source or
+                       (not is_protected(query.data_source) and can_access_source(query.data_source, current_user) is None)
+                       or has_access(query, current_user, view_only)]
+            result = [serialize_query(query, **self.options) for query in queries]
             if self.options.get("with_favorite_state", True):
-                queries = list(self.object_or_list)
                 favorites = models.Favorite.query.filter(
                     models.Favorite.object_id.in_([o.id for o in queries]),
                     models.Favorite.object_type == "Query",
@@ -107,6 +110,23 @@ def serialize_query(
     with_user=True,
     with_last_modified_by=True,
 ):
+    from redash.data_access_runtime import can_read_all_scopes, DataAccessDenied, access_scope, can_access_source, is_protected, resolve_source
+    if query.data_source is not None and can_access_source(query.data_source, current_user) is False:
+        from flask_restful import abort
+        abort(403, message="This query's data source is no longer accessible.")
+    protected = query.data_source is not None and is_protected(query.data_source)
+    scoped_result = None
+    if protected:
+        if not has_access(query, current_user, view_only):
+            from flask_restful import abort
+            abort(403, message="This query belongs to a different or retired access profile.")
+        try:
+            source = resolve_source(query.data_source, current_user)
+            text = source.query_runner.apply_auto_limit(query.query_text, query.options.get("apply_auto_limit", False))
+            scoped_result = models.QueryResult.get_latest(source, text, -1,
+                policy_scope=access_scope(source, current_user), any_policy_scope=can_read_all_scopes(current_user))
+        except DataAccessDenied:
+            pass
     d = {
         "id": query.id,
         "latest_query_data_id": query.latest_query_data_id,
@@ -127,6 +147,11 @@ def serialize_query(
         "is_safe": query.parameterized.is_safe,
     }
 
+    if protected:
+        d["latest_query_data_id"] = scoped_result.id if scoped_result else None
+        d.pop("api_key", None)
+        d["schedule"] = None
+
     if with_user:
         d["user"] = query.user.to_dict()
     else:
@@ -138,7 +163,10 @@ def serialize_query(
         d["last_modified_by_id"] = query.last_modified_by_id
 
     if with_stats:
-        if query.latest_query_data is not None:
+        if protected:
+            d["retrieved_at"] = scoped_result.retrieved_at if scoped_result else None
+            d["runtime"] = scoped_result.runtime if scoped_result else None
+        elif query.latest_query_data is not None:
             d["retrieved_at"] = query.retrieved_at
             d["runtime"] = query.runtime
         else:
@@ -225,17 +253,11 @@ def serialize_dashboard(obj, with_widgets=False, user=None, with_favorite_state=
             elif user and has_access(w.visualization.query_rel, user, view_only):
                 widgets.append(serialize_widget(w))
             else:
-                widget = project(
-                    serialize_widget(w),
-                    (
-                        "id",
-                        "width",
-                        "dashboard_id",
-                        "options",
-                        "created_at",
-                        "updated_at",
-                    ),
-                )
+                # Never serialize the inaccessible query even temporarily:
+                # its authorization guard would abort the whole dashboard.
+                widget = {"id": w.id, "width": w.width, "dashboard_id": w.dashboard_id,
+                          "options": {"position": (w.options or {}).get("position", {})},
+                          "created_at": w.created_at, "updated_at": w.updated_at}
                 widget["restricted"] = True
                 widgets.append(widget)
     else:

@@ -77,7 +77,7 @@ An accurate report needs both technically correct SQL and the right business def
 4. Browse, sort and use the available table filters.
 5. Download results if the administrator permits it.
 
-If no saved result exists or you need fresh data, ask an Editor to refresh the report. Readers do not execute SQL.
+For a MySQL/MariaDB or PostgreSQL dashboard, choose the dates or other typed parameters, click **Apply Changes**, and use **Refresh** for fresh results. Readers refresh only saved reports on accessible dashboards; they cannot write or change SQL. Free-text SQL parameters and other connectors require an Editor.
 
 ### Editor
 
@@ -317,7 +317,7 @@ Provider selection is explicit: if Ollama fails, Bi-Dash does not automatically 
 | View SQL and schema | Yes | Subject to source access | No |
 | Create and edit reports | Yes | Own resources or resources with edit access | No |
 | View available results | Yes | Yes | Yes |
-| Execute fresh queries | Yes, subject to deployment limits | Subject to limits and access | No |
+| Execute fresh queries | Yes, subject to deployment limits | Subject to limits and access | Saved dashboard refresh only |
 | Download | Yes | Yes | Enabled by default; Admin can disable it |
 | AI Assistant and builder | Yes | Enabled by default; Admin can disable it; other permissions still apply | No |
 | Scheduling / public sharing / archiving | Yes | Disabled by default; configured by Admin | No |
@@ -330,11 +330,15 @@ Existing accounts without an explicit role are interpreted using inherited group
 
 Group access cannot exceed an explicit role. A Reader in an administrative group does not become an Admin. Editors cannot promote themselves or assign edit grants to other users; administrators manage these permissions.
 
+### Sharing reports between Editors
+
+For protected MySQL/MariaDB sources, a difference in an unrelated column no longer prevents viewing a saved report. The viewer must have source access and permission for the tables/columns actually referenced by the query, including filters and joins. Refresh creates results under the viewer's permissions; it does not reveal the author's cached data or grant editing rights. A denied widget appears as restricted while the rest of the dashboard works. Use explicit column names in saved reports that need sharing across different permission profiles; SELECT * must be rewritten before that sharing is available. Typed date/value parameters are supported; dynamic SQL identifiers and unsafe text templates are not.
+
 ### What Readers see
 
 Readers receive results without SQL, query hashes or query API keys. They cannot access SQL query lists, the schema browser, query snippets, AI or modification endpoints. Restrictions are enforced by the backend, as well as the interface.
 
-Readers use previously computed results. Paging, sorting and table filters operate on loaded data. Changing parameters may return a saved result for that exact combination; otherwise an Editor must execute the query. Reader refresh does not create a database job.
+Readers can change typed dashboard parameters and refresh saved MySQL/MariaDB or PostgreSQL reports. **Apply Changes** applies the selected values; **Refresh** requests fresh results through a read-only job. Dashboard/source permissions are rechecked before execution. Arbitrary SQL and report editing remain unavailable. Paging, sorting and table filters operate on loaded data.
 
 Disabling downloads does not remove access to permitted report data. Users can still read it through the normal interface/API.
 

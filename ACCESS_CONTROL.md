@@ -1,5 +1,7 @@
 # Bi-Dash roles and execution safeguards
 
+For table/column Editor rules enforced by Bi-Dash groups on one shared MySQL/MariaDB source (including full-privilege DB credentials, with SELECT-only execution in Bi-Dash), see [DATA_ACCESS.md](DATA_ACCESS.md). Saving group rules applies restrictions immediately; source-group and role permissions remain additional limits.
+
 Manage organization defaults in **Settings → Roles & Access**. Assign a role when creating a user, or open **Settings → Users → a user → Role & query limits**. These settings are enforced by the backend, including requests made with a personal API key.
 
 | Capability | Admin | Editor | Reader |
@@ -9,7 +11,7 @@ Manage organization defaults in **Settings → Roles & Access**. Assign a role w
 | Build/edit queries, visualizations and dashboards | Yes | Own resources or explicitly granted edit access | No |
 | Browse reports; sort, filter and page loaded results | Yes | Yes | Yes |
 | CSV, TSV and Excel export | Yes | Yes | Enabled by default; admin can disable |
-| Execute fresh queries | Yes | Subject to runtime and outstanding-job limits | No |
+| Execute fresh queries | Yes | Subject to runtime and outstanding-job limits | Saved dashboard refresh only (MySQL/MariaDB, PostgreSQL) |
 | Scheduling / public sharing / archiving reports | Yes | Disabled by default; separately configurable | No |
 | AI Assistant | Yes | Enabled by default; configurable | No |
 
@@ -17,11 +19,15 @@ Groups still decide which data sources a member can access. An explicit role is 
 
 Existing accounts remain compatible: users without an explicit role are Admin if their groups contain the admin permission, otherwise Editor. New invitations default to Reader, with an explicit role selector. New SSO accounts default to Reader and can be promoted by an administrator. Existing accounts and data-source memberships are preserved. CLI-created accounts without explicit roles retain the legacy group-based inference.
 
+## Editor report sharing
+
+For protected MySQL/MariaDB sources, source groups remain the read-sharing boundary, and the recipient's current table/column permissions authorize cross-profile saved query definitions. One unrelated excluded column no longer blocks all reports. The author retains ownership/edit rights; viewing does not grant editing. Recipient execution and result/export/cache scopes remain isolated. Shared SELECT * definitions need explicit columns first; typed date/value parameters are supported, dynamic SQL identifiers and unsafe text templates are not. A denied widget does not block other dashboard widgets. See DATA_ACCESS.md for the supported SQL and parameter subset.
+
 ## Reader results and SQL privacy
 
 Readers do not receive SQL, query hashes or query API keys in dashboard/result JSON. Query lists, SQL source routes, schemas, query snippets, AI and modification endpoints are denied. Result responses use `Cache-Control: private, no-store` so new authorization decisions are not replaced by long-lived cached API responses.
 
-Readers load previously computed results. Sorting, paging and table filters work on the loaded data. Selecting parameters can retrieve a cached result for that exact combination; when no result exists, the API asks for an editor to refresh it. Even a forced refresh request cannot enqueue a job for a Reader. An administrator can separately disable CSV/TSV/XLSX downloads; report data remains readable through the normal JSON API.
+Readers can select typed parameters and refresh saved queries that belong to a published, accessible dashboard (or their own visible draft). MySQL/MariaDB and PostgreSQL are supported. Refresh uses server-stored SQL, typed parameter validation, read-only execution and the existing runtime/concurrency limits. The worker rechecks dashboard membership, source access and the saved query before execution. Reader report caches have separate scope tokens and do not update shared latest-result pointers or trigger alerts. Free-text SQL parameters, arbitrary SQL submission, other connectors and refresh outside a dashboard remain unavailable. Sorting, paging and table filters still operate on loaded data. An administrator can separately disable CSV/TSV/XLSX downloads; report data remains readable through the normal JSON API.
 
 ## Query limits
 
@@ -37,7 +43,7 @@ Role policies, assignments and per-user limit changes are recorded as audit even
 
 ## Verification
 
-Tests cover Reader SQL/key redaction, result browsing and three export formats, direct-API execution/modification denial, cached-only refresh, download restrictions, role assignment, group escalation prevention, CSRF, scheduling/sharing/deletion/AI restrictions, query admission, API-key quota bypasses, and stricter per-user limits. Real PostgreSQL and RQ worker tests use a one-second test limit with `pg_sleep(5)` to verify that execution is interrupted and PostgreSQL has no remaining active test statement. The normal Editor default is independently checked as 60 seconds.
+Tests cover Reader SQL/key redaction, result browsing and three export formats, direct-API execution/modification denial, dashboard-bound refresh with typed parameters, download restrictions, role assignment, group escalation prevention, CSRF, scheduling/sharing/deletion/AI restrictions, query admission, API-key quota bypasses, and stricter per-user limits. Real PostgreSQL and RQ worker tests use a one-second test limit with `pg_sleep(5)` to verify that execution is interrupted and PostgreSQL has no remaining active test statement. The normal Editor default is independently checked as 60 seconds.
 
 Integration tests under `tests/` use the repository's `BaseTestCase`, which recreates the schema: run them only against a separate disposable test database. The `tests_local/` suite remains independent of a database.
 

@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 viz-lib/node_modules/
 .tmp/
+.tmp_sqlglot/
 .venv/
 venv/
 .git/

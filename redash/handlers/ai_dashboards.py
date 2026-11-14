@@ -9,7 +9,7 @@ from redis.exceptions import LockError
 from redash import limiter, models, redis_connection
 from redash.ai_assistant import AssistantError, AssistantTimeoutError, ask_assistant
 from redash.ai_dashboard import SUPPORTED_SOURCES, parse_plan, reference_schema, visualization_options
-from redash.handlers.ai import ai_configuration, json_body
+from redash.handlers.ai import ai_configuration, json_body, require_unprotected_ai
 from redash.handlers.base import BaseResource, get_object_or_404
 from redash.permissions import has_access, not_view_only, require_permissions
 
@@ -23,6 +23,7 @@ def draft_response(dashboard):
             "description": dashboard.options.get("ai_description", ""),
             "queries": [{"id": w.visualization.query_rel.id, "title": w.visualization.name,
                          "visualization_id": w.visualization_id, "type": w.visualization.type,
+                         "parameters": {p["name"]: p["value"] for p in w.visualization.query_rel.options.get("parameters", [])},
                          "columns": list(w.visualization.options.get("columnMapping", {}))
                          if w.visualization.type == "CHART" else
                          ([w.visualization.options["counterColName"]] if w.visualization.type == "COUNTER" else [])}
@@ -32,6 +33,7 @@ def draft_response(dashboard):
 class AssistantDashboardResource(BaseResource):
     @require_permissions(BUILDER_PERMISSIONS)
     def get(self):
+        require_unprotected_ai(self.current_org, ai_user=self.current_user)
         sources = models.DataSource.query.filter_by(org_id=self.current_org.id).all()
         return {"data_sources": [{"id": ds.id, "name": ds.name, "type": ds.type} for ds in sources
                                  if ds.type in SUPPORTED_SOURCES and not ds.paused
@@ -40,6 +42,7 @@ class AssistantDashboardResource(BaseResource):
     @require_permissions(BUILDER_PERMISSIONS)
     @limiter.limit("4/minute")
     def post(self):
+        require_unprotected_ai(self.current_org, ai_user=self.current_user)
         body = json_body()
         prompt = body.get("prompt")
         extra = body.get("context", "")
@@ -101,11 +104,15 @@ class AssistantDashboardResource(BaseResource):
             return plan
         # Recheck permissions and source access after the provider request.
         user = models.User.get_by_id(user_id)
+        require_unprotected_ai(models.Organization.get_by_id(org_id), ai_user=user)
         source = models.DataSource.query.filter_by(id=body["data_source_id"], org_id=org_id).first()
         if (user is None or user.is_disabled or user.org_id != org_id or not user.has_permissions(BUILDER_PERMISSIONS)
                 or source is None or source.paused or source.type not in SUPPORTED_SOURCES
                 or not has_access(source, user, not_view_only)):
             abort(403, message="Your permissions or data-source access changed while the plan was being generated.")
+        from redash.handlers.queries import scope_query_options
+        query_options = scope_query_options(source, user, {"parameters": [], "ai_generated": True,
+                                                                "apply_auto_limit": False})
         try:
             with redis_connection.lock(f"ai:draft:{org_id}:{user_id}:{request_id}", timeout=20, blocking_timeout=5):
                 existing = existing_draft()
@@ -121,8 +128,7 @@ class AssistantDashboardResource(BaseResource):
                     query = models.Query.create(org_id=org_id, user=user, data_source=source,
                                                 name=widget["title"], query_text=widget["sql"],
                                                 description="AI-generated draft. Review its business assumptions.",
-                                                is_draft=True, options={"parameters": [], "ai_generated": True,
-                                                                        "apply_auto_limit": False})
+                                                is_draft=True, options={**query_options, "parameters": widget["parameters"]})
                     models.db.session.add(query)
                     models.db.session.flush()
                     kind, options = visualization_options(widget)
@@ -130,7 +136,10 @@ class AssistantDashboardResource(BaseResource):
                     models.db.session.add(visualization)
                     models.db.session.flush()
                     item = models.Widget(dashboard=dashboard, visualization=visualization, width=1,
-                                         options={"position": {"col": (index % 2) * 6, "row": (index // 2) * 8,
+                                         options={"parameterMappings": {p["name"]: {"name": p["name"],
+                                                  "type": "dashboard-level", "mapTo": p["name"], "value": None,
+                                                  "title": p["title"]} for p in widget["parameters"]},
+                                                  "position": {"col": (index % 2) * 6, "row": (index // 2) * 8,
                                                                "sizeX": 6, "sizeY": 8}})
                     models.db.session.add(item)
                     models.db.session.flush()

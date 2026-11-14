@@ -15,6 +15,24 @@ ACCESS_TYPES = (ACCESS_TYPE_VIEW, ACCESS_TYPE_MODIFY, ACCESS_TYPE_DELETE)
 
 
 def has_access(obj, user, need_view_only):
+    # Object tokens must never turn a protected source into a shared capability.
+    from redash.models import DataSource, Query
+    source = obj if isinstance(obj, DataSource) else getattr(obj, "data_source", None)
+    if source is None:
+        query = getattr(obj, "query_rel", None)
+        source = getattr(query, "data_source", None)
+    if source is not None:
+        from redash.data_access_runtime import can_access_source, is_internal
+        decision = can_access_source(source, user)
+        if decision is False:
+            return False
+        query = obj if isinstance(obj, Query) else getattr(obj, "query_rel", None)
+        if decision is True and query is not None and not user.has_permission("admin"):
+            from redash.data_access_reports import can_read_saved_query
+            if not can_read_saved_query(query, user):
+                return False
+        if decision is True and is_internal(source):
+            return True
     if hasattr(obj, "api_key") and user.is_api_user():
         return has_access_to_object(obj, user.id, need_view_only)
     else:
@@ -112,6 +130,12 @@ def require_admin_or_owner(object_owner_id):
 def can_modify(obj, user):
     if not user.is_api_user() and getattr(user, "role", None) == "reader":
         return False
+    from redash import models
+    from redash.data_access_runtime import is_protected
+    query = obj if isinstance(obj, models.Query) else getattr(obj, "query_rel", None)
+    if query is not None and query.data_source is not None and is_protected(query.data_source):
+        if not has_access(query, user, not_view_only):
+            return False
     return is_admin_or_owner(obj.user_id) or user.has_access(obj, ACCESS_TYPE_MODIFY)
 
 

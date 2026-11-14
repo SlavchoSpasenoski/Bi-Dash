@@ -59,7 +59,7 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
     let response;
     for (let retry = 0; retry < 4; retry += 1) {
       try {
-        response = await axios.post(`api/queries/${query.id}/results`, { max_age: 0 });
+        response = await axios.post(`api/queries/${query.id}/results`, { max_age: 0, parameters: query.parameters || {} });
         break;
       } catch (err) {
         if (err.response?.status !== 429 || retry === 3) throw err;
@@ -89,7 +89,7 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
   }
 
   async function build() {
-    if (busy || !sourceId || !selected.length || !prompt.trim()) return;
+    if (busy || !sourceId || !prompt.trim()) return;
     setBusy(true);
     onBusyChange(true);
     setError("");
@@ -125,27 +125,27 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
     <Typography.Title level={4}>Describe it. Get a draft dashboard.</Typography.Title>
     <Alert type="info" showIcon message="Creates real queries and visualizations"
       description="Selected table schemas, saved AI context and your prompt are sent to your AI provider. The draft runs read-only queries with up to 60 seconds per query, or your stricter limit. Row limits are controlled by the query editor’s Limit 1000 checkbox. Review results before publishing." />
+    {error && <Alert type="error" message={error} style={{ marginTop: 12 }} />}
     {loading ? <Spin /> : <Form layout="vertical" style={{ marginTop: 20 }}>
       <Form.Item label="Data source" required>
         <Select value={sourceId} disabled={busy} placeholder="Choose PostgreSQL or MySQL/MariaDB"
           options={sources.map((source) => ({ value: source.id, label: `${source.name} · ${source.type}` }))}
           onChange={(value) => { setSourceId(value); setDraft(null); }} />
       </Form.Item>
-      {!sources.length && <Alert type="warning" message="No supported data source with query access is available." />}
-      <Form.Item label="Relevant tables (up to 12)" required
-        extra="Choose the tables needed for this report. Exact names and columns are supplied automatically; no schema copying is needed.">
+      {!sources.length && !error && <Alert type="warning" message="No supported data source with query access is available." />}
+      <Form.Item label="Relevant tables (optional)"
+        extra="Choose specific tables, or leave empty to include all available tables. Large schemas may exceed the AI context size limit; select fewer tables if prompted.">
         <Select mode="multiple" showSearch value={selected} loading={schemaLoading} disabled={busy || !sourceId}
-          optionFilterProp="label" placeholder="Search table names…" options={tables.map((table) => ({ value: table.name, label: table.name }))}
-          onChange={(values) => { setSelected(values.slice(0, 12)); id.current = null; setDraft(null); }} />
+          optionFilterProp="label" placeholder="All tables — search to narrow the selection…" options={tables.map((table) => ({ value: table.name, label: table.name }))}
+          onChange={(values) => { setSelected(values); id.current = null; setDraft(null); }} />
       </Form.Item>
       <Form.Item label="What report or dashboard should I create?" required>
         <Input.TextArea rows={6} maxLength={8000} value={prompt} disabled={busy} className="redash-ai-prompt"
           placeholder="Example: Monthly sales this year, sales by product, and the top 10 customers. Use a line chart, bar chart and table."
           onChange={(event) => { setPrompt(event.target.value); id.current = null; setDraft(null); setClarification(""); }} />
       </Form.Item>
-      {error && <Alert type="error" message={error} style={{ marginBottom: 12 }} />}
       {clarification && <Alert type="info" message="More information is needed" description={clarification} style={{ marginBottom: 12 }} />}
-      <Button type="primary" loading={busy} disabled={!sourceId || !selected.length || !prompt.trim() || schemaLoading}
+      <Button type="primary" loading={busy} disabled={!sourceId || !prompt.trim() || schemaLoading}
         onClick={build}>{busy ? (draft ? "Preparing report results…" : "Designing dashboard…") : draft ? "Retry report results" : "Create draft dashboard"}</Button>
       {draft && <div className="redash-ai-draft-result">
         <Typography.Title level={4}>{draft.title}</Typography.Title>

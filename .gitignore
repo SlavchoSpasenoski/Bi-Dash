@@ -29,6 +29,7 @@ dump.rdb
 node_modules
 .pnpm-store/
 .tmp
+.tmp_sqlglot/
 .sass-cache
 npm-debug.log
 

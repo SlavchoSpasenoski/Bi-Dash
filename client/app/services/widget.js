@@ -159,7 +159,7 @@ class Widget {
         maxAge = force ? 0 : undefined;
       }
 
-      const queryResult = this.getQuery().getQueryResult(maxAge);
+      const queryResult = this.getQuery().getQueryResult(maxAge, this.dashboard_id);
       this.queryResult = queryResult;
 
       queryResult

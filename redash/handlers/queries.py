@@ -52,6 +52,46 @@ order_map = {
 order_results = partial(_order_results, default_order="-created_at", allowed_orders=order_map)
 
 
+def filter_readable_report_queries(queries, user):
+    """Apply protected definition access before pagination/counting."""
+    if user.has_permission("admin"):
+        return queries
+    from redash.data_access_runtime import is_protected
+    from redash.permissions import has_access
+    # Source/group SQL filters still govern unprotected definitions. Only the
+    # protected candidates need recipient-specific SQL dependency validation.
+    protected_ids = [source.id for source in models.DataSource.query.filter_by(org_id=user.org_id)
+                     if is_protected(source)]
+    if not protected_ids:
+        return queries
+    allowed = [query.id for query in queries.filter(models.Query.data_source_id.in_(protected_ids))
+               if has_access(query, user, view_only)]
+    from sqlalchemy import or_
+    return queries.filter(or_(models.Query.data_source_id.is_(None),
+                              ~models.Query.data_source_id.in_(protected_ids), models.Query.id.in_(allowed)))
+
+
+def scope_query_options(source, user, options, schedule=None):
+    from redash.data_access_runtime import DataAccessDenied, access_scope, is_internal, is_protected
+    if not isinstance(options, dict):
+        abort(400, message="Query options must be an object.")
+    options = dict(options)
+    options.pop("data_access_profile_id", None)
+    options.pop("data_access_scope", None)
+    if source is None:
+        return options
+    if is_internal(source):
+        abort(403, message="Choose the logical data source, not a private connection.")
+    if is_protected(source):
+        if schedule:
+            abort(403, message="Protected queries cannot be scheduled yet.")
+        try:
+            options["data_access_scope"] = access_scope(source, user)
+        except DataAccessDenied:
+            abort(403, message="No unambiguous protected profile is assigned.")
+    return options
+
+
 @routes.route(org_scoped_rule("/api/queries/format"), methods=["POST"])
 @login_required
 def format_sql_query(org_slug=None):
@@ -150,6 +190,7 @@ class BaseQueryListResource(BaseResource):
         # order results according to passed order parameter,
         # special-casing search queries where the database
         # provides an order by search rank
+        results = filter_readable_report_queries(results, self.current_user)
         ordered_results = order_results(results, fallback=not bool(search_term))
 
         page = request.args.get("page", 1, type=int)
@@ -248,6 +289,8 @@ class QueryListResource(BaseQueryListResource):
         query_def["data_source"] = data_source
         query_def["org"] = self.current_org
         query_def["is_draft"] = True
+        query_def["options"] = scope_query_options(data_source, self.current_user,
+                                                   query_def.get("options", {}), query_def.get("schedule"))
         query = models.Query.create(**query_def)
         models.db.session.add(query)
         models.db.session.commit()
@@ -307,6 +350,7 @@ class MyQueriesResource(BaseResource):
         # order results according to passed order parameter,
         # special-casing search queries where the database
         # provides an order by search rank
+        results = filter_readable_report_queries(results, self.current_user)
         ordered_results = order_results(results, fallback=not bool(search_term))
 
         page = request.args.get("page", 1, type=int)
@@ -339,6 +383,9 @@ class QueryResource(BaseResource):
         """
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
         query_def = request.get_json(force=True)
+        from redash.data_access_runtime import is_protected
+        if query.data_source and is_protected(query.data_source):
+            require_access(query, self.current_user, not_view_only)
         if query_def.get("schedule") and not self.current_user.has_permission("schedule_query"):
             abort(403, message="Scheduling is disabled for your role.")
         query_def = project(query_def, ("name", "description", "query", "data_source_id", "schedule", "options",
@@ -368,6 +415,10 @@ class QueryResource(BaseResource):
         if "data_source_id" in query_def:
             data_source = models.DataSource.get_by_id_and_org(query_def["data_source_id"], self.current_org)
             require_access(data_source, self.current_user, not_view_only)
+
+        target_source = data_source if "data_source_id" in query_def else query.data_source
+        query_def["options"] = scope_query_options(target_source, self.current_user,
+            query_def.get("options", query.options or {}), query_def.get("schedule", query.schedule))
 
         query_def["last_modified_by"] = self.current_user
         query_def["changed_by"] = self.current_user
@@ -455,7 +506,10 @@ class QueryForkResource(BaseResource):
         """
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
         require_access(query.data_source, self.current_user, not_view_only)
+        require_access(query, self.current_user, not_view_only)
         forked_query = query.fork(self.current_user)
+        forked_query.options = scope_query_options(query.data_source, self.current_user,
+                                                   forked_query.options or {}, forked_query.schedule)
         models.db.session.commit()
 
         self.record_event({"action": "fork", "object_id": query_id, "object_type": "query"})
@@ -476,6 +530,9 @@ class QueryRefreshResource(BaseResource):
         # TODO: this should actually check for permissions, but because currently you can only
         # get here either with a user API key or a query one, we can just check whether it's
         # an api key (meaning this is a query API key, which only grants read access).
+        from redash.data_access_runtime import is_reader
+        if is_reader(self.current_user):
+            abort(403, message="Readers cannot execute queries.")
         if self.current_user.is_api_user():
             abort(403, message="Please use a user API key.")
 
@@ -518,6 +575,7 @@ class QueryFavoriteListResource(BaseResource):
         # order results according to passed order parameter,
         # special-casing search queries where the database
         # provides an order by search rank
+        favorites = filter_readable_report_queries(favorites, self.current_user)
         ordered_favorites = order_results(favorites, fallback=not bool(search_term))
 
         page = request.args.get("page", 1, type=int)

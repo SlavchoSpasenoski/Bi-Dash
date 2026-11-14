@@ -1,6 +1,6 @@
 # AI-created dashboards
 
-Open **AI Assistant → Build dashboard**, select an accessible data source and up to 12 relevant tables, describe the report, and choose **Create draft dashboard**. For example: “Monthly revenue this year as a line chart, sales by product as a bar chart, and the top ten customers as a table.” Macedonian prompts are supported by the selected model.
+Open **AI Assistant → Build dashboard**, select an accessible data source and optionally choose relevant tables (leave the selection empty to include all tables in its cached schema), describe the report, and choose **Create draft dashboard**. For example: “Monthly revenue this year as a line chart, sales by product as a bar chart, and the top ten customers as a table.” Macedonian prompts are supported by the selected model.
 
 Bi-Dash supplies the exact selected table/column names, saved organization AI context and your prompt to the configured provider. Query result rows are not sent back to the model. The model returns a structured plan; Bi-Dash validates it, saves real queries, visualizations and a dashboard in one transaction, then the browser runs the queries sequentially through the existing execution API. No copying SQL is required. If the model needs clarification, no dashboard is created.
 
@@ -14,7 +14,19 @@ The initial builder supports PostgreSQL and MySQL/MariaDB, with table, bar, line
 - Generated queries and dashboards are unpublished drafts. Draft status is not a private access-control list: normal organization and source access rules still apply. Nothing is scheduled or published automatically.
 - Review business definitions, joins, date ranges and totals before publishing. An expensive query can still use resources until its timeout.
 
+## Date range filters
+
+Ask for a manually selectable date range in the report prompt. The builder now accepts typed `date-range` parameters on widgets, saves their SQL placeholders and definitions, and maps the same parameter name across widgets to one dashboard filter. Only date ranges are supported in AI plans; arbitrary text parameters and undeclared placeholders are rejected. Both quoted `{{period.start}}` and `{{period.end}}` placeholders must appear in the query. The provider can supply validated ISO defaults; otherwise the default is from 30 days ago through today. Shared parameters must have identical defaults across widgets. Initial result execution receives those defaults, and the saved dashboard uses the existing date range picker to change them.
+
+Older dashboards are not automatically modified to add a date filter. Regenerate with a date range request, or add a parameter to the existing query and map it to a dashboard filter. AI can still return an incomplete plan; review generated SQL and filter behavior.
+
 ## Failures and retries
+
+While protected data sources are configured, **Ask AI** is available to active same-organization administrators using user authentication. Chat returns text and does not execute queries or create shared resources. Other users remain blocked until AI context can be separated by access rules. **Build dashboard** is also available to those administrators: generated queries receive the current source access scope before persistence, using the same option binding as manually created queries. Permissions are rechecked after generation. Other users remain blocked with protected sources (see [Data Access](DATA_ACCESS.md)). A reachable Ollama service does not remove these application-level restrictions.
+
+Table selection has no count cap. Empty or omitted selection includes all cached tables and explicit selections include only those definitions. The existing 16,000-character schema-reference and 30,000-character combined-context limits still apply; oversize requests fail clearly before contacting the provider, without silently omitting tables. Refresh the data-source schema to include newly added tables.
+
+For Docker Ollama, set **Settings → AI Configuration → API base URL** to `http://ollama:11434`. For Ollama running on the Docker host, use `http://host.docker.internal:11434`. This address must be reachable from the Bi-Dash server; the settings form accepts single-label Docker hostnames.
 
 Invalid plans create no resources. Repeating a request ID returns the existing draft instead of duplicating it. Per-query execution errors appear in the panel and leave the saved draft editable. A chart whose declared aliases are missing in actual results is changed to a table. **Retry report results** retries the draft's queries; it does not create another dashboard.
 
