@@ -2,7 +2,9 @@
 
 Last updated: 2026-11-15.
 
-## Roadmap task 1: verified baseline ready for publication - 2026-11-15
+## Roadmap task 1: verified baseline published - 2026-11-15
+
+Completed: baseline commit 91e019b (Add shared-source data access and scoped report execution) was pushed successfully to origin/main at https://github.com/SlavchoSpasenoski/Bi-Dash. Next work is ROADMAP.md task 2; no task-2/3 implementation or commit is included in this release.
 
 Coordinator continued task 1 with programmer, independent QA and security-architect reviews. Fixed a release-blocking maintenance defect: Admin can now edit/test an existing protected MySQL source without the removed activation workflow. A detached candidate is SELECT-only validated before persistence; failures preserve settings. Connector changes/SSH and retired private IDs remain denied, source IDs/rules are preserved, and connection changes invalidate old Editor scopes and schema cache. Worker Test Connection explicitly validates protected MySQL instead of calling an unsupported ProtectedRunner method. Eleven new tests cover role/org gates, retirement, validation failure, masked secrets, candidate SSH, scope/cache/queued revocation and worker dispatch. Updated Data Access guidance to describe shared definitions, recipient-scoped results, Admin AI and Reader parameterized refresh accurately.
 
@@ -12,7 +14,7 @@ Live final-image verification: FreeDB authenticates, SELECT-only connection chec
 
 Configuration limitation: all 5 existing saved queries and active rule sets still point to the old source, which fails authentication. The new source has no saved queries, so no successful live saved-report refresh on FreeDB is claimed. Actual synthetic saved-report refresh/access restrictions were verified in disposable MySQL/MariaDB/PostgreSQL tests instead. Old queries/rules were not repointed or widened. The newly supported protected Test Connection API reaches the worker for the old source and reports its actual 1045 failure rather than the removed activation error. Organization settings matched before/after; credentials/groups/reports and persistent volumes were preserved. QA containers, their anonymous volumes and network were removed.
 
-Publication preparation: staged project files exclude .env, .tmp, credentials, screenshots and logs; token/private-key pattern scan found no matches and staged diff check passes. Commit/push is the remaining task-1 step. Logs are ignored .tmp/roadmap-*-20261115.log. Task 2 scoped Editor AI and task 3 dashboard visibility remain unimplemented. Scheduled automation remains unconfirmed after the prior native transport errors; no automatic five-hour execution is claimed.
+Publication checks: committed project files exclude .env, .tmp, credentials, screenshots and logs; token/private-key pattern scan found no matches and staged diff check passed. Baseline commit/push completed successfully as recorded above. Logs are ignored .tmp/roadmap-*-20261115.log. Task 2 scoped Editor AI and task 3 dashboard visibility remain unimplemented. Scheduled automation remains unconfirmed after the prior native transport errors; no automatic five-hour execution is claimed.
 
 ## Current repair: Ubuntu MySQL / FreeDB connection - 2026-11-14
 
@@ -177,8 +179,8 @@ Local app: http://localhost:5001. Settings: http://localhost:5001/settings/data-
 
 ## Continuity and next work
 
-Current task-1 baseline is verified and staged for the authorized commit/push; see the latest section for publication state. Baseline before this access work was ac9907c. Read AGENTS.md, PROJECT_CONTEXT.md, TEAM.md and DATA_ACCESS.md. Older exact-DB-column-grant/profile tests and account preparation instructions are superseded.
+Task-1 baseline 91e019b is verified and published to origin/main; see the latest section for validation and configuration limits. Baseline before this access work was ac9907c. Read AGENTS.md, PROJECT_CONTEXT.md, TEAM.md and DATA_ACCESS.md. Older exact-DB-column-grant/profile tests and account preparation instructions are superseded.
 
-Next: publish the verified task-1 baseline, then proceed in order to scoped Editor AI and dashboard visibility. Preserve old report/source assignments and active rules unless explicitly changing them is part of the approved, tested feature.
+Next: ROADMAP.md task 2 scoped Editor AI, then task 3 dashboard visibility. Preserve old report/source assignments and active rules unless explicitly changing them is part of the approved, tested feature.
 
 Never run BaseTestCase against the live metadata database: it recreates tables. App tests require bidash_access_app_test* and isolated target hosts. Do not run an image build alongside local 7B model inference.

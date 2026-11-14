@@ -6,11 +6,11 @@ Scheduler state: NOT CONFIRMED ACTIVE. Native automation creation failed three t
 
 ## 1. Verify current functionality and publish verified baseline
 
-Status: verification complete; authorized commit/push pending (2026-11-15).
+Status: complete (2026-11-15). Verified baseline 91e019b pushed successfully to origin/main, https://github.com/SlavchoSpasenoski/Bi-Dash.
 
 Latest milestone (2026-11-14): the new FreeDB source is now saved separately and authenticates; the old source still fails with 1045. Fixed detection of Ubuntu-packaged upstream MySQL 8.0/8.4, rebuilt and applied locally. All 97 local regression tests passed, live SELECT 1 passed and the actual authenticated Test Connection API/RQ worker returned HTTP 200/ok=true. Credentials/rules remained unchanged. Next continue saved-report/schema/role checks against the appropriate source; do not silently repoint old queries/rules. No commit/push yet. See STATUS.md for validation details.
 
-2026-11-15: 147 isolated integration checks, 97 final-image local tests, Docker TypeScript, production build and Admin Edge UI checks passed. Live FreeDB connection/schema/API/SELECT 1 worker checks passed; all five saved queries/rules still reference the old failing source, so no live FreeDB saved-report refresh is claimed. Fixed and independently reviewed safe Admin maintenance/Test Connection of protected sources and stale UI guidance. See current STATUS.md for exact checks/limits. All disposable QA resources removed; prepare the reviewed baseline commit/push next.
+2026-11-15: 147 isolated integration checks, 97 final-image local tests, Docker TypeScript, production build and Admin Edge UI checks passed. Live FreeDB connection/schema/API/SELECT 1 worker checks passed; all five saved queries/rules still reference the old failing source, so no live FreeDB saved-report refresh is claimed. Fixed and independently reviewed safe Admin maintenance/Test Connection of protected sources and stale UI guidance. See current STATUS.md for exact checks/limits. All disposable QA resources removed. Reviewed baseline committed and pushed as recorded above; next is task 2.
 
 - User reports the data source has been replaced and now connects. Revalidate live connectivity; previous 1045 failures are historical, not proof of the new source failing.
 - Inspect current code/Git state and existing reports/parameters before refreshing. New schemas may invalidate old SQL or group rules; diagnose rather than silently rewriting live reports or widening access.
@@ -20,7 +20,7 @@ Latest milestone (2026-11-14): the new FreeDB source is now saved separately and
 
 ## 2. Admin-controlled Editor data access and scoped AI
 
-Status: pending; depends on task 1.
+Status: next; task 1 completed. No implementation started.
 
 - Audit existing behavior first. Admin alone configures schema/table/column access, using existing group rules. Editors see/use only their assigned data and cannot modify their grants or escalate via group/settings APIs.
 - Existing Admin-only Data Access management and Editor SQL restrictions must be tested, not reimplemented unnecessarily. Protected-source AI is currently Admin-only; Editor AI is a new implementation requirement.
