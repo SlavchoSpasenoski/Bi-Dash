@@ -320,6 +320,8 @@ class QueryResult(db.Model, BelongsToOrgMixin):
     data_source = db.relationship(DataSource, backref=backref("query_results"))
     query_hash = Column(db.String(32), index=True)
     policy_scope = Column(db.String(64), nullable=True, index=True)
+    # Server-generated report provenance; never expose this in client serializers.
+    report_context = Column(JSONB, nullable=True)
     query_text = Column("query", db.Text)
     data = Column(JSONText, nullable=True)
     runtime = Column(DOUBLE_PRECISION)
@@ -372,11 +374,13 @@ class QueryResult(db.Model, BelongsToOrgMixin):
         return query.order_by(cls.retrieved_at.desc()).first()
 
     @classmethod
-    def store_result(cls, org, data_source, query_hash, query, data, run_time, retrieved_at, policy_scope=None):
+    def store_result(cls, org, data_source, query_hash, query, data, run_time, retrieved_at, policy_scope=None,
+                     report_context=None):
         query_result = cls(
             org_id=org,
             query_hash=query_hash,
             policy_scope=policy_scope,
+            report_context=report_context,
             query_text=query,
             runtime=run_time,
             # Set the id rather than the relationship: the caller's data source may be
@@ -1150,29 +1154,14 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
 
     @classmethod
     def all(cls, org, group_ids, user_id, include_all=False):
-        # Only trusted administrator callers opt out of group/owner/draft
-        # visibility. Organization and archive boundaries still apply.
-        if include_all:
-            return Dashboard.query.options(
-                joinedload(Dashboard.user).load_only(User.id, User.name, User.details, User.email)
-            ).filter(Dashboard.org == org, Dashboard.is_archived.is_(False))
-        query = (
-            Dashboard.query.options(joinedload(Dashboard.user).load_only(User.id, User.name, User.details, User.email))
-            .distinct(cls.lowercase_name, Dashboard.created_at, Dashboard.slug)
-            .outerjoin(Widget)
-            .outerjoin(Visualization)
-            .outerjoin(Query)
-            .outerjoin(DataSourceGroup, Query.data_source_id == DataSourceGroup.data_source_id)
-            .filter(
-                Dashboard.is_archived.is_(False),
-                (DataSourceGroup.group_id.in_(group_ids) | (Dashboard.user_id == user_id)),
-                Dashboard.org == org,
-            )
-        )
-
-        query = query.filter(or_(Dashboard.user_id == user_id, Dashboard.is_draft.is_(False)))
-
-        return query
+        # ACL filtering happens in SQL before pagination/counts. Legacy caller
+        # flags/group IDs cannot grant visibility to another user's dashboard.
+        from redash.dashboard_access import filter_dashboard_query
+        user = db.session.get(User, user_id)
+        query = Dashboard.query.options(
+            joinedload(Dashboard.user).load_only(User.id, User.name, User.details, User.email)
+        ).filter(Dashboard.org == org)
+        return filter_dashboard_query(query, user)
 
     @classmethod
     def search(cls, org, groups_ids, user_id, search_term, include_all=False):
@@ -1246,6 +1235,27 @@ class Dashboard(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model
     def lowercase_name(cls):
         "The SQLAlchemy expression for the property above."
         return func.lower(cls.name)
+
+
+class DashboardReadGrant(db.Model):
+    """An explicit dashboard read grant; does not grant source or edit access."""
+    __tablename__ = "dashboard_read_grants"
+    id = primary_key("DashboardReadGrant")
+    dashboard_id = Column(key_type("Dashboard"), db.ForeignKey("dashboards.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(key_type("User"), db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    grantor_id = Column(key_type("User"), db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(db.DateTime(True), default=utils.utcnow, nullable=False)
+    __table_args__ = (db.UniqueConstraint("dashboard_id", "user_id", name="uq_dashboard_read_grant"),)
+
+
+class DashboardGroupReadGrant(db.Model):
+    __tablename__ = "dashboard_group_read_grants"
+    id = primary_key("DashboardGroupReadGrant")
+    dashboard_id = Column(key_type("Dashboard"), db.ForeignKey("dashboards.id", ondelete="CASCADE"), nullable=False, index=True)
+    group_id = Column(key_type("Group"), db.ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
+    grantor_id = Column(key_type("User"), db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(db.DateTime(True), default=utils.utcnow, nullable=False)
+    __table_args__ = (db.UniqueConstraint("dashboard_id", "group_id", name="uq_dashboard_group_read_grant"),)
 
 
 @generic_repr("id", "name", "type", "query_id")

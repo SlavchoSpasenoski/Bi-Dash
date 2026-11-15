@@ -80,7 +80,7 @@ export default function UserInfoForm(props) {
 
   return (
     <DynamicComponent name="UserProfile.UserInfoForm" {...props}>
-      <DynamicForm fields={formFields} onSubmit={saveUser} hideSubmitButton={user.isDisabled} />
+      <DynamicForm fields={formFields} onSubmit={saveUser} hideSubmitButton={user.isDisabled} saveText="Save account" />
     </DynamicComponent>
   );
 }

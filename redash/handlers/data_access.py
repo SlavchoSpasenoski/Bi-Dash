@@ -60,7 +60,8 @@ class DataAccessResource(BaseResource):
         except ValueError:
             abort(409, message="Stored group rules are invalid; administrative repair is required.")
         return {**config, "mode": "group_rules", "enforced": stored is not None,
-                "protected_source_ids": self.current_org.settings.get("data_access_protected_sources", []),
+                "protected_source_ids": sorted({p["data_source_id"] for p in config["policies"]})
+                    if stored is not None else self.current_org.settings.get("data_access_protected_sources", []),
                 "applies_to_roles": ["editor"], "select_only": True,
                 "capabilities": {name: connector_capabilities(name) for name in CONNECTORS},
                 "supported_connectors": ["mysql"]}
@@ -107,8 +108,7 @@ class DataAccessResource(BaseResource):
                 if not set(rule["columns"]).issubset(checked[key]["columns"]):
                     abort(400, message="A selected table or column is unavailable or unsupported. Refresh metadata.")
         config["revision"] += 1
-        protected = set(self.current_org.settings.get("data_access_protected_sources", []))
-        protected.update(policy["data_source_id"] for policy in config["policies"])
+        protected = {policy["data_source_id"] for policy in config["policies"]}
         self.current_org.settings = {**self.current_org.settings, GROUP_SETTING_KEY: config,
                                     "data_access_protected_sources": sorted(protected)}
         db.session.commit()

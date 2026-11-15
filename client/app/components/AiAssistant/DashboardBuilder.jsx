@@ -10,7 +10,7 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const requestId = () => window.crypto?.randomUUID?.() || "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,
   (c) => { const r = Math.floor(Math.random() * 16); return (c === "x" ? r : (r & 3) | 8).toString(16); });
 
-export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDraft }) {
+export default function DashboardBuilder({ extraContext, scopedAccess, onBusyChange, onOpenDraft }) {
   const [sources, setSources] = useState([]);
   const [sourceId, setSourceId] = useState(null);
   const [tables, setTables] = useState([]);
@@ -23,6 +23,7 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
   const [clarification, setClarification] = useState("");
   const [draft, setDraft] = useState(null);
   const [progress, setProgress] = useState({});
+  const [scoped, setScoped] = useState(Boolean(scopedAccess));
   const id = useRef(null);
   const alive = useRef(true);
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
     axios.get("api/ai/dashboards").then((data) => {
       if (!alive.current) return;
       setSources(data.data_sources);
+      setScoped(Boolean(data.scoped));
       if (data.data_sources.length === 1) setSourceId(data.data_sources[0].id);
     }).catch((err) => {
       if (alive.current) setError(err.response?.data?.message || "Could not load builder data sources.");
@@ -40,6 +42,9 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
     let active = true;
     setTables([]);
     setSelected([]);
+    setDraft(null);
+    setProgress({});
+    setClarification("");
     id.current = null;
     if (!sourceId) return;
     setSchemaLoading(true);
@@ -99,7 +104,7 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
     try {
       const result = await axios.post("api/ai/dashboards", {
         request_id: id.current, data_source_id: sourceId, tables: selected,
-        prompt: prompt.trim(), context: extraContext,
+        prompt: prompt.trim(), context: scoped ? "" : extraContext,
       });
       if (!alive.current) return;
       if (result.clarification) {
@@ -124,11 +129,13 @@ export default function DashboardBuilder({ extraContext, onBusyChange, onOpenDra
   return <div className="redash-ai-builder">
     <Typography.Title level={4}>Describe it. Get a draft dashboard.</Typography.Title>
     <Alert type="info" showIcon message="Creates real queries and visualizations"
-      description="Selected table schemas, saved AI context and your prompt are sent to your AI provider. The draft runs read-only queries with up to 60 seconds per query, or your stricter limit. Row limits are controlled by the query editor’s Limit 1000 checkbox. Review results before publishing." />
+      description={scoped
+        ? "Only your permitted table and column names and your current prompt are sent to your AI provider. Shared organization context is excluded. Generated SQL is checked against your current data rules before saving and again when it runs. Review the draft before publishing."
+        : "Selected table schemas, saved AI context and your prompt are sent to your AI provider. The draft runs read-only queries with up to 60 seconds per query, or your stricter limit. Row limits are controlled by the query editor’s Limit 1000 checkbox. Review results before publishing."} />
     {error && <Alert type="error" message={error} style={{ marginTop: 12 }} />}
     {loading ? <Spin /> : <Form layout="vertical" style={{ marginTop: 20 }}>
       <Form.Item label="Data source" required>
-        <Select value={sourceId} disabled={busy} placeholder="Choose PostgreSQL or MySQL/MariaDB"
+        <Select value={sourceId} disabled={busy} placeholder={scoped ? "Choose MySQL/MariaDB" : "Choose PostgreSQL or MySQL/MariaDB"}
           options={sources.map((source) => ({ value: source.id, label: `${source.name} · ${source.type}` }))}
           onChange={(value) => { setSourceId(value); setDraft(null); }} />
       </Form.Item>

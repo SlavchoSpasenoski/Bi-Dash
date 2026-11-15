@@ -6,6 +6,10 @@ Bi-Dash is a workspace for connecting databases, writing queries, visualizing re
 
 This guide describes the implementation in this repository. Button names match the English interface. Available controls depend on your role, groups and administrator policies.
 
+Dashboard owners can share viewing through **Access → Users / Groups**. Administrators can manage the same group assignments from **Settings → Groups → group → Dashboards**. Group sharing does not grant source access.
+
+Administrators can inspect a user’s effective permissions at **Settings → Users → user → Effective access**. The read-only report separates role/actions, source and table/column access, and dashboard/widget permissions, with reasons for denied access. Use **Reload permissions** after changing settings. See [Effective access](EFFECTIVE_ACCESS.md).
+
 ## Contents
 
 1. [Inherited features and Bi-Dash improvements](#comparison)
@@ -169,8 +173,8 @@ Publishing a dashboard and creating a **public link** are separate actions. Publ
 **Ask AI** is a conversation for SQL questions, query analysis and explanations. It does not itself create dashboards or execute suggested queries.
 
 1. Open **AI Assistant** and choose **Ask AI**.
-2. Write a specific question.
-3. If needed, expand **Extra context for this conversation** and add relevant schema or details.
+2. Editors first select a permitted MySQL/MariaDB source. Write a specific question.
+3. Administrators can optionally expand **Extra context for this conversation** and add relevant schema or details. Editors use server-supplied permitted schema instead.
 4. Submit with **Send** or **Ctrl / ⌘ + Enter**.
 5. Read the answer. Review any proposed SQL before running it in the query editor.
 
@@ -182,7 +186,7 @@ Examples:
 
 **Copy SQL / answer** copies the recognized SQL block or the answer. **Clear chat** clears the conversation. Reloading loses the panel conversation; saved organization AI Context remains.
 
-Chat does not automatically inspect the entire database. It answers using the submitted question and context. Accuracy also depends on the selected model.
+For Editors, select a permitted MySQL/MariaDB source before sending a question. Bi-Dash supplies only server-derived permitted table and column names, excludes saved organization context and previous messages, and returns validated SQL or a request for clarification. General model explanations are not returned in Editor mode. Changing source or reopening the drawer clears the conversation. Admins retain the additional-context conversation described above. Chat never executes its SQL automatically; review the query and run it through the query editor.
 
 <a id="builder"></a>
 ## 8. AI Assistant: Build dashboard
@@ -192,8 +196,8 @@ Use this mode to create actual reports without copying SQL from a chat answer.
 ### Steps
 
 1. Open **AI Assistant → Build dashboard**.
-2. Select a Data Source. Available active PostgreSQL and MySQL/MariaDB sources with appropriate access are listed.
-3. Under **Relevant tables**, choose up to **12** tables needed for the report. Exact names and columns from the cached schema are added automatically.
+2. Select a Data Source. Admins can use accessible active PostgreSQL or MySQL/MariaDB sources; Editor AI currently supports permitted MySQL/MariaDB sources only.
+3. Under **Relevant tables**, optionally choose the tables needed for the report. Empty selection includes all available permitted tables. There is no table-count cap, but explicit schema/context size limits apply. Editor schema comes from current server-side access rules; shared organization context is excluded.
 4. Describe metrics, period, grouping, filters and desired visualizations.
 5. Click **Create draft dashboard** and wait.
 6. Review each query's status: preparing, queued, running, ready or a specific error.
@@ -204,7 +208,7 @@ Use this mode to create actual reports without copying SQL from a chat answer.
 
 ```mermaid
 flowchart TD
-    A[Prompt + selected tables + saved context] --> B[Selected AI provider]
+    A[Prompt + permitted table schema + Admin context only] --> B[Selected AI provider]
     B --> C{Valid plan?}
     C -->|Information missing| D[Clarification question]
     C -->|No| E[Error without creating resources]
@@ -256,7 +260,7 @@ Avoid vague requests such as “make sales with a chart”. With a small local m
 <a id="context"></a>
 ## 10. Persistent AI Context
 
-**Settings → AI Context** is a dedicated administrator section for shared business definitions. Context is saved per organization, applies to chat and builder requests, and survives restarts. Saved text is limited to **24,000 characters**; the amount a model can process also depends on its context window.
+**Settings → AI Context** is a dedicated administrator section for shared business definitions. Context is saved per organization, applies to administrator chat and builder requests, and survives restarts. It is excluded from Editor AI requests because shared text may describe data outside an Editor's permissions. Saved text is limited to **24,000 characters**; the amount a model can process also depends on its context window.
 
 Adapt this example to your real database:
 
@@ -278,7 +282,7 @@ Ask when a definition is missing. Do not invent columns or relationships.
 
 Replace placeholders with accurate definitions, amount fields, statuses and keys. Context guides the model; it does not grant access or protect the database. Do not enter passwords, API keys or unnecessary personal data.
 
-Extra context in Ask AI applies to the current conversation. It does not replace or update persistent organization context.
+For administrators, extra context in Ask AI applies to the current conversation. It does not replace or update persistent organization context. Editor AI uses its selected source's permitted schema instead.
 
 <a id="providers"></a>
 ## 11. Choosing and configuring an AI provider
@@ -368,9 +372,9 @@ At timeout, the worker interrupts the job; PostgreSQL also receives a native sta
 
 ### Freshness and parameters
 
-Saved dashboards may display previous results. Check the refresh time before making a decision. Editors/Admins with source access can execute fresh queries; Readers use available saved results.
+Saved dashboards may display previous results. Check freshness before making a decision. Editors/Admins need execution access for fresh queries. Readers can refresh assigned published reports with safe typed parameters on MySQL/MariaDB or PostgreSQL.
 
-Define query parameters in the editor using appropriate types. The builder initially generates queries without parameters; subsequent manual edits follow the platform's normal rules.
+Define appropriate typed query parameters. AI plans can include validated date ranges; review saved defaults and dashboard mappings.
 
 ### Download
 
@@ -378,11 +382,11 @@ Use the query/visualization download menu, when available, to export **CSV**, **
 
 ### Internal sharing
 
-Share report or dashboard links with organization members. A link does not grant access to otherwise restricted sources. Editing someone else's resource requires the appropriate Admin-assigned edit grant.
+Open a published dashboard as Admin or its Editor owner, click **Access**, select accounts under **Users who can view**, and click **Save access**. Remove accounts and save to revoke access. Recipients sign in and still need source access; Editor table/column rules apply. A link alone grants nothing. Only the owner edits dashboard content; viewing never grants editing or resharing. Readers see only assigned published dashboards. See [Dashboard Access](DASHBOARD_ACCESS.md).
 
 ### Public links and scheduling
 
-Public sharing is separate from **Publish** on a draft. Use it only when permitted and appropriate for the results. Editors have public sharing, scheduling and archiving disabled by default; Admin can enable them independently.
+Anonymous public dashboard/query/report links are disabled. **Publish** makes a dashboard eligible for explicit user grants; it does not make it public or visible to every source-group member. Scheduling and archiving retain their role and ownership checks.
 
 Scheduled refresh executes a query; it does not generate a new AI plan. The owner's continuing scheduling permission is checked. Alerts and destinations are configured separately and depend on installed integrations and permissions.
 
@@ -393,7 +397,7 @@ Scheduled refresh executes a query; it does not generate a new AI plan. The owne
 - **Local model:** Ollama is local only if its configured endpoint is local. A remote address sends requests to that address.
 - **Hosted model:** Processing, retention and billing depend on the provider and your account agreement.
 - **API keys:** Saved keys are encrypted on the server and are not returned as plaintext in Settings. Backup/restore must preserve the appropriate server secret for decryption.
-- **Drafts:** Remain organization resources under normal access rules. “Unpublished” does not guarantee author-only privacy.
+- **Drafts:** Visible to the Editor/Admin owner and organization Admins. Non-owner Editors/Readers need an explicit grant to a published dashboard.
 - **Local Docker storage:** The PostgreSQL volume stores users, reports and settings; the Ollama volume stores models. The drawer conversation is not persistent chat history.
 - **Usage data:** Inherited optional telemetry is separate from AI and, when enabled, goes to the upstream analytics endpoint. The interface identifies the actual recipient; this is not a Bi-Dash hosted analytics service.
 

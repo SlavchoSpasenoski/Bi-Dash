@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Slavcho Spasenoski. Original Bi-Dash contributions.
 // SPDX-License-Identifier: BSD-2-Clause
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, Button, Collapse, Drawer, Input, Radio, Spin } from "antd";
+import { Alert, Button, Collapse, Drawer, Input, Radio, Select, Spin } from "antd";
 import { currentUser } from "@/services/auth";
 import Link from "@/components/Link";
 import { axios } from "@/services/axios";
@@ -22,23 +22,41 @@ export default function AiAssistant() {
   const [hasContext, setHasContext] = useState(false);
   const [destination, setDestination] = useState("");
   const [mode, setMode] = useState("chat");
+  const [scoped, setScoped] = useState(!currentUser.isAdmin);
+  const [sources, setSources] = useState([]);
+  const [sourceId, setSourceId] = useState(null);
+  const requestContext = useRef(0);
   const bottom = useRef(null);
   useEffect(() => {
     if (open) {
+      const version = ++requestContext.current;
       setEnabled(null);
       setError("");
       setProvider(null);
       setDestination("");
+      setSourceId(null);
+      setSources([]);
+      if (!currentUser.isAdmin) {
+        setMessages([]);
+        setSchema("");
+        setCopied(null);
+      }
       axios
         .get("api/ai/chat")
         .then((data) => {
+          if (version !== requestContext.current) return;
           setEnabled(data.enabled);
           setProvider(data.provider);
           setModel(data.model);
           setHasContext(data.has_context);
           setDestination(data.destination);
+          setScoped(Boolean(data.scoped));
+          if (data.scoped) { setMessages([]); setSchema(""); setCopied(null); }
+          setSources(data.data_sources || []);
+          if (data.scoped && data.data_sources?.length === 1) setSourceId(data.data_sources[0].id);
         })
         .catch((err) => {
+          if (version !== requestContext.current) return;
           setEnabled(null);
           setError(err.response?.data?.message || "AI assistant is unavailable. Check your permissions and AI Configuration.");
         });
@@ -49,15 +67,20 @@ export default function AiAssistant() {
   }, [messages, busy]);
 
   async function send() {
-    if (!prompt.trim() || busy || !enabled) return;
+    if (!prompt.trim() || busy || !enabled || (scoped && !sourceId)) return;
+    const version = requestContext.current;
     const next = [...messages, { role: "user", content: prompt.trim() }];
     setBusy(true);
     setError("");
     try {
-      const result = await axios.post("api/ai/chat", { messages: next.slice(-15), schema });
+      const result = await axios.post("api/ai/chat", scoped
+        ? { messages: [next[next.length - 1]], data_source_id: sourceId }
+        : { messages: next.slice(-15), schema });
+      if (version !== requestContext.current) return;
       setMessages([...next, { role: "assistant", content: result.answer }]);
       setPrompt("");
     } catch (err) {
+      if (version !== requestContext.current) return;
       setError(err.response?.data?.message || "Could not reach the AI assistant. Please try again.");
     } finally {
       setBusy(false);
@@ -91,24 +114,37 @@ export default function AiAssistant() {
         <div className="redash-ai-panel">
           <Radio.Group value={mode} disabled={busy} onChange={(event) => setMode(event.target.value)}
             optionType="button" options={[{ value: "chat", label: "Ask AI" }, { value: "dashboard", label: "Build dashboard" }]} />
-          {mode === "dashboard" ? <DashboardBuilder extraContext={schema} onBusyChange={setBusy} onOpenDraft={() => setOpen(false)} /> : <>
+          {mode === "dashboard" ? <DashboardBuilder extraContext={scoped ? "" : schema} scopedAccess={scoped} onBusyChange={setBusy} onOpenDraft={() => setOpen(false)} /> : <>
           <Alert
             type="info"
             showIcon
             message="Review generated SQL before running it."
             description={destination
-              ? `Messages and context are sent to ${destination}. Queries are never executed by this assistant.`
+              ? scoped
+                ? `Your current prompt and permitted schema are sent to ${destination}. Shared organization context and prior messages are excluded. Queries are never executed by this assistant.`
+                : `Messages and context are sent to ${destination}. Queries are never executed by this assistant.`
               : "Queries are never executed by this assistant."}
           />
           {provider && <div className="redash-ai-status">
             <span>{provider === "ollama" ? "Ollama" : provider} · {model}</span>
-            <span>{hasContext ? "Saved organization context applied" : "No saved organization context"}</span>
+            <span>{scoped ? "Only your permitted schema is used" : hasContext ? "Saved organization context applied" : "No saved organization context"}</span>
             {currentUser.isAdmin && <Link href="settings/ai">AI settings</Link>}
           </div>}
           {enabled === false && (
             <Alert type="warning" message="The selected AI provider is not configured. Check the server settings." />
           )}
-          <Collapse ghost className="redash-ai-context">
+          {scoped && <div className="redash-ai-context">
+            <label htmlFor="ai-data-source">Data source</label>
+            <Select id="ai-data-source" style={{ width: "100%" }} value={sourceId} disabled={busy || enabled === null}
+              placeholder="Choose a permitted MySQL/MariaDB data source"
+              options={sources.map(source => ({ value: source.id, label: source.name }))}
+              onChange={(value) => {
+                requestContext.current += 1;
+                setSourceId(value); setMessages([]); setPrompt(""); setCopied(null); setError("");
+              }} />
+            {enabled && !sources.length && <Alert type="warning" message="No permitted MySQL/MariaDB source is available. Ask an administrator to check your source access and group rules." />}
+          </div>}
+          {!scoped && <Collapse ghost className="redash-ai-context">
             <Collapse.Panel header="Extra context for this conversation (optional)" key="context">
               <p>Saved organization context is included automatically.
                 {currentUser.isAdmin && <> <Link href="settings/ai-context">Manage saved context</Link></>}
@@ -124,11 +160,11 @@ export default function AiAssistant() {
             placeholder="Example: orders(id, customer_id, total, created_at). Include SQL dialect."
           />
             </Collapse.Panel>
-          </Collapse>
+          </Collapse>}
           <div className="redash-ai-messages" role="log" aria-label="AI conversation" aria-live="polite">
             {!messages.length && (
               <p className="redash-ai-empty">
-                Try: “Write a query for monthly sales” or “Explain how to build a cohort chart”.
+                {scoped ? "Choose a source and ask for a read-only SQL query using your permitted data." : "Try: “Write a query for monthly sales” or “Explain how to build a cohort chart”."}
                 You can write in Macedonian too.
               </p>
             )}
@@ -177,7 +213,7 @@ export default function AiAssistant() {
             >
               Clear chat
             </Button>
-            <Button type="primary" loading={busy} disabled={!enabled || !prompt.trim()} onClick={send}>
+            <Button type="primary" loading={busy} disabled={!enabled || !prompt.trim() || (scoped && !sourceId)} onClick={send}>
               Send
             </Button>
           </div>

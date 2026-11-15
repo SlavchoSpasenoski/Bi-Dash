@@ -72,3 +72,11 @@ class UserAccessResource(BaseResource):
         self.record_event({"action": "edit", "object_type": "user_access", "object_id": user.id,
                            "previous_role": previous_role, "role": role, "limits": limits})
         return {"role": role, "limits": limits}
+
+
+class UserEffectiveAccessResource(BaseResource):
+    @require_admin
+    def get(self, user_id):
+        from redash.effective_access import user_effective_access
+        user = get_object_or_404(User.get_by_id_and_org, user_id, self.current_org)
+        return user_effective_access(user)

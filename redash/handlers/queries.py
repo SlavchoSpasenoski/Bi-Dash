@@ -53,9 +53,11 @@ order_results = partial(_order_results, default_order="-created_at", allowed_ord
 
 
 def filter_readable_report_queries(queries, user):
-    """Apply protected definition access before pagination/counting."""
+    """Apply dashboard visibility and column access before pagination/counting."""
     if user.has_permission("admin"):
         return queries
+    from redash.dashboard_access import query_readable_clause
+    queries = queries.filter(query_readable_clause(user))
     from redash.data_access_runtime import is_protected
     from redash.permissions import has_access
     # Source/group SQL filters still govern unprotected definitions. Only the
@@ -469,7 +471,7 @@ class QueryResource(BaseResource):
         :param query_id: ID of query to archive
         """
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
-        require_admin_or_owner(query.user_id)
+        require_object_modify_permission(query, self.current_user)
         query.archive(self.current_user)
         models.db.session.commit()
 
@@ -550,7 +552,12 @@ class QueryTagsResource(BaseResource):
         """
         Returns all query tags including those for drafts.
         """
-        tags = models.Query.all_tags(self.current_user, include_drafts=True)
+        from sqlalchemy import func
+        queries = models.Query.all_queries(self.current_user.group_ids, self.current_user.id, include_drafts=True)
+        queries = filter_readable_report_queries(queries, self.current_user)
+        tag = func.unnest(models.Query.tags).label("tag")
+        tags = (models.db.session.query(tag, func.count(1)).filter(
+            models.Query.id.in_(queries.with_entities(models.Query.id))).group_by(tag).order_by(tag))
         return {"tags": [{"name": name, "count": count} for name, count in tags]}
 
 

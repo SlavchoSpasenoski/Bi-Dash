@@ -278,7 +278,7 @@ class Python(BaseQueryRunner):
         except models.NoResultFound:
             raise Exception("Query id %s does not exist." % query_id)
 
-        if query.data_source is None or not has_access(query.data_source, user, view_only):
+        if query.data_source is None or not has_access(query, user, view_only):
             raise Exception("You do not have access to query id %s." % query_id)
 
         from redash.data_access_runtime import is_protected
@@ -290,6 +290,12 @@ class Python(BaseQueryRunner):
 
         if query.latest_query_data.data is None:
             raise Exception("Query does not have results yet.")
+
+        from redash.data_access_runtime import result_access_allowed
+        from redash.reader_reports import result_dashboard_allowed
+        if (not result_access_allowed(query.latest_query_data, user)
+                or not result_dashboard_allowed(query.latest_query_data, user)):
+            raise Exception("Cached query results are outside your current report access.")
 
         if query.latest_query_data.data_source is None or not has_access(
             query.latest_query_data.data_source, user, view_only

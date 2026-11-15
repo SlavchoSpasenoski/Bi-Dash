@@ -13,7 +13,7 @@ import EditInPlace from "@/components/EditInPlace";
 import PlainButton from "@/components/PlainButton";
 import { DashboardTagsControl } from "@/components/tags-control/TagsControl";
 import getTags from "@/services/getTags";
-import { clientConfig, currentUser } from "@/services/auth";
+import { clientConfig } from "@/services/auth";
 import { policy } from "@/services/policy";
 import recordEvent from "@/services/recordEvent";
 import { durationHumanize } from "@/lib/utils";
@@ -119,7 +119,6 @@ function DashboardMoreOptionsButton({ dashboardConfiguration }) {
     archiveDashboard,
     managePermissions,
     gridDisabled,
-    isDashboardOwnerOrAdmin,
     isDuplicating,
     duplicateDashboard,
   } = dashboardConfiguration;
@@ -153,9 +152,9 @@ function DashboardMoreOptionsButton({ dashboardConfiguration }) {
               </PlainButton>
             </Menu.Item>
           )}
-          {clientConfig.showPermissionsControl && isDashboardOwnerOrAdmin && (
+          {dashboard.can_manage_access && (
             <Menu.Item>
-              <PlainButton onClick={managePermissions}>Manage Permissions</PlainButton>
+              <PlainButton onClick={managePermissions}>Dashboard access</PlainButton>
             </Menu.Item>
           )}
           {!clientConfig.disablePublish && !dashboard.is_draft && (
@@ -185,17 +184,15 @@ function DashboardControl({ dashboardConfiguration, headerExtra }) {
     dashboard,
     togglePublished,
     canEditDashboard,
-    isDashboardOwnerOrAdmin,
     fullscreen,
     toggleFullscreen,
     showShareDashboardDialog,
     updateDashboard,
   } = dashboardConfiguration;
-  const showPublishButton = dashboard.is_draft;
+  const showPublishButton = dashboard.is_draft && canEditDashboard;
   const showRefreshButton = true;
   const showFullscreenButton = !dashboard.is_draft;
-  const canShareDashboard = isDashboardOwnerOrAdmin && !dashboard.is_draft;
-  const showShareButton = currentUser.hasPermission("share_dashboard") && !clientConfig.disablePublicUrls && (dashboard.publicAccessEnabled || canShareDashboard);
+  const showShareButton = Boolean(dashboard.can_manage_access);
   const showMoreOptionsButton = canEditDashboard;
 
   const unarchiveDashboard = () => {
@@ -227,15 +224,15 @@ function DashboardControl({ dashboardConfiguration, headerExtra }) {
           )}
           {headerExtra}
           {showShareButton && (
-            <Tooltip title="Dashboard Sharing Options">
+            <Tooltip title="Choose users who can view this dashboard">
               <Button
-                className="icon-button m-l-5"
-                type={buttonType(dashboard.publicAccessEnabled)}
+                className="m-l-5"
+                type="default"
                 onClick={showShareDashboardDialog}
                 data-test="OpenShareForm"
-                aria-label="Share"
+                aria-label="Manage dashboard access"
               >
-                <i className="zmdi zmdi-share" aria-hidden="true" />
+                <i className="zmdi zmdi-share m-r-5" aria-hidden="true" /> Access
               </Button>
             </Tooltip>
           )}

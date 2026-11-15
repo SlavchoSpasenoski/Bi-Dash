@@ -12,10 +12,11 @@ from redash.handlers.alerts import (
 )
 from redash.handlers.base import org_scoped_rule
 from redash.handlers.ai import AssistantContextResource, AssistantResource, AssistantSettingsResource
-from redash.handlers.access_policy import AccessPolicyResource, UserAccessResource
+from redash.handlers.access_policy import AccessPolicyResource, UserAccessResource, UserEffectiveAccessResource
 from redash.handlers.data_access import DataAccessEffectiveResource, DataAccessMetadataResource, DataAccessResource
 from redash.handlers.ai_dashboards import AssistantDashboardResource
 from redash.handlers.dashboards import (
+    DashboardAccessResource,
     DashboardFavoriteListResource,
     DashboardForkResource,
     DashboardListResource,
@@ -56,6 +57,7 @@ from redash.handlers.groups import (
     GroupMemberResource,
     GroupResource,
 )
+from redash.handlers.group_dashboards import GroupDashboardListResource
 from redash.handlers.permissions import (
     CheckPermissionResource,
     ObjectPermissionsListResource,
@@ -108,10 +110,12 @@ class ApiExt(Api):
 
 
 api = ApiExt()
+api.add_org_resource(GroupDashboardListResource, "/api/groups/<int:group_id>/dashboards", endpoint="group_dashboards")
 api.add_org_resource(AssistantResource, "/api/ai/chat", endpoint="ai_chat")
 api.add_org_resource(AssistantDashboardResource, "/api/ai/dashboards", endpoint="ai_dashboards")
 api.add_org_resource(AccessPolicyResource, "/api/settings/access-policy", endpoint="access_policy")
 api.add_org_resource(UserAccessResource, "/api/users/<int:user_id>/access", endpoint="user_access")
+api.add_org_resource(UserEffectiveAccessResource, "/api/users/<int:user_id>/effective-access", endpoint="user_effective_access")
 api.add_org_resource(DataAccessResource, "/api/settings/data-access", endpoint="data_access")
 api.add_org_resource(DataAccessEffectiveResource, "/api/settings/data-access/effective", endpoint="data_access_effective")
 api.add_org_resource(DataAccessMetadataResource, "/api/settings/data-access/metadata", endpoint="data_access_metadata")
@@ -146,6 +150,7 @@ api.add_org_resource(AlertListResource, "/api/alerts", endpoint="alerts")
 
 api.add_org_resource(DashboardListResource, "/api/dashboards", endpoint="dashboards")
 api.add_org_resource(DashboardResource, "/api/dashboards/<dashboard_id>", endpoint="dashboard")
+api.add_org_resource(DashboardAccessResource, "/api/dashboards/<dashboard_id>/access", endpoint="dashboard_access")
 api.add_org_resource(
     PublicDashboardResource,
     "/api/dashboards/public/<token>",

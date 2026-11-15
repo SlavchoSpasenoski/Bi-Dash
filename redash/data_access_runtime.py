@@ -43,7 +43,10 @@ def _state(source):
         config = validate_group_configuration(settings.get("data_access_group_rules", {"revision": 0, "policies": []}))
     except ValueError as error:
         raise DataAccessDenied("Group data access configuration is invalid.") from error
-    return config, set(internal), set(protected) | {p["data_source_id"] for p in config["policies"]}
+    # Modern group rules are the source of truth. Historical protection markers
+    # must not keep an ordinary source restricted after its last rule is removed.
+    active = {p["data_source_id"] for p in config["policies"]}
+    return config, set(internal), active if "data_access_group_rules" in settings else set(protected) | active
 
 def is_internal(source):
     try:

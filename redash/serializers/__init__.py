@@ -82,9 +82,7 @@ class QuerySerializer(Serializer):
                 result["is_favorite"] = models.Favorite.is_favorite(current_user.id, self.object_or_list)
         else:
             from redash.data_access_runtime import can_access_source, is_protected
-            queries = [query for query in self.object_or_list if not query.data_source or
-                       (not is_protected(query.data_source) and can_access_source(query.data_source, current_user) is None)
-                       or has_access(query, current_user, view_only)]
+            queries = [query for query in self.object_or_list if has_access(query, current_user, view_only)]
             result = [serialize_query(query, **self.options) for query in queries]
             if self.options.get("with_favorite_state", True):
                 favorites = models.Favorite.query.filter(
@@ -111,6 +109,10 @@ def serialize_query(
     with_last_modified_by=True,
 ):
     from redash.data_access_runtime import can_read_all_scopes, DataAccessDenied, access_scope, can_access_source, is_protected, resolve_source
+    from redash.reader_reports import result_dashboard_allowed
+    if current_user and not has_access(query, current_user, view_only):
+        from flask_restful import abort
+        abort(403, message="This report is not on an assigned dashboard.")
     if query.data_source is not None and can_access_source(query.data_source, current_user) is False:
         from flask_restful import abort
         abort(403, message="This query's data source is no longer accessible.")
@@ -125,11 +127,16 @@ def serialize_query(
             text = source.query_runner.apply_auto_limit(query.query_text, query.options.get("apply_auto_limit", False))
             scoped_result = models.QueryResult.get_latest(source, text, -1,
                 policy_scope=access_scope(source, current_user), any_policy_scope=can_read_all_scopes(current_user))
+            if scoped_result is not None and not result_dashboard_allowed(scoped_result, current_user):
+                scoped_result = None
         except DataAccessDenied:
             pass
+    display_result = scoped_result if protected else query.latest_query_data
+    if display_result is not None and current_user and not result_dashboard_allowed(display_result, current_user):
+        display_result = None
     d = {
         "id": query.id,
-        "latest_query_data_id": query.latest_query_data_id,
+        "latest_query_data_id": display_result.id if display_result else None,
         "name": query.name,
         "description": query.description,
         "query": query.query_text,
@@ -166,9 +173,9 @@ def serialize_query(
         if protected:
             d["retrieved_at"] = scoped_result.retrieved_at if scoped_result else None
             d["runtime"] = scoped_result.runtime if scoped_result else None
-        elif query.latest_query_data is not None:
-            d["retrieved_at"] = query.retrieved_at
-            d["runtime"] = query.runtime
+        elif display_result is not None:
+            d["retrieved_at"] = display_result.retrieved_at
+            d["runtime"] = display_result.runtime
         else:
             d["retrieved_at"] = None
             d["runtime"] = None
@@ -285,6 +292,12 @@ def serialize_dashboard(obj, with_widgets=False, user=None, with_favorite_state=
         "created_at": obj.created_at,
         "version": obj.version,
     }
+    actor = user or current_user
+    if actor:
+        from redash.dashboard_access import can_edit_dashboard, can_manage_dashboard_access
+        d["can_edit"] = can_edit_dashboard(obj, actor)
+        d["can_manage_access"] = can_manage_dashboard_access(obj, actor)
+    d["public_sharing_enabled"] = False
 
     return d
 

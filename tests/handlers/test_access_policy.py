@@ -26,6 +26,9 @@ class TestAccessPolicy(BaseTestCase):
         visualization = self.factory.create_visualization(query_rel=query)
         dashboard = self.factory.create_dashboard(user=self.editor, is_draft=False)
         self.factory.create_widget(dashboard=dashboard, visualization=visualization)
+        models.db.session.flush()
+        models.db.session.add(models.DashboardReadGrant(dashboard_id=dashboard.id,
+            user_id=self.reader.id, grantor_id=self.editor.id))
         models.db.session.commit()
         return query, result, dashboard
 
@@ -61,14 +64,13 @@ class TestAccessPolicy(BaseTestCase):
                 response = self.make_request(method, path, data=data, user=self.reader)
                 self.assertEqual(response.status_code, 403)
 
-    def test_reader_cached_parameter_requests_do_not_enqueue(self):
+    def test_reader_requests_without_dashboard_context_do_not_enqueue(self):
         query, _, _ = self.report()
         with patch("redash.handlers.query_results.enqueue_query") as enqueue:
             response = self.make_request("post", f"/api/queries/{query.id}/results",
                                          data={"max_age": 0}, user=self.reader)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         enqueue.assert_not_called()
-        self.assertNotIn("query", response.json["query_result"])
         query.latest_query_data = None
         models.db.session.commit()
         models.QueryResult.query.delete()
@@ -172,8 +174,7 @@ class TestAccessPolicy(BaseTestCase):
         headers = {"Authorization": "Key " + token.api_key}
         prefix = f"/{self.factory.org.slug}/api"
         response = client.get(f"{prefix}/queries/{query.id}", headers=headers)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("query", response.json)
+        self.assertEqual(response.status_code, 403)
         self.assertNotIn("private_sql_marker", response.get_data(as_text=True))
         self.assertEqual(client.get(f"{prefix}/query_snippets", headers=headers).status_code, 403)
         self.assertEqual(client.get(f"{prefix}/data_sources/{query.data_source_id}/schema", headers=headers).status_code, 403)

@@ -1,5 +1,6 @@
 from flask import request
 from flask_login import current_user, login_required
+from flask_restful import abort
 
 from redash import models
 from redash.handlers import routes
@@ -21,6 +22,13 @@ from .authentication import current_org
 @login_required
 @csp_allows_embeding
 def embed(query_id, visualization_id, org_slug=None):
+    from redash.permissions import require_access, view_only
+    if current_user.is_api_user():
+        abort(403, message="Anonymous report links are disabled. Sign in with assigned access.")
+    visualization = get_object_or_404(models.Visualization.get_by_id_and_org, visualization_id, current_org)
+    if str(visualization.query_id) != str(query_id):
+        abort(404)
+    require_access(visualization.query_rel, current_user, view_only)
     record_event(
         current_org,
         current_user._get_current_object(),
@@ -40,22 +48,4 @@ def embed(query_id, visualization_id, org_slug=None):
 @login_required
 @csp_allows_embeding
 def public_dashboard(token, org_slug=None):
-    if current_user.is_api_user():
-        dashboard = current_user.object
-    else:
-        api_key = get_object_or_404(models.ApiKey.get_by_api_key, token)
-        dashboard = api_key.object
-
-    record_event(
-        current_org,
-        current_user,
-        {
-            "action": "view",
-            "object_id": dashboard.id,
-            "object_type": "dashboard",
-            "public": True,
-            "headless": "embed" in request.args,
-            "referer": request.headers.get("Referer"),
-        },
-    )
-    return render_index()
+    abort(403, message="Public dashboard links are disabled. Sign in with assigned access.")

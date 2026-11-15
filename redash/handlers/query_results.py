@@ -65,11 +65,23 @@ error_messages = {
 
 def _require_result_access(result, user):
     from redash.data_access_runtime import result_access_allowed
-    if not result_access_allowed(result, user):
+    from redash.reader_reports import result_dashboard_allowed
+    if not result_access_allowed(result, user) or not result_dashboard_allowed(result, user):
         abort(403, message="This result is outside your current group access scope.")
 
 
 def _require_job_access(job, user):
+    if job.meta.get("dashboard_report"):
+        from redash.reader_reports import authorize_editor_report
+        try:
+            authorize_editor_report(user, dict(job.meta["dashboard_report"]))
+        except ValueError as error:
+            abort(403, message=str(error))
+    query_id = job.meta.get("query_id")
+    if query_id not in (None, "adhoc") and not job.meta.get("reader_report"):
+        query = models.Query.query.filter_by(id=query_id, org_id=user.org_id).first()
+        if query is None or not has_access(query, user, view_only):
+            abort(403, message="This saved query is no longer accessible.")
     if job.meta.get("reader_report"):
         from redash.reader_reports import authorize_report
         from redash.data_access_runtime import DataAccessDenied
@@ -87,13 +99,13 @@ def _require_job_access(job, user):
             from redash.data_access_runtime import access_scope, can_access_source, is_protected
             if can_access_source(source, user) is False:
                 abort(403, message="This job's data source is no longer accessible.")
+            require_access(source, user, view_only)
             if is_protected(source):
                 if job.meta.get("schema") or job.meta.get("policy_scope") != access_scope(source, user):
                     abort(403, message="Legacy schema jobs are unavailable for protected sources.")
-                require_access(source, user, view_only)
 
 
-def run_query(query, parameters, data_source, query_id, should_apply_auto_limit, max_age=0):
+def run_query(query, parameters, data_source, query_id, should_apply_auto_limit, max_age=0, dashboard_report=None):
     if not data_source:
         return error_messages["no_data_source"]
 
@@ -132,6 +144,16 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
     else:
         query_result = models.QueryResult.get_latest(data_source, query_text, max_age,
             policy_scope=access_scope(data_source, current_user), any_policy_scope=can_read_all_scopes(current_user))
+        if query_result is not None:
+            from redash.reader_reports import result_dashboard_allowed
+            if not result_dashboard_allowed(query_result, current_user):
+                query_result = None
+            elif dashboard_report:
+                context = getattr(query_result, "report_context", None) or {}
+                if (context.get("kind") != "editor"
+                        or context.get("dashboard_id") != dashboard_report["dashboard_id"]
+                        or context.get("authorization_scope") != dashboard_report["authorization_scope"]):
+                    query_result = None
 
     if reader and query_result is None:
         return error_response("No saved result is available for these parameters. Ask an editor to refresh the report.", 403)
@@ -163,6 +185,7 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
                 metadata={
                     "user_id": current_user.get_actual_user() if current_user.is_api_user() else current_user.id,
                     "query_id": query_id,
+                    **({"dashboard_report": dashboard_report} if dashboard_report else {}),
                 },
             )
         except (QueryExecutionError, LockError) as error:
@@ -237,6 +260,15 @@ class QueryResultListResource(BaseResource):
         if not has_access(data_source, self.current_user, not_view_only):
             return error_messages["no_permission"]
 
+        if query_id not in (None, "adhoc"):
+            saved = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
+            if saved.user_id != self.current_user.id or saved.data_source_id != data_source.id:
+                abort(403, message="Use the saved report endpoint to refresh another owner's query.")
+            query_id = saved.id
+            if query != saved.query_text:
+                # Running unsaved SQL is ad-hoc work, never saved-report provenance.
+                query_id = "adhoc"
+
         return run_query(
             parameterized_query,
             parameters,
@@ -250,14 +282,28 @@ class QueryResultListResource(BaseResource):
 ONE_YEAR = 60 * 60 * 24 * 365.25
 
 
+def _require_dropdown_result_access(query):
+    from redash.data_access_runtime import can_read_all_scopes, is_protected
+    if is_protected(query.data_source) and can_read_all_scopes(current_user):
+        text = query.data_source.query_runner.apply_auto_limit(query.query_text,
+                query.options.get("apply_auto_limit", False))
+        result = models.QueryResult.get_latest(query.data_source, text, -1, any_policy_scope=True)
+    else:
+        result = models.QueryResult.query.filter_by(id=query.latest_query_data_id, org_id=query.org_id).first()
+    if result is None:
+        abort(403, message="No authorized saved dropdown result is available.")
+    _require_result_access(result, current_user)
+
+
 class QueryResultDropdownResource(BaseResource):
     def get(self, query_id):
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
-        require_access(query.data_source, current_user, view_only)
+        require_access(query, current_user, view_only)
         from redash.data_access_runtime import can_read_all_scopes, is_protected
         if is_protected(query.data_source) and not can_read_all_scopes(current_user):
             abort(403, message="Protected sources do not support query dropdowns.")
         try:
+            _require_dropdown_result_access(query)
             return dropdown_values(query_id, self.current_org)
         except QueryDetachedFromDataSourceError as e:
             abort(400, message=str(e))
@@ -269,6 +315,7 @@ class QueryDropdownsResource(BaseResource):
         require_access(query, current_user, view_only)
         from redash.data_access_runtime import can_read_all_scopes, is_protected
         dropdown_query = get_object_or_404(models.Query.get_by_id_and_org, dropdown_query_id, self.current_org)
+        require_access(dropdown_query, current_user, view_only)
         if is_protected(dropdown_query.data_source) and not can_read_all_scopes(current_user):
             abort(403, message="Protected sources do not support query dropdowns.")
 
@@ -278,8 +325,9 @@ class QueryDropdownsResource(BaseResource):
             if current_user.is_api_user():
                 abort(403)
             dropdown_query = get_object_or_404(models.Query.get_by_id_and_org, dropdown_query_id, self.current_org)
-            require_access(dropdown_query.data_source, current_user, view_only)
+            require_access(dropdown_query, current_user, view_only)
 
+        _require_dropdown_result_access(dropdown_query)
         return dropdown_values(dropdown_query_id, self.current_org)
 
 
@@ -339,6 +387,7 @@ class QueryResultResource(BaseResource):
                 if max_age != 0:
                     cached = models.QueryResult.get_latest(source, sql, max_age, policy_scope=scope)
                     if cached:
+                        _require_result_access(cached, self.current_user)
                         return {"query_result": serialize_query_result(cached, False)}
                 job = enqueue_query(sql, source, self.current_user.id,
                                     metadata={"query_id": query.id, "reader_report": report})
@@ -347,6 +396,19 @@ class QueryResultResource(BaseResource):
                 abort(403, message=str(error))
             except (QueryExecutionError, LockError) as error:
                 return error_response(str(error), 429)
+
+        if is_reader(self.current_user):
+            abort(403, message="Refresh saved Reader reports from an assigned dashboard.")
+
+        dashboard_report = None
+        if params.get("dashboard_id") is not None:
+            from redash.reader_reports import authorize_editor_report
+            dashboard_report = {"kind": "editor", "dashboard_id": params["dashboard_id"],
+                                "query_id": query.id, "parameters": parameter_values}
+            try:
+                authorize_editor_report(self.current_user, dashboard_report)
+            except ValueError as error:
+                abort(403, message=str(error))
 
         allow_executing_with_view_only_permissions = query.parameterized.is_safe
         if "apply_auto_limit" in params:
@@ -359,9 +421,10 @@ class QueryResultResource(BaseResource):
                 query.parameterized,
                 parameter_values,
                 query.data_source,
-                query_id,
+                query.id,
                 should_apply_auto_limit,
                 max_age,
+                dashboard_report=dashboard_report,
             )
         else:
             if not query.parameterized.is_safe:
@@ -448,7 +511,7 @@ class QueryResultResource(BaseResource):
                             from redash.data_access_runtime import is_protected
                             if is_protected(source_query.data_source) and not is_reader(self.current_user):
                                 abort(403, message="Protected Query Results dependencies are unavailable.")
-                            require_access(source_query.data_source, self.current_user, view_only)
+                            require_access(source_query, self.current_user, view_only)
                     except models.NoResultFound:
                         abort(403, message="Access denied - referenced query no longer exists.")
 

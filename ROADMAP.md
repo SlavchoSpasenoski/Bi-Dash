@@ -2,7 +2,7 @@
 
 Approved: 2026-11-14. Tasks below are user requests, not completed features. Run in order, one bounded milestone per scheduled execution, nominally every five hours. Do not start overlapping writers or restart completed milestones. A task can span multiple executions; record a precise continuation point. Scheduling spaces usage but does not guarantee a subscription quota or reset. The supplied Plus usage snapshot showed 94% five-hour and 69% weekly remaining; it is historical, not a live meter.
 
-Scheduler state: NOT CONFIRMED ACTIVE. Native automation creation failed three times with "Transport closed" on 2026-11-14, including the user's requested recovery retry. No reconnect/restart action is exposed by the available app tools. Reopen the Codex app, then inspect for duplicates before retrying; this document alone does not schedule work.
+Scheduler state: NOT CONFIRMED ACTIVE. Native automation creation failed three times with "Transport closed" on 2026-11-14 and again on the user's explicit activation request on 2026-11-15. No existing automation TOML was found before the latest attempt. The latest requested prompt starts at task 2 because task 1 is complete. No reconnect/restart action is exposed by the available app tools. Reopen the Codex app, then inspect for duplicates before retrying; this document alone does not schedule work.
 
 ## 1. Verify current functionality and publish verified baseline
 
@@ -20,7 +20,9 @@ Latest milestone (2026-11-14): the new FreeDB source is now saved separately and
 
 ## 2. Admin-controlled Editor data access and scoped AI
 
-Status: next; task 1 completed. No implementation started.
+Status: complete locally, awaiting the user's commit decision (2026-11-15); manually continued because scheduling is unavailable.
+
+Implemented server-scoped Editor MySQL/MariaDB chat/builder, server-side schema snapshots and generated-SQL validation, with post-generation and retry scope checks. Editor source-selection UI excludes organization context and resets conversation state. Admin data-rule management remains Admin-only. Validation: 51 integration checks passed, followed by 100 local regressions after the real-model fenced-JSON format repair; TypeScript/build, actual Ollama chat-to-saved-query/worker execution and isolated Editor browser draft/worker checks passed. Updated live services and verified the existing Editor's scoped AI GET endpoints while settings remain Admin-only. No live rules/report/source assignments were changed and no commit/push was made. See STATUS.md for precise provider-mock/real-generation limits.
 
 - Audit existing behavior first. Admin alone configures schema/table/column access, using existing group rules. Editors see/use only their assigned data and cannot modify their grants or escalate via group/settings APIs.
 - Existing Admin-only Data Access management and Editor SQL restrictions must be tested, not reimplemented unnecessarily. Protected-source AI is currently Admin-only; Editor AI is a new implementation requirement.
@@ -31,7 +33,9 @@ Status: next; task 1 completed. No implementation started.
 
 ## 3. Dashboard visibility for individual Editors and Readers
 
-Status: pending; depends on task 2.
+Status: completed and deployed locally (2026-11-15); no commit/push.
+
+Named-user Access UI, relational grants and owner-only edits are active at localhost:5001. Final backend suite: 89 run, 88 passed and one optional target skipped; 100 local regressions, five React tests and TypeScript passed. Production build, disposable migration round-trip and actual browser grant/revoke checks passed. Backup taken and migration d83b6a21f409 applied; live API/ping/count checks passed. No automatic grants or source/report reassignment. See STATUS.md and DASHBOARD_ACCESS.md.
 
 - Admin can assign/revoke which completed dashboards a same-organization Editor or Reader can view.
 - An Editor owner can grant/revoke viewing of their own dashboard to other same-organization Editors or Readers. Receiving a dashboard does not grant resharing authority. Readers cannot share dashboards/reports.

@@ -27,7 +27,7 @@ class TestAiDashboards(BaseTestCase):
         with patch("redash.handlers.ai.csrf.protect"), patch("redash.handlers.ai_dashboards.ask_assistant",
                                                            return_value=json.dumps(plan or self.plan)) as ask:
             response = self.make_request("post", "/api/ai/dashboards", data=body or self.body,
-                                         user=user or self.editor)
+                                         user=user or self.admin)
         return response, ask
 
     def test_creates_real_unpublished_resources_and_chart_mapping(self):
@@ -35,7 +35,7 @@ class TestAiDashboards(BaseTestCase):
         self.assertEqual(response.status_code, 200, response.json)
         dashboard = models.db.session.get(models.Dashboard, response.json["dashboard_id"])
         self.assertTrue(dashboard.is_draft)
-        self.assertEqual(dashboard.user_id, self.editor.id)
+        self.assertEqual(dashboard.user_id, self.admin.id)
         self.assertEqual(dashboard.widgets.count(), 1)
         widget = dashboard.widgets[0]
         self.assertEqual(widget.visualization.type, "CHART")
@@ -62,7 +62,7 @@ class TestAiDashboards(BaseTestCase):
         self.assertEqual(response.status_code, 403)
         ask.assert_not_called()
         other = self.factory.create_data_source()
-        response, ask = self.build(body={**self.body, "data_source_id": other.id})
+        response, ask = self.build(user=self.editor, body={**self.body, "data_source_id": other.id})
         self.assertEqual(response.status_code, 403)
         ask.assert_not_called()
 
@@ -88,17 +88,18 @@ class TestAiDashboards(BaseTestCase):
 
     def test_permissions_are_rechecked_after_provider_response(self):
         def demote(*args, **kwargs):
-            user = models.db.session.get(models.User, self.editor.id)
+            user = models.db.session.get(models.User, self.admin.id)
+            user.group_ids = [self.factory.default_group.id]
             user.details = {"role": "reader"}
             models.db.session.commit()
             return json.dumps(self.plan)
         with patch("redash.handlers.ai.csrf.protect"), patch("redash.handlers.ai_dashboards.ask_assistant", side_effect=demote):
-            response = self.make_request("post", "/api/ai/dashboards", data=self.body, user=self.editor)
+            response = self.make_request("post", "/api/ai/dashboards", data=self.body, user=self.admin)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(models.Dashboard.query.count(), 0)
 
     def test_browser_posts_require_csrf(self):
-        response = self.make_request("post", "/api/ai/dashboards", data=self.body, user=self.editor)
+        response = self.make_request("post", "/api/ai/dashboards", data=self.body, user=self.admin)
         self.assertEqual(response.status_code, 400)
         self.assertIn("CSRF", response.get_data(as_text=True))
 

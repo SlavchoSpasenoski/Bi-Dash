@@ -29,6 +29,9 @@ class TestReaderDashboardRefresh(BaseTestCase):
         self.dashboard = self.factory.create_dashboard(user=self.admin, is_draft=False)
         self.visualization = self.factory.create_visualization(query_rel=self.query)
         self.widget = self.factory.create_widget(dashboard=self.dashboard, visualization=self.visualization)
+        models.db.session.flush()
+        models.db.session.add(models.DashboardReadGrant(dashboard_id=self.dashboard.id,
+            user_id=self.reader.id, grantor_id=self.admin.id))
         models.db.session.execute(text("DROP TABLE IF EXISTS reader_report_rows"))
         models.db.session.execute(text("CREATE TABLE reader_report_rows(created_at DATE)"))
         models.db.session.execute(text("INSERT INTO reader_report_rows VALUES ('2026-01-15'), ('2026-02-15')"))

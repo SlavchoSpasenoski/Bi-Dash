@@ -117,6 +117,8 @@ class TestEditorReportSharing(BaseTestCase):
         allowed=self.query("SELECT id,total FROM orders")
         denied=self.query("SELECT salary FROM employees")
         d=self.factory.create_dashboard(user=self.wide,is_draft=False)
+        models.db.session.flush()
+        models.db.session.add(models.DashboardReadGrant(dashboard_id=d.id,user_id=self.narrow.id,grantor_id=self.wide.id))
         for q in (allowed,denied):
             self.factory.create_widget(dashboard=d,visualization=self.factory.create_visualization(query_rel=q),
                 options={"position":{"col":0,"row":0,"sizeX":6,"sizeY":8},"parameterMappings":{"secret":{"value":"do-not-expose"}}})

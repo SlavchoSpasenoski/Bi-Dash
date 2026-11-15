@@ -51,6 +51,12 @@ class GroupDataSources extends React.Component {
       title: "Data Sources",
       isAvailable: () => currentUser.isAdmin,
     },
+    {
+      key: "dashboards",
+      href: `groups/${this.groupId}/dashboards`,
+      title: "Dashboards",
+      isAvailable: () => currentUser.isAdmin,
+    },
   ];
 
   listColumns = [

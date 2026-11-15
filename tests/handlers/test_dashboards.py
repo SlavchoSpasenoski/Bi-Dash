@@ -1,4 +1,4 @@
-from redash.models import AccessPermission, ApiKey, Dashboard, db
+from redash.models import AccessPermission, ApiKey, Dashboard, DashboardReadGrant, db
 from redash.permissions import ACCESS_TYPE_MODIFY
 from redash.serializers import serialize_dashboard
 from redash.utils import json_loads
@@ -84,21 +84,24 @@ class TestDashboardResourceGet(BaseTestCase):
 
         self.assertResponseEqual(expected, actual)
 
-    def test_returns_enabled_sharing_link_to_dashboard_viewers(self):
+    def test_named_viewers_never_receive_legacy_public_tokens(self):
         self.factory.org.settings["access_policy"] = {"editor": {"allow_public_sharing": True}}
-        d1 = self.factory.create_dashboard()
+        d1 = self.factory.create_dashboard(is_draft=False)
         ApiKey.create_for_object(d1, self.factory.user)
         db.session.commit()
 
         rv = self.make_request("get", "/api/dashboards/{0}".format(d1.id))
         self.assertEqual(rv.status_code, 200)
-        self.assertIn("public_url", rv.json)
-        self.assertIn("api_key", rv.json)
+        self.assertNotIn("public_url", rv.json)
+        self.assertNotIn("api_key", rv.json)
 
-        rv = self.make_request("get", "/api/dashboards/{0}".format(d1.id), user=self.factory.create_user())
+        viewer = self.factory.create_user()
+        db.session.add(DashboardReadGrant(dashboard_id=d1.id, user_id=viewer.id, grantor_id=d1.user_id))
+        db.session.commit()
+        rv = self.make_request("get", "/api/dashboards/{0}".format(d1.id), user=viewer)
         self.assertEqual(rv.status_code, 200)
-        self.assertIn("public_url", rv.json)
-        self.assertEqual(rv.json["api_key"], ApiKey.get_by_object(d1).api_key)
+        self.assertNotIn("public_url", rv.json)
+        self.assertNotIn("api_key", rv.json)
 
     def test_get_dashboard_with_slug(self):
         d1 = self.factory.create_dashboard()
@@ -169,7 +172,7 @@ class TestDashboardResourcePost(BaseTestCase):
 
         self.assertEqual(rv.status_code, 200)
 
-    def test_works_for_non_owner_with_permission(self):
+    def test_legacy_modify_grant_does_not_override_content_owner(self):
         d = self.factory.create_dashboard()
         user = self.factory.create_user()
 
@@ -191,8 +194,8 @@ class TestDashboardResourcePost(BaseTestCase):
             user=user,
         )
 
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.json["name"], new_name)
+        self.assertEqual(rv.status_code, 403)
+        self.assertNotEqual(d.name, new_name)
 
 
 class TestDashboardForkResourcePost(BaseTestCase):
@@ -242,12 +245,12 @@ class TestDashboardShareResourcePost(BaseTestCase):
         super().setUp()
         self.factory.org.settings["access_policy"] = {"editor": {"allow_public_sharing": True}}
 
-    def test_creates_api_key(self):
+    def test_anonymous_key_creation_is_disabled(self):
         dashboard = self.factory.create_dashboard()
 
         res = self.make_request("post", "/api/dashboards/{}/share".format(dashboard.id))
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json["api_key"], ApiKey.get_by_object(dashboard).api_key)
+        self.assertEqual(res.status_code, 403)
+        self.assertIsNone(ApiKey.get_by_object(dashboard))
 
     def test_requires_admin_or_owner(self):
         dashboard = self.factory.create_dashboard()
@@ -259,7 +262,7 @@ class TestDashboardShareResourcePost(BaseTestCase):
         user.group_ids.append(self.factory.org.admin_group.id)
 
         res = self.make_request("post", "/api/dashboards/{}/share".format(dashboard.id), user=user)
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 403)
 
 
 class TestDashboardShareResourceDelete(BaseTestCase):

@@ -55,7 +55,7 @@ def _load_query(user, query_id):
 
     # TODO: this duplicates some of the logic we already have in the redash.handlers.query_results.
     # We should merge it so it's consistent.
-    if not has_access(query.data_source, user, view_only):
+    if not has_access(query, user, view_only):
         raise PermissionError("You do not have access to query id {}.".format(query.id))
 
     return query
@@ -65,10 +65,17 @@ def get_query_results(user, query_id, bring_from_cache, params=None):
     query = _load_query(user, query_id)
     if bring_from_cache:
         if query.latest_query_data_id is not None:
+            from redash.data_access_runtime import result_access_allowed
+            from redash.reader_reports import result_dashboard_allowed
+            if (not result_access_allowed(query.latest_query_data, user)
+                    or not result_dashboard_allowed(query.latest_query_data, user)):
+                raise PermissionError("Cached query results are outside your current report access.")
             results = query.latest_query_data.data
         else:
             raise Exception("No cached result available for query {}.".format(query.id))
     else:
+        if not has_access(query.data_source, user, not_view_only):
+            raise PermissionError("Full source access is required to refresh a dependent query.")
         query_text = query.query_text
         if params is not None:
             parameterized = ParameterizedQuery(query_text, query.parameters, query.org)

@@ -43,6 +43,9 @@ class ObjectPermissionsListResource(BaseResource):
         model = get_model_from_type(object_type)
         obj = get_object_or_404(model.get_by_id_and_org, object_id, self.current_org)
 
+        if object_type == "dashboards":
+            abort(403, message="Use dashboard user access to manage view grants. Dashboard editing is owner-only.")
+
         require_admin_or_owner(obj.user_id)
 
         req = request.get_json(True)
@@ -76,6 +79,9 @@ class ObjectPermissionsListResource(BaseResource):
         model = get_model_from_type(object_type)
         obj = get_object_or_404(model.get_by_id_and_org, object_id, self.current_org)
 
+        if object_type == "dashboards":
+            abort(403, message="Use dashboard user access to manage view grants.")
+
         require_admin_or_owner(obj.user_id)
 
         req = request.get_json(True)
@@ -106,5 +112,9 @@ class CheckPermissionResource(BaseResource):
         obj = get_object_or_404(model.get_by_id_and_org, object_id, self.current_org)
 
         has_access = AccessPermission.exists(obj, access_type, self.current_user)
+        if object_type == "dashboards":
+            from redash.dashboard_access import can_edit_dashboard, can_view_dashboard
+            has_access = (can_view_dashboard(obj, self.current_user) if access_type == "view"
+                          else can_edit_dashboard(obj, self.current_user))
 
         return {"response": has_access}

@@ -1,4 +1,5 @@
 from flask import request
+from flask_restful import abort
 
 from redash import models
 from redash.handlers.base import BaseResource
@@ -35,6 +36,9 @@ class WidgetListResource(BaseResource):
         if visualization_id:
             visualization = models.Visualization.get_by_id_and_org(visualization_id, self.current_org)
             require_access(visualization.query_rel, self.current_user, view_only)
+            query = visualization.query_rel
+            if query.user_id != self.current_user.id:
+                abort(403, message="Only your own query can be added to a dashboard. Create your own query first.")
         else:
             visualization = None
 

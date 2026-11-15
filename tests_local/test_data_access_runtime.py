@@ -90,10 +90,16 @@ class RuntimeAccessTests(unittest.TestCase):
         self.assertTrue(effective["unrestricted"])
         self.assertNotEqual(effective["fingerprint"], restricted)
 
-    def test_removing_last_rule_never_restores_broad_access(self):
+    def test_removing_last_rule_restores_source_group_authorization(self):
         self.settings["data_access_group_rules"]["policies"] = []
-        self.assertTrue(runtime.is_protected(self.source))
-        self.assertFalse(runtime.can_access_source(self.source, self.user))
+        self.assertFalse(runtime.is_protected(self.source))
+        self.assertIsNone(runtime.can_access_source(self.source, self.user))
+        self.assertIsNone(runtime.access_scope(self.source, self.user))
+
+    def test_rules_for_another_source_do_not_restrict_this_source(self):
+        self.settings["data_access_group_rules"]["policies"][0]["data_source_id"] = 2
+        self.assertFalse(runtime.is_protected(self.source))
+        self.assertIsNone(runtime.can_access_source(self.source, self.user))
 
     def test_retired_private_ids_are_denied_even_to_admin(self):
         self.settings["data_access_internal_sources"] = [10]

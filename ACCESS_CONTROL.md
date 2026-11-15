@@ -4,16 +4,20 @@ For table/column Editor rules enforced by Bi-Dash groups on one shared MySQL/Mar
 
 Manage organization defaults in **Settings → Roles & Access**. Assign a role when creating a user, or open **Settings → Users → a user → Role & query limits**. These settings are enforced by the backend, including requests made with a personal API key.
 
+Dashboard visibility uses explicit per-user grants. Admin manages viewers throughout the organization; owner Editors manage their own dashboards. Only the owner edits content. Non-owner Editors/Readers see assigned published dashboards only; source membership alone is insufficient. Anonymous report tokens are disabled. See [DASHBOARD_ACCESS.md](DASHBOARD_ACCESS.md).
+
 | Capability | Admin | Editor | Reader |
 | --- | --- | --- | --- |
 | Manage users, roles, data sources and AI configuration | Yes | No | No |
 | Read SQL and data-source schemas | Yes | Within data-source group access | No |
-| Build/edit queries, visualizations and dashboards | Yes | Own resources or explicitly granted edit access | No |
+| Edit dashboard content and attached queries/visualizations | Owner only | Owner only | No |
+| Assign dashboard viewers | Any same-organization dashboard | Own dashboards | No |
 | Browse reports; sort, filter and page loaded results | Yes | Yes | Yes |
 | CSV, TSV and Excel export | Yes | Yes | Enabled by default; admin can disable |
 | Execute fresh queries | Yes | Subject to runtime and outstanding-job limits | Saved dashboard refresh only (MySQL/MariaDB, PostgreSQL) |
-| Scheduling / public sharing / archiving reports | Yes | Disabled by default; separately configurable | No |
-| AI Assistant | Yes | Enabled by default; configurable | No |
+| Anonymous public sharing | No | No | No |
+| Scheduling / archiving reports | Subject to role and ownership | Disabled by default; configurable | No |
+| AI Assistant | Yes | Enabled by default; configurable; scoped MySQL/MariaDB data only | No |
 
 Groups still decide which data sources a member can access. An explicit role is an upper bound on group permissions: adding a Reader or Editor to an administrative group does not promote their assigned role. Editors cannot change access grants. Admins can manage all resources within their organization; deployment-wide query time limits still apply.
 
@@ -21,13 +25,15 @@ Existing accounts remain compatible: users without an explicit role are Admin if
 
 ## Editor report sharing
 
+Editor AI requires Full query access to a supported MySQL/MariaDB source and matching group rules when that source is protected. Only administrators manage those rules. Chat and builder obtain permitted schema on the server, exclude organization-wide AI context, validate generated SQL before exposing/saving it, and recheck current access after generation. Chat returns validated SQL or a safe clarification; unvalidated model explanations are not shown to Editors. Receiving an AI draft does not change source permissions or result scope.
+
 For protected MySQL/MariaDB sources, source groups remain the read-sharing boundary, and the recipient's current table/column permissions authorize cross-profile saved query definitions. One unrelated excluded column no longer blocks all reports. The author retains ownership/edit rights; viewing does not grant editing. Recipient execution and result/export/cache scopes remain isolated. Shared SELECT * definitions need explicit columns first; typed date/value parameters are supported, dynamic SQL identifiers and unsafe text templates are not. A denied widget does not block other dashboard widgets. See DATA_ACCESS.md for the supported SQL and parameter subset.
 
 ## Reader results and SQL privacy
 
 Readers do not receive SQL, query hashes or query API keys in dashboard/result JSON. Query lists, SQL source routes, schemas, query snippets, AI and modification endpoints are denied. Result responses use `Cache-Control: private, no-store` so new authorization decisions are not replaced by long-lived cached API responses.
 
-Readers can select typed parameters and refresh saved queries that belong to a published, accessible dashboard (or their own visible draft). MySQL/MariaDB and PostgreSQL are supported. Refresh uses server-stored SQL, typed parameter validation, read-only execution and the existing runtime/concurrency limits. The worker rechecks dashboard membership, source access and the saved query before execution. Reader report caches have separate scope tokens and do not update shared latest-result pointers or trigger alerts. Free-text SQL parameters, arbitrary SQL submission, other connectors and refresh outside a dashboard remain unavailable. Sorting, paging and table filters still operate on loaded data. An administrator can separately disable CSV/TSV/XLSX downloads; report data remains readable through the normal JSON API.
+Readers can refresh explicitly assigned published dashboard queries with safe typed parameters on MySQL/MariaDB or PostgreSQL. Server-stored SQL, read-only execution and runtime/concurrency limits apply. Queue/worker/poll/result/download checks revalidate dashboard grants, source access and report provenance. Reader report caches do not update shared latest pointers or alerts. Arbitrary SQL, unsafe text parameters, unsupported engines and refresh outside a dashboard remain unavailable. Downloads additionally require the role's export permission.
 
 ## Query limits
 
@@ -48,3 +54,7 @@ Tests cover Reader SQL/key redaction, result browsing and three export formats, 
 Integration tests under `tests/` use the repository's `BaseTestCase`, which recreates the schema: run them only against a separate disposable test database. The `tests_local/` suite remains independent of a database.
 
 Relevant connector references: [RQ job timeouts](https://python-rq.org/docs/results/), [Psycopg cancellation](https://www.psycopg.org/docs/connection.html).
+
+## Effective access review
+
+Administrators can open Settings > Users > user > Effective access for a read-only explanation of the current role/group/policy and dashboard checks. It does not test connections or execute SQL/AI. See [EFFECTIVE_ACCESS.md](EFFECTIVE_ACCESS.md).

@@ -9,7 +9,6 @@ import recordEvent from "@/services/recordEvent";
 import { QueryResultError } from "@/services/query";
 import AddWidgetDialog from "@/components/dashboards/AddWidgetDialog";
 import TextboxDialog from "@/components/dashboards/TextboxDialog";
-import PermissionsEditorDialog from "@/components/PermissionsEditorDialog";
 import { editableMappingsToParameterMappings, synchronizeWidgetTitles } from "@/components/ParameterMappingInput";
 import ShareDashboardDialog from "../components/ShareDashboardDialog";
 import useFullscreenHandler from "../../../lib/hooks/useFullscreenHandler";
@@ -55,15 +54,6 @@ function useDashboard(dashboardData) {
   );
 
   const [isDuplicating, duplicateDashboard] = useDuplicateDashboard(dashboard);
-
-  const managePermissions = useCallback(() => {
-    const aclUrl = `api/dashboards/${dashboard.id}/acl`;
-    PermissionsEditorDialog.showModal({
-      aclUrl,
-      context: "dashboard",
-      author: dashboard.user,
-    });
-  }, [dashboard]);
 
   const updateDashboard = useCallback(
     (data, includeVersion = true) => {
@@ -182,11 +172,11 @@ function useDashboard(dashboardData) {
     ShareDashboardDialog.showModal({
       dashboard,
       hasOnlySafeQueries,
-      canManageSharing: isDashboardOwnerOrAdmin,
+      canManageSharing: Boolean(dashboard.can_manage_access),
     })
       .onClose(handleDialogClose)
       .onDismiss(handleDialogClose);
-  }, [dashboard, hasOnlySafeQueries, isDashboardOwnerOrAdmin]);
+  }, [dashboard, hasOnlySafeQueries]);
 
   const showAddTextboxDialog = useCallback(() => {
     TextboxDialog.showModal({
@@ -264,7 +254,7 @@ function useDashboard(dashboardData) {
     showShareDashboardDialog,
     showAddTextboxDialog,
     showAddWidgetDialog,
-    managePermissions,
+    managePermissions: showShareDashboardDialog,
     isDuplicating,
     duplicateDashboard,
   };

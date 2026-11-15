@@ -40,6 +40,8 @@ class QueryFavoriteResource(BaseResource):
 class DashboardFavoriteResource(BaseResource):
     def post(self, object_id):
         dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, object_id, self.current_org)
+        from redash.dashboard_access import require_dashboard_view
+        require_dashboard_view(dashboard, self.current_user)
         fav = models.Favorite(org_id=self.current_org.id, object=dashboard, user=self.current_user)
         models.db.session.add(fav)
 
@@ -61,6 +63,8 @@ class DashboardFavoriteResource(BaseResource):
 
     def delete(self, object_id):
         dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, object_id, self.current_org)
+        from redash.dashboard_access import require_dashboard_view
+        require_dashboard_view(dashboard, self.current_user)
         models.Favorite.query.filter(
             models.Favorite.object == dashboard,
             models.Favorite.user == self.current_user,

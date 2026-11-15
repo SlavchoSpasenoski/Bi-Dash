@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, Button, Form, InputNumber, Select } from "antd";
 import { axios } from "@/services/axios";
 import { currentUser } from "@/services/auth";
+import EffectiveAccess from "./EffectiveAccess";
 
 export default function UserAccessForm({ user }) {
   const [form] = Form.useForm();
@@ -57,7 +58,10 @@ export default function UserAccessForm({ user }) {
       </>}
       {error && <Alert type="error" message={error} />}
       {saved && <Alert type="success" message="User access saved." />}
-      <Button type="primary" htmlType="submit" loading={saving} disabled={!ready} style={{ marginTop: 12 }}>Save access</Button>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginTop: 16 }}>
+        <Button type="primary" htmlType="submit" loading={saving} disabled={!ready}>Save access</Button>
+        <EffectiveAccess userId={user.id} />
+      </div>
     </Form>
   </>;
 }

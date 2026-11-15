@@ -1,4 +1,4 @@
-from flask import request, url_for
+from flask import request, session
 from flask_restful import abort
 from funcy import partial, project
 from sqlalchemy.orm.exc import StaleDataError
@@ -12,15 +12,16 @@ from redash.handlers.base import (
 )
 from redash.handlers.base import order_results as _order_results
 from redash.permissions import (
-    can_modify,
     require_access,
-    require_admin_or_owner,
-    require_object_modify_permission,
     require_permission,
     view_only,
 )
-from redash.security import csp_allows_embeding
-from redash.serializers import DashboardSerializer, public_dashboard
+from redash.security import csp_allows_embeding, csrf
+from redash.serializers import DashboardSerializer
+from redash.dashboard_access import (
+    can_edit_dashboard, can_manage_dashboard_access,
+    require_dashboard_edit, require_dashboard_view,
+)
 
 # Ordering map for relationships
 order_map = {
@@ -184,19 +185,12 @@ class DashboardResource(BaseResource):
             fn = models.Dashboard.get_by_id_and_org
 
         dashboard = get_object_or_404(fn, dashboard_id, self.current_org)
+        require_dashboard_view(dashboard, self.current_user)
         response = DashboardSerializer(dashboard, with_widgets=True, user=self.current_user).serialize()
 
-        api_key = models.ApiKey.get_by_object(dashboard)
-        if api_key and self.current_user.has_permission("share_dashboard"):
-            response["public_url"] = url_for(
-                "redash.public_dashboard",
-                token=api_key.api_key,
-                org_slug=self.current_org.slug,
-                _external=True,
-            )
-            response["api_key"] = api_key.api_key
-
-        response["can_edit"] = can_modify(dashboard, self.current_user)
+        response["can_edit"] = can_edit_dashboard(dashboard, self.current_user)
+        response["can_manage_access"] = can_manage_dashboard_access(dashboard, self.current_user)
+        response["public_access_available"] = False
 
         self.record_event({"action": "view", "object_id": dashboard.id, "object_type": "dashboard"})
 
@@ -216,9 +210,8 @@ class DashboardResource(BaseResource):
         """
         dashboard_properties = request.get_json(force=True)
         # TODO: either convert all requests to use slugs or ids
-        dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
-
-        require_object_modify_permission(dashboard, self.current_user)
+        dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, dashboard_id, self.current_org)
+        require_dashboard_edit(dashboard, self.current_user)
 
         updates = project(
             dashboard_properties,
@@ -264,8 +257,8 @@ class DashboardResource(BaseResource):
 
         Responds with the archived :ref:`dashboard <dashboard-response-label>`.
         """
-        dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
-        require_object_modify_permission(dashboard, self.current_user)
+        dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, dashboard_id, self.current_org)
+        require_dashboard_edit(dashboard, self.current_user)
         dashboard.is_archived = True
         dashboard.record_changes(changed_by=self.current_user)
         models.db.session.add(dashboard)
@@ -287,21 +280,7 @@ class PublicDashboardResource(BaseResource):
         :param token: An API key for a public dashboard.
         :>json array widgets: An array of arrays of :ref:`public widgets <public-widget-label>`, corresponding to the rows and columns the widgets are displayed in
         """
-        if self.current_org.get_setting("disable_public_urls"):
-            abort(400, message="Public URLs are disabled.")
-
-        if not isinstance(self.current_user, models.ApiUser):
-            api_key = get_object_or_404(models.ApiKey.get_by_api_key, token)
-            dashboard = api_key.object
-        else:
-            dashboard = self.current_user.object
-
-        from redash.data_access_runtime import is_protected, is_internal
-        if any(w.visualization and w.visualization.query_rel.data_source
-               and (is_protected(w.visualization.query_rel.data_source) or is_internal(w.visualization.query_rel.data_source))
-               for w in dashboard.widgets):
-            abort(403, message="Protected reports cannot be shared publicly.")
-        return public_dashboard(dashboard)
+        abort(403, message="Anonymous dashboard access is disabled. Sign in with an assigned user account.")
 
 
 class DashboardShareResource(BaseResource):
@@ -313,33 +292,10 @@ class DashboardShareResource(BaseResource):
         :>json string public_url: The URL for anonymous access to the dashboard.
         :>json api_key: The API key to use when accessing it.
         """
-        dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
-        require_admin_or_owner(dashboard.user_id)
-        from redash.data_access_runtime import is_protected, is_internal
-        if any(w.visualization and w.visualization.query_rel.data_source
-               and (is_protected(w.visualization.query_rel.data_source) or is_internal(w.visualization.query_rel.data_source))
-               for w in dashboard.widgets):
-            abort(403, message="Protected reports cannot be shared publicly.")
-        api_key = models.ApiKey.create_for_object(dashboard, self.current_user)
-        models.db.session.flush()
-        models.db.session.commit()
-
-        public_url = url_for(
-            "redash.public_dashboard",
-            token=api_key.api_key,
-            org_slug=self.current_org.slug,
-            _external=True,
-        )
-
-        self.record_event(
-            {
-                "action": "activate_api_key",
-                "object_id": dashboard.id,
-                "object_type": "dashboard",
-            }
-        )
-
-        return {"public_url": public_url, "api_key": api_key.api_key}
+        dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, dashboard_id, self.current_org)
+        if not can_manage_dashboard_access(dashboard, self.current_user):
+            abort(403)
+        abort(403, message="Public links are disabled. Use User access to assign signed-in users.")
 
     def delete(self, dashboard_id):
         """
@@ -347,8 +303,9 @@ class DashboardShareResource(BaseResource):
 
         :param dashboard_id: The numeric ID of the dashboard to unshare.
         """
-        dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
-        require_admin_or_owner(dashboard.user_id)
+        dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, dashboard_id, self.current_org)
+        if not can_manage_dashboard_access(dashboard, self.current_user):
+            abort(403)
         api_key = models.ApiKey.get_by_object(dashboard)
 
         if api_key:
@@ -363,6 +320,96 @@ class DashboardShareResource(BaseResource):
                 "object_type": "dashboard",
             }
         )
+
+
+class DashboardAccessResource(BaseResource):
+    """Explicit signed-in user grants; unrelated to anonymous public links."""
+
+    def _dashboard(self, dashboard_id, lock=False):
+        try:
+            dashboard_id = int(dashboard_id)
+        except (TypeError, ValueError):
+            abort(404)
+        query = models.Dashboard.query.filter_by(id=dashboard_id, org_id=self.current_org.id)
+        if lock:
+            query = query.populate_existing().with_for_update()
+        dashboard = get_object_or_404(query.first)
+        if not can_manage_dashboard_access(dashboard, self.current_user):
+            abort(403, message="Only an administrator or the dashboard owner can manage user access.")
+        return dashboard
+
+    def _response(self, dashboard):
+        users = [user for user in models.User.query.filter_by(org_id=self.current_org.id).all()
+                 if not user.is_disabled and user.role in ("editor", "reader")
+                 and (user.id != dashboard.user_id or user.role == "reader")]
+        return {
+            "read_user_ids": [grant.user_id for grant in models.DashboardReadGrant.query.filter_by(
+                dashboard_id=dashboard.id).order_by(models.DashboardReadGrant.user_id).all()],
+            "candidates": [{"id": user.id, "name": user.name, "role": user.role}
+                           for user in sorted(users, key=lambda user: (user.name.lower(), user.id))],
+            "read_group_ids": [g.group_id for g in models.DashboardGroupReadGrant.query.filter_by(dashboard_id=dashboard.id).order_by(models.DashboardGroupReadGrant.group_id)],
+            "group_candidates": [{"id": g.id, "name": g.name} for g in models.Group.query.filter_by(org_id=self.current_org.id).order_by(models.Group.name)],
+            "revision": dashboard.version,
+            "can_manage": True,
+            "is_draft": dashboard.is_draft,
+            "is_archived": dashboard.is_archived,
+            "owner_edit_only": True,
+        }
+
+    def get(self, dashboard_id):
+        return self._response(self._dashboard(dashboard_id))
+
+    def post(self, dashboard_id):
+        # Explicit CSRF defense applies even where global enforcement is disabled.
+        if "_user_id" in session or "user_id" in session:
+            csrf.protect()
+        if request.content_length and request.content_length > 32000:
+            abort(413, message="User access request is too large.")
+        body = request.get_json(silent=True)
+        if (not isinstance(body, dict) or set(body) not in ({"read_user_ids", "revision"}, {"read_user_ids", "read_group_ids", "revision"})
+                or type(body["revision"]) is not int or not isinstance(body["read_user_ids"], list)
+                or len(body["read_user_ids"]) > 1000
+                or any(type(value) is not int or value < 1 for value in body["read_user_ids"])
+                or len(set(body["read_user_ids"])) != len(body["read_user_ids"])):
+            abort(400, message="Provide unique user IDs and the current access revision.")
+        if "read_group_ids" in body:
+            ids = body["read_group_ids"]
+            if (not isinstance(ids, list) or len(ids) > 1000 or
+                    any(type(value) is not int or value < 1 for value in ids) or len(set(ids)) != len(ids)):
+                abort(400, message="Provide unique positive group IDs.")
+        dashboard = self._dashboard(dashboard_id, lock=True)
+        if dashboard.version != body["revision"]:
+            abort(409, message="Dashboard access changed. Reload before saving.")
+        user_ids = set(body["read_user_ids"])
+        group_ids = set(body.get("read_group_ids", [g.group_id for g in models.DashboardGroupReadGrant.query.filter_by(dashboard_id=dashboard.id)]))
+        existing_users = {g.user_id for g in models.DashboardReadGrant.query.filter_by(dashboard_id=dashboard.id)}
+        existing_groups = {g.group_id for g in models.DashboardGroupReadGrant.query.filter_by(dashboard_id=dashboard.id)}
+        if (user_ids - existing_users or group_ids - existing_groups) and (dashboard.is_draft or dashboard.is_archived):
+            abort(400, message="Publish the dashboard before assigning user access.")
+        allowed = {candidate["id"] for candidate in self._response(dashboard)["candidates"]}
+        if not user_ids.issubset(allowed):
+            abort(400, message="Select active Editors or Readers in this organization.")
+        allowed_groups = {g.id for g in models.Group.query.filter_by(org_id=self.current_org.id)}
+        if not group_ids.issubset(allowed_groups):
+            abort(400, message="Choose groups from this organization.")
+        if "read_group_ids" in body:
+            models.DashboardGroupReadGrant.query.filter_by(dashboard_id=dashboard.id).delete(synchronize_session=False)
+            for group_id in sorted(group_ids):
+                models.db.session.add(models.DashboardGroupReadGrant(dashboard_id=dashboard.id, group_id=group_id, grantor_id=self.current_user.id))
+        models.DashboardReadGrant.query.filter_by(dashboard_id=dashboard.id).delete(synchronize_session=False)
+        for user_id in sorted(user_ids):
+            models.db.session.add(models.DashboardReadGrant(
+                dashboard_id=dashboard.id, user_id=user_id, grantor_id=self.current_user.id))
+        # Revision changes bind queued jobs and cached report provenance too.
+        dashboard.version = (dashboard.version or 0) + 1
+        models.db.session.add(dashboard)
+        try:
+            models.db.session.commit()
+        except StaleDataError:
+            models.db.session.rollback()
+            abort(409, message="Dashboard access changed. Reload before saving.")
+        self.record_event({"action": "edit_user_access", "object_type": "dashboard", "object_id": dashboard.id})
+        return self._response(dashboard)
 
 
 class DashboardTagsResource(BaseResource):
@@ -421,10 +468,14 @@ class DashboardFavoriteListResource(BaseResource):
 class DashboardForkResource(BaseResource):
     @require_permission("edit_dashboard")
     def post(self, dashboard_id):
-        dashboard = models.Dashboard.get_by_id_and_org(dashboard_id, self.current_org)
+        dashboard = get_object_or_404(models.Dashboard.get_by_id_and_org, dashboard_id, self.current_org)
+        require_dashboard_view(dashboard, self.current_user)
+        require_dashboard_edit(dashboard, self.current_user)
 
         for widget in dashboard.widgets:
             if widget.visualization is not None:
+                if widget.visualization.query_rel.user_id != self.current_user.id:
+                    abort(403, message="Create your own query copies before duplicating this dashboard.")
                 require_access(widget.visualization.query_rel, self.current_user, view_only)
 
         fork_dashboard = dashboard.fork(self.current_user)

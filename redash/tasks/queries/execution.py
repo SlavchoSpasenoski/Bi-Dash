@@ -36,8 +36,25 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
     from redash.ai_dashboard import SUPPORTED_SOURCES, validate_readonly_sql
 
     metadata = dict(metadata or {})
+    if metadata.get("query_id") not in (None, "adhoc"):
+        try:
+            metadata["query_id"] = int(metadata["query_id"])
+        except (TypeError, ValueError):
+            raise QueryExecutionError("A valid saved query ID is required.")
     metadata.pop("policy_scope", None)
     report = metadata.get("reader_report")
+    dashboard_report = metadata.get("dashboard_report")
+    if dashboard_report:
+        from redash.reader_reports import authorize_editor_report
+        try:
+            if is_api_key or scheduled_query or user_id is None:
+                raise ValueError("Dashboard reports require an interactive user.")
+            actor = models.User.get_by_id(user_id)
+            source, _, _ = authorize_editor_report(actor, dashboard_report, expected_sql=query)
+            if source.id != data_source.id or metadata.get("query_id") != dashboard_report["query_id"]:
+                raise ValueError("Mismatched dashboard report source.")
+        except ValueError as error:
+            raise QueryExecutionError(str(error)) from error
     if report:
         from redash.reader_reports import authorize_report
         try:
@@ -78,8 +95,21 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
             metadata["query_timeout_seconds"] = 60
 
     user = None if is_api_key or user_id is None else models.User.get_by_id(user_id)
+    if is_api_key:
+        raise QueryExecutionError("Anonymous query execution is unavailable; sign in with assigned dashboard access.")
+    if saved_query_id not in (None, "adhoc"):
+        from redash.permissions import has_access, view_only
+        saved = models.Query.query.filter_by(id=saved_query_id, org_id=data_source.org_id, is_archived=False).first()
+        if (saved is None or saved.data_source_id != data_source.id or user is None
+                or not has_access(saved, user, view_only)):
+            raise QueryExecutionError("This saved query is no longer accessible.")
     if is_reader(user) and not report:
         raise QueryExecutionError("Readers cannot execute queries.")
+    if not report:
+        from redash.permissions import has_access, not_view_only
+        if (user is None or user.org_id != data_source.org_id
+                or not has_access(data_source, user, not_view_only)):
+            raise QueryExecutionError("Full access to this data source is required to execute queries.")
     if report:
         metadata["ai_read_only"] = True
         metadata["query_timeout_seconds"] = min(60, metadata.get("query_timeout_seconds", 60))
@@ -99,6 +129,8 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
             for field in ("query_timeout_seconds", "max_concurrent_queries"):
                 limits[field] = min(limits[field], owner_limits[field])
     if limits is None:
+        if dashboard_report:
+            metadata["access_scope"] = (metadata.get("access_scope") or "dashboard") + ":" + dashboard_report["authorization_scope"]
         return _enqueue_query(query, data_source, user_id, is_api_key, scheduled_query, metadata)
     actor_id = public_owner.id if public_owner is not None else user_id
     quota_scope = hashlib.sha256(str(actor_id).encode()).hexdigest()[:24]
@@ -107,6 +139,8 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
     metadata["access_scope"] = scope
     if metadata.get("policy_scope"):
         metadata["access_scope"] += ":" + metadata["policy_scope"]
+    if dashboard_report:
+        metadata["access_scope"] += ":dashboard:" + dashboard_report["authorization_scope"]
     metadata["query_timeout_seconds"] = min(limits["query_timeout_seconds"], metadata.get("query_timeout_seconds", 3600))
     # The distributed lock makes simultaneous requests share the same admission limit.
     with redis_connection.lock(key + ":lock", timeout=15, blocking_timeout=5):
@@ -206,6 +240,7 @@ def _enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_quer
                         "user_id": user_id,
                         "ai_read_only": metadata.get("ai_read_only", False),
                         "reader_report": metadata.get("reader_report"),
+                        "dashboard_report": metadata.get("dashboard_report"),
                         "policy_scope": metadata.get("policy_scope"),
                     },
                 }
@@ -314,6 +349,41 @@ class QueryExecutor:
     def run(self):
         from redash.data_access_runtime import DataAccessDenied, access_scope, is_protected, is_reader, resolve_source
         report = self.metadata.get("reader_report")
+        dashboard_report = self.metadata.get("dashboard_report")
+        if self.user is not None and self.user.is_api_user():
+            raise QueryExecutionError("Anonymous query execution is unavailable.")
+        if self.data_source is None:
+            raise QueryExecutionError("The data source is no longer available.")
+        org_id = self.data_source.org_id
+        self.user = (models.User.query.filter_by(id=self.user.id, org_id=org_id).populate_existing().first()
+                     if self.user is not None else None)
+        self.data_source = models.DataSource.query.filter_by(id=self.data_source_id,
+            org_id=org_id).populate_existing().first()
+        if self.user is None or self.data_source is None or self.user.is_disabled or self.data_source.paused:
+            raise QueryExecutionError("The execution user or data source is no longer available.")
+        if not report:
+            from redash.permissions import has_access, not_view_only
+            if not has_access(self.data_source, self.user, not_view_only):
+                raise QueryExecutionError("Full access to the data source was revoked while this query was queued.")
+        if self.query_id not in (None, "adhoc"):
+            from redash.permissions import has_access, view_only
+            self.user = (models.User.query.filter_by(id=self.user.id).populate_existing().first()
+                         if self.user is not None else None)
+            self.query_model = models.Query.query.filter_by(id=self.query_id,
+                org_id=self.data_source.org_id, is_archived=False).populate_existing().first()
+            if (self.query_model is None or self.user is None
+                    or self.query_model.data_source_id != self.data_source_id
+                    or not has_access(self.query_model, self.user, view_only)):
+                raise QueryExecutionError("This saved query is no longer accessible.")
+        if dashboard_report:
+            from redash.reader_reports import authorize_editor_report
+            try:
+                source, _, _ = authorize_editor_report(self.user, dict(dashboard_report), expected_sql=self.query)
+                if source.id != self.data_source_id:
+                    raise ValueError("Dashboard source changed while refresh was queued.")
+                self.data_source = source
+            except ValueError as error:
+                raise QueryExecutionError(str(error)) from error
         if report:
             from redash.reader_reports import authorize_report
             try:
@@ -441,6 +511,11 @@ class QueryExecutor:
                 run_time,
                 utcnow(),
                 policy_scope=self.metadata.get("policy_scope"),
+                report_context=({**report, "kind": "reader"} if report else
+                                {**dashboard_report, "kind": "editor"} if dashboard_report else
+                                {"kind": "saved", "query_id": int(self.query_id)}
+                                if self.query_id not in (None, "adhoc") else
+                                {"kind": "adhoc", "user_id": self.user.id} if self.user is not None else None),
             )
 
             updated_query_ids = [] if (report or is_protected(self.data_source)) else models.Query.update_latest_result(query_result)

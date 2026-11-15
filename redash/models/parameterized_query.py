@@ -22,6 +22,15 @@ def _load_result(query_id, org):
 
     query = models.Query.get_by_id_and_org(query_id, org)
 
+    from flask import has_request_context
+    from flask_login import current_user
+    from redash.permissions import has_access, view_only
+    from redash.data_access_runtime import result_access_allowed
+    from redash.reader_reports import result_dashboard_allowed
+    if (not has_request_context() or not current_user.is_authenticated or current_user.is_api_user()
+            or not has_access(query, current_user, view_only)):
+        raise InvalidParameterError("This dropdown query is outside your assigned report access.")
+
     from redash.data_access_runtime import is_protected, can_read_all_scopes
     if query.data_source is not None and is_protected(query.data_source):
         from flask import has_request_context
@@ -33,11 +42,17 @@ def _load_result(query_id, org):
             result = models.QueryResult.get_latest(query.data_source, text, -1, any_policy_scope=True)
             if result is None:
                 raise InvalidParameterError("No saved dropdown result is available.")
+            if (not result_access_allowed(result, current_user)
+                    or not result_dashboard_allowed(result, current_user)):
+                raise InvalidParameterError("This dropdown result is outside your assigned report access.")
             return result.data
         raise InvalidParameterError("Protected sources do not support query dropdown dependencies.")
 
     if query.data_source:
         query_result = models.QueryResult.get_by_id_and_org(query.latest_query_data_id, org)
+        if (not result_access_allowed(query_result, current_user)
+                or not result_dashboard_allowed(query_result, current_user)):
+            raise InvalidParameterError("This dropdown result is outside your assigned report access.")
         return query_result.data
     else:
         raise QueryDetachedFromDataSourceError(query_id)

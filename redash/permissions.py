@@ -21,6 +21,11 @@ def has_access(obj, user, need_view_only):
     if source is None:
         query = getattr(obj, "query_rel", None)
         source = getattr(query, "data_source", None)
+    query = obj if isinstance(obj, Query) else getattr(obj, "query_rel", None)
+    if query is not None:
+        from redash.dashboard_access import user_can_view_query_dashboard
+        if not user_can_view_query_dashboard(query, user):
+            return False
     if source is not None:
         from redash.data_access_runtime import can_access_source, is_internal
         decision = can_access_source(source, user)
@@ -131,12 +136,27 @@ def can_modify(obj, user):
     if not user.is_api_user() and getattr(user, "role", None) == "reader":
         return False
     from redash import models
+    from redash.dashboard_access import can_edit_dashboard
+    if isinstance(obj, models.Dashboard):
+        return can_edit_dashboard(obj, user)
     from redash.data_access_runtime import is_protected
     query = obj if isinstance(obj, models.Query) else getattr(obj, "query_rel", None)
+    if query is not None and not owns_query_dashboards(query, user):
+        return False
     if query is not None and query.data_source is not None and is_protected(query.data_source):
         if not has_access(query, user, not_view_only):
             return False
     return is_admin_or_owner(obj.user_id) or user.has_access(obj, ACCESS_TYPE_MODIFY)
+
+
+def owns_query_dashboards(query, user):
+    """Editing shared SQL/visualizations also changes their dashboard content."""
+    from redash import models
+    if user is None or user.is_api_user() or getattr(user, "role", None) == "reader":
+        return False
+    dashboards = (models.Dashboard.query.join(models.Widget)
+                  .join(models.Visualization).filter(models.Visualization.query_id == query.id).all())
+    return all(dashboard.org_id == user.org_id and dashboard.user_id == user.id for dashboard in dashboards)
 
 
 def require_object_modify_permission(obj, user):

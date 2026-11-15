@@ -1,6 +1,6 @@
 # Bi-Dash shared project context
 
-Last updated: 2026-11-15.
+Last updated: 2026-11-16.
 
 ## Purpose and provenance
 
@@ -37,6 +37,16 @@ This context was reconstructed from repository documentation and Git history, pl
 The frontend uses React/TypeScript with pnpm; the backend is Python/Flask with worker jobs. The documentation website uses Astro/Starlight alongside the standalone Bi-Dash landing-page sources. `website/MIGRATION_PLAN.md` contains inherited upstream planning and must not be assumed to describe current Bi-Dash priorities.
 
 ## Continuity agreement
+
+Group dashboard sharing (2026-11-15): Dashboard Access supports Users/Groups; Admin Groups > Dashboards manages the same dynamic group-view grants through server-paginated search. Owner Editors share their own dashboards; Readers cannot share. Source permissions and content ownership remain separate. Membership/removal/deletion are checked through the central dashboard visibility predicate and existing report/job/result guards. Direct user grants are preserved; no automatic group grants or collections. Additive migration e92c71b54a08 after d83b6a21f409. Effective access shows direct/group paths. See DASHBOARD_ACCESS.md and STATUS.md for activation/validation.
+
+Effective-access review added (2026-11-15): organization Admins can inspect a same-org user's role/actions/limits, source group levels and effective table/column union, plus dashboard view/edit/manage-viewers and query-widget definition decisions via GET /api/users/<id>/effective-access. Entry: Settings > Users > user > Effective access. Read-only snapshot, no source/provider calls, SQL/results/credentials/scopes returned. Execution/connection/cache readiness is explicitly not claimed. See EFFECTIVE_ACCESS.md and STATUS.md for validation/deployment.
+
+No-rules access corrected at user request (2026-11-15): modern data_access_group_rules is authoritative per source. A source with zero rule sets uses ordinary Groups access without table/column restrictions; historical protected_source_ids cannot keep it restricted. A source with rule sets still denies Editors without matching group rules, and combines matching allowlists. Invalid configuration and retired private sources remain denied. Dashboard grants and source permissions stay independent. This supersedes earlier last-rule tombstone behavior.
+
+Dashboard visibility implemented and deployed locally (2026-11-15): direct user or group grants are required for non-owner Editors and Readers on published dashboards. Admin manages any same-org dashboard's viewers; owner Editors manage their own. Content editing is owner-only, including Admin. Readers cannot share. Access > Users who can view > Save access replaces anonymous public sharing; object-token report links are disabled. Source/group/column permissions remain independent. Migration d83b6a21f409 adds grants and server-only result provenance, with no automatic grants. This supersedes historical dashboard-ACL deferrals below. See DASHBOARD_ACCESS.md and STATUS.md. The user authorized committing tasks 2/3 and subsequent corrections on2026-11-16; see current Git history and STATUS.md.
+
+Scoped Editor AI implemented (2026-11-15): authorized Editors can use chat and dashboard generation on accessible supported standard MySQL/MariaDB sources. Context is server-derived permitted names only; shared organization AI context, client schema/extra context and old conversation messages are excluded. Chat returns compiler-validated SQL (including strict raw/fenced JSON responses) or a safe clarification, not arbitrary model prose. Generated widget SQL is checked before persistence; refreshed role/source/connection/group/schema snapshots are checked after provider calls and on Editor draft retries. Admin retains shared-context AI/PostgreSQL support; Reader/report-token AI remains denied. This supersedes the older blanket protected-source Editor AI quarantine below. Local deployment and validation are in STATUS.md; task 3 is also deployed locally; the user authorized committing these changes on2026-11-16; no Git push or Contabo activation has been performed in this chat.
 
 Protected source maintenance (2026-11-15): Admin can edit/test an existing protected MySQL connection. Candidate settings are SELECT-only validated before persistence; validation failure keeps prior settings, connector type cannot change, and retired private sources remain denied. Source ID/rules stay stable while connection-keyed scopes invalidate old Editor results/jobs and schema cache is cleared. This replaces the obsolete immutable-source/activation gate. See DATA_ACCESS.md and tests/handlers/test_protected_source_updates.py.
 
