@@ -1,14 +1,16 @@
 # Bi-Dash scheduled delivery queue
 
-Approved: 2026-11-14. Tasks below are user requests, not completed features. Run in order, one bounded milestone per scheduled execution, nominally every five hours. Do not start overlapping writers or restart completed milestones. A task can span multiple executions; record a precise continuation point. Scheduling spaces usage but does not guarantee a subscription quota or reset. The supplied Plus usage snapshot showed 94% five-hour and 69% weekly remaining; it is historical, not a live meter.
+Approved: 2026-11-14. Updated: 2026-11-17. All three implementation milestones are complete. Tasks 2/3 and subsequent access/UI corrections were committed as b5d360f and deployed to Contabo on 2026-11-16. The original acceptance requirements remain below for reference; dated validation in STATUS.md supersedes older checkpoint wording.
 
-Scheduler state: NOT CONFIRMED ACTIVE. Native automation creation failed three times with "Transport closed" on 2026-11-14 and again on the user's explicit activation request on 2026-11-15. No existing automation TOML was found before the latest attempt. The latest requested prompt starts at task 2 because task 1 is complete. No reconnect/restart action is exposed by the available app tools. Reopen the Codex app, then inspect for duplicates before retrying; this document alone does not schedule work.
+The user authorized release closeout and GitHub synchronization on 2026-11-17. Current closeout evidence and any remaining limits are in STATUS.md.
+
+Scheduler: creation was never confirmed after transport errors on 2026-11-14/15. No scheduler was needed for the manual completion of this queue; do not restart completed milestones or create a new recurring job for them.
 
 ## 1. Verify current functionality and publish verified baseline
 
 Status: complete (2026-11-15). Verified baseline 91e019b pushed successfully to origin/main, https://github.com/SlavchoSpasenoski/Bi-Dash.
 
-Latest milestone (2026-11-14): the new FreeDB source is now saved separately and authenticates; the old source still fails with 1045. Fixed detection of Ubuntu-packaged upstream MySQL 8.0/8.4, rebuilt and applied locally. All 97 local regression tests passed, live SELECT 1 passed and the actual authenticated Test Connection API/RQ worker returned HTTP 200/ok=true. Credentials/rules remained unchanged. Next continue saved-report/schema/role checks against the appropriate source; do not silently repoint old queries/rules. No commit/push yet. See STATUS.md for validation details.
+Historical checkpoint (2026-11-14; superseded by completion above): the new FreeDB source is now saved separately and authenticates; the old source still fails with 1045. Fixed detection of Ubuntu-packaged upstream MySQL 8.0/8.4, rebuilt and applied locally. All 97 local regression tests passed, live SELECT 1 passed and the actual authenticated Test Connection API/RQ worker returned HTTP 200/ok=true. Credentials/rules remained unchanged. Next continue saved-report/schema/role checks against the appropriate source; do not silently repoint old queries/rules. No commit/push yet. See STATUS.md for validation details.
 
 2026-11-15: 147 isolated integration checks, 97 final-image local tests, Docker TypeScript, production build and Admin Edge UI checks passed. Live FreeDB connection/schema/API/SELECT 1 worker checks passed; all five saved queries/rules still reference the old failing source, so no live FreeDB saved-report refresh is claimed. Fixed and independently reviewed safe Admin maintenance/Test Connection of protected sources and stale UI guidance. See current STATUS.md for exact checks/limits. All disposable QA resources removed. Reviewed baseline committed and pushed as recorded above; next is task 2.
 
@@ -20,20 +22,20 @@ Latest milestone (2026-11-14): the new FreeDB source is now saved separately and
 
 ## 2. Admin-controlled Editor data access and scoped AI
 
-Status: complete locally, awaiting the user's commit decision (2026-11-15); manually continued because scheduling is unavailable.
+Status: complete; committed as b5d360f and deployed locally and to Contabo (2026-11-16).
 
-Implemented server-scoped Editor MySQL/MariaDB chat/builder, server-side schema snapshots and generated-SQL validation, with post-generation and retry scope checks. Editor source-selection UI excludes organization context and resets conversation state. Admin data-rule management remains Admin-only. Validation: 51 integration checks passed, followed by 100 local regressions after the real-model fenced-JSON format repair; TypeScript/build, actual Ollama chat-to-saved-query/worker execution and isolated Editor browser draft/worker checks passed. Updated live services and verified the existing Editor's scoped AI GET endpoints while settings remain Admin-only. No live rules/report/source assignments were changed and no commit/push was made. See STATUS.md for precise provider-mock/real-generation limits.
+Implemented server-scoped Editor MySQL/MariaDB chat/builder, server-side schema snapshots and generated-SQL validation, with post-generation and retry scope checks. Editor source-selection UI excludes organization context and resets conversation state. Admin data-rule management remains Admin-only. Validation: 51 integration checks passed, followed by 100 local regressions after the real-model fenced-JSON format repair; TypeScript/build, actual Ollama chat-to-saved-query/worker execution and isolated Editor browser draft/worker checks passed. Updated live services and verified the existing Editor's scoped AI GET endpoints while settings remain Admin-only. At that 2026-11-15 checkpoint no live rules/report/source assignments were changed and no commit/push was made; b5d360f was committed and deployed the following day. See STATUS.md for precise provider-mock/real-generation limits.
 
 - Audit existing behavior first. Admin alone configures schema/table/column access, using existing group rules. Editors see/use only their assigned data and cannot modify their grants or escalate via group/settings APIs.
-- Existing Admin-only Data Access management and Editor SQL restrictions must be tested, not reimplemented unnecessarily. Protected-source AI is currently Admin-only; Editor AI is a new implementation requirement.
+- Existing Admin-only Data Access management and Editor SQL restrictions must be tested, not reimplemented unnecessarily. At approval, protected-source AI was Admin-only; scoped Editor AI is now implemented.
 - Permit Editor AI chat/query assistance and dashboard generation only with the Editor's effective authorized schema/context. Filter table/column metadata and any shared AI context that might expose forbidden information; never pass raw broader schema or credentials to the model. If a required context cannot be safely scoped, fail explicitly rather than leak it.
 - Validate generated SQL against current Editor rules before saving/executing and recheck at worker execution and result access. Preserve read-only enforcement, owner/edit boundaries, scope isolation, revocation handling, explicit provider choice and Ollama default with no paid fallback.
 - Acceptance: Admin configuration succeeds; equivalent Editor/Reader mutation attempts fail; allowed AI SQL/dashboard runs; forbidden SELECT/WHERE/JOIN/aggregate dependencies and metadata requests fail; queued revocation blocks execution and no foreign cache leaks. Include focused independent security/QA review and real synthetic DB execution. Distinguish mocked provider tests from actual Ollama generation.
-- Update product/user documentation. No automatic commit/push authorization for this task was given; retain reviewed changes for the user's decision.
+- Update product/user documentation. Initial authorization excluded commit/push; the user subsequently authorized the release commit on 2026-11-16 and GitHub synchronization on 2026-11-17.
 
 ## 3. Dashboard visibility for individual Editors and Readers
 
-Status: completed and deployed locally (2026-11-15); no commit/push.
+Status: complete; committed as b5d360f and deployed locally and to Contabo (2026-11-16).
 
 Named-user Access UI, relational grants and owner-only edits are active at localhost:5001. Final backend suite: 89 run, 88 passed and one optional target skipped; 100 local regressions, five React tests and TypeScript passed. Production build, disposable migration round-trip and actual browser grant/revoke checks passed. Backup taken and migration d83b6a21f409 applied; live API/ping/count checks passed. No automatic grants or source/report reassignment. See STATUS.md and DASHBOARD_ACCESS.md.
 
@@ -44,7 +46,7 @@ Named-user Access UI, relational grants and owner-only edits are active at local
 - Enforce read grants consistently on listing/search/tags/favorites, direct dashboard/widget APIs, parameters/dropdowns, results/exports/cache, refresh admission, worker execution and job polling. Direct result IDs and public tokens must not bypass grants. Define consistent completed/draft/archived behavior; do not mass-archive, delete or implicitly share existing dashboards.
 - Design safe migration/defaults for existing dashboards/users without broad automatic non-owner grants. Preserve existing data; record any required visibility changes and use disposable fixtures for testing before local migration.
 - Acceptance matrix: owner, non-owner Editor, assigned/unassigned Reader, Admin, other organization, revoked grant, direct URL/result/export, parameter tampering, cached results and queued jobs. Include UI checks and independent QA/security review.
-- Update documentation and record remaining limitations. No automatic commit/push authorization for this task was given.
+- Update documentation and record remaining limitations. Initial authorization excluded commit/push; the user subsequently authorized the release commit on 2026-11-16 and GitHub synchronization on 2026-11-17.
 
 ## Execution and team rules
 
