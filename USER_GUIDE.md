@@ -172,7 +172,7 @@ Publishing a dashboard and creating a **public link** are separate actions. Publ
 
 **Ask AI** is a conversation for SQL questions, query analysis and explanations. It does not itself create dashboards or execute suggested queries.
 
-1. Open **AI Assistant** and choose **Ask AI**.
+1. Open **AI Assistant** from the left navigation bar (or the navigation menu on mobile) and choose **Ask AI**.
 2. Editors first select a permitted MySQL/MariaDB source. Write a specific question.
 3. Administrators can optionally expand **Extra context for this conversation** and add relevant schema or details. Editors use server-supplied permitted schema instead.
 4. Submit with **Send** or **Ctrl / ⌘ + Enter**.
@@ -378,7 +378,9 @@ Define appropriate typed query parameters. AI plans can include validated date r
 
 ### Download
 
-Use the query/visualization download menu, when available, to export **CSV**, **TSV** or **Excel (.xlsx)**. Export contains the particular query result, rather than the entire database or a screenshot of the dashboard. It cannot reconstruct rows excluded by SQL or auto-limit.
+Use the query/visualization download menu, when available, to export **CSV**, **TSV**, **Excel (.xlsx)** or **HTML (.html)**. Export contains the particular query result, rather than the entire database or a screenshot of the dashboard. It cannot reconstruct rows excluded by SQL or auto-limit. HTML query downloads are standalone tables with escaped cell values and no SQL or credentials.
+
+HTML download is available only from Queries (including query visualization views). Dashboards and their widget menus do not offer HTML export. Existing download permissions and result access checks apply.
 
 ### Internal sharing
 

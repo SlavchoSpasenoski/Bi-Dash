@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+import RobotOutlinedIcon from "@ant-design/icons/RobotOutlined";
 import React, { useMemo } from "react";
 import { first, includes } from "lodash";
 import Menu from "antd/lib/menu";
@@ -62,7 +64,7 @@ function useNavbarActiveState() {
   );
 }
 
-export default function DesktopNavbar() {
+export default function DesktopNavbar({ onOpenAi }) {
   const firstSettingsTab = first(settingsMenu.getAvailableItems());
 
   const activeState = useNavbarActiveState();
@@ -103,6 +105,14 @@ export default function DesktopNavbar() {
               <AlertOutlinedIcon aria-label="Alerts navigation button" />
               <span className="desktop-navbar-label">Alerts</span>
             </Link>
+          </Menu.Item>
+        )}
+        {currentUser.hasPermission("use_ai") && (
+          <Menu.Item key="ai-assistant">
+            <PlainButton className="desktop-navbar-ai" onClick={onOpenAi} aria-label="AI Assistant">
+              <RobotOutlinedIcon />
+              <span className="desktop-navbar-label">AI Assistant</span>
+            </PlainButton>
           </Menu.Item>
         )}
       </NavbarSection>
@@ -197,3 +207,5 @@ export default function DesktopNavbar() {
     </nav>
   );
 }
+
+DesktopNavbar.propTypes = { onOpenAi: PropTypes.func.isRequired };

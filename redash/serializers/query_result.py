@@ -138,3 +138,9 @@ def serialize_query_result_to_xlsx(query_result):
     book.close()
 
     return output.getvalue()
+
+
+def serialize_query_result_to_html(query_result, title="Bi-Dash report"):
+    require_result_access(query_result)
+    from redash.html_report import render_html_report
+    return render_html_report(query_result.data, title, query_result.retrieved_at.isoformat())

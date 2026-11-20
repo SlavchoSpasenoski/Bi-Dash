@@ -5,6 +5,7 @@ import Button from "antd/lib/button";
 import MenuOutlinedIcon from "@ant-design/icons/MenuOutlined";
 import Dropdown from "antd/lib/dropdown";
 import Menu from "antd/lib/menu";
+import PlainButton from "@/components/PlainButton";
 import Link from "@/components/Link";
 import { Auth, currentUser } from "@/services/auth";
 import settingsMenu from "@/services/settingsMenu";
@@ -12,7 +13,7 @@ import logoUrl from "@/assets/images/bi-dash-mark-dark.svg";
 
 import "./MobileNavbar.less";
 
-export default function MobileNavbar({ getPopupContainer }) {
+export default function MobileNavbar({ getPopupContainer, onOpenAi }) {
   const firstSettingsTab = first(settingsMenu.getAvailableItems());
 
   return (
@@ -38,6 +39,11 @@ export default function MobileNavbar({ getPopupContainer }) {
               {currentUser.hasPermission("view_query") && (
                 <Menu.Item key="queries">
                   <Link href="queries">Queries</Link>
+                </Menu.Item>
+              )}
+              {currentUser.hasPermission("use_ai") && (
+                <Menu.Item key="ai-assistant">
+                  <PlainButton onClick={onOpenAi}>AI Assistant</PlainButton>
                 </Menu.Item>
               )}
               {currentUser.hasPermission("list_alerts") && (
@@ -81,6 +87,7 @@ export default function MobileNavbar({ getPopupContainer }) {
 }
 
 MobileNavbar.propTypes = {
+  onOpenAi: PropTypes.func.isRequired,
   getPopupContainer: PropTypes.func,
 };
 

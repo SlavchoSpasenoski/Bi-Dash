@@ -94,6 +94,18 @@ function VisualizationEmbedFooter({
       </Menu.Item>
       <Menu.Item>
         <QueryResultsLink
+          fileType="html"
+          query={query}
+          queryResult={queryResults}
+          apiKey={apiKey}
+          disabled={!queryResults || !queryResults.getData || !queryResults.getData()}
+          embed
+        >
+          <FileOutlinedIcon /> Download as HTML File
+        </QueryResultsLink>
+      </Menu.Item>
+      <Menu.Item>
+        <QueryResultsLink
           fileType="xlsx"
           query={query}
           queryResult={queryResults}

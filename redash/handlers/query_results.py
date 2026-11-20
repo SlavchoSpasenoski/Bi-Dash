@@ -32,6 +32,7 @@ from redash.serializers import (
     serialize_job,
     serialize_query_result,
     serialize_query_result_to_dsv,
+    serialize_query_result_to_html,
     serialize_query_result_to_xlsx,
 )
 from redash.tasks import Job
@@ -443,7 +444,7 @@ class QueryResultResource(BaseResource):
 
         :param number query_id: The ID of the query whose results should be fetched
         :param number query_result_id: the ID of the query result to fetch
-        :param string filetype: Format to return. One of 'json', 'xlsx', or 'csv'. Defaults to 'json'.
+        :param string filetype: Format to return. One of 'json', 'xlsx', 'csv', 'tsv', or 'html'. Defaults to 'json'.
 
         :<json number id: Query result ID
         :<json string query: Query that produced this result
@@ -540,6 +541,7 @@ class QueryResultResource(BaseResource):
                 "xlsx": self.make_excel_response,
                 "csv": self.make_csv_response,
                 "tsv": self.make_tsv_response,
+                "html": lambda result: self.make_html_response(result, query.name if query else "Bi-Dash report"),
             }
             response = response_builders[filetype](query_result)
 
@@ -574,6 +576,11 @@ class QueryResultResource(BaseResource):
     def make_tsv_response(query_result):
         headers = {"Content-Type": "text/tab-separated-values; charset=UTF-8"}
         return make_response(serialize_query_result_to_dsv(query_result, "\t"), 200, headers)
+
+    @staticmethod
+    def make_html_response(query_result, title="Bi-Dash report"):
+        headers = {"Content-Type": "text/html; charset=UTF-8", "X-Content-Type-Options": "nosniff"}
+        return make_response(serialize_query_result_to_html(query_result, title), 200, headers)
 
     @staticmethod
     def make_excel_response(query_result):

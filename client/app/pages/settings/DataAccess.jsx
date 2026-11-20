@@ -130,10 +130,10 @@ function DataAccess() {
             <Button onClick={() => operations.add({ catalog: null, schema: null, table: "", columns: [] })}>Add table rule</Button>
           </>}</Form.List>
         </GroupRuleSet>)}
-        <Space wrap>
-          <Button onClick={() => add({ id: "", name: "", rules: [], user_ids: [], group_ids: [] })}>Add group rules</Button>
-          <Button type="primary" htmlType="submit" loading={busy}>Save rules</Button>
-        </Space>
+        <div role="group" aria-label="Group rule actions" style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 24, alignItems: "center" }}>
+          <Button size="large" style={{ minWidth: 156 }} disabled={busy} onClick={() => add({ id: "", name: "", rules: [], user_ids: [], group_ids: [] })}>Add group rules</Button>
+          <Button size="large" style={{ minWidth: 132 }} type="primary" htmlType="submit" loading={busy}>Save rules</Button>
+        </div>
       </>}</Form.List>
       {saved && <Alert style={{ marginTop: 16 }} type="success" message="Group access rules saved and applied." />}
       {!configuration.enforced && configuration.policies.length > 0 && <Alert type="info" style={{ marginTop: 16 }}

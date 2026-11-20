@@ -60,6 +60,18 @@ export default function QueryControlDropdown(props) {
       </Menu.Item>
       <Menu.Item>
         <QueryResultsLink
+          fileType="html"
+          disabled={props.queryExecuting || !props.queryResult.getData || !props.queryResult.getData()}
+          query={props.query}
+          queryResult={props.queryResult}
+          embed={props.embed}
+          apiKey={props.apiKey}
+        >
+          <FileOutlinedIcon /> Download as HTML File
+        </QueryResultsLink>
+      </Menu.Item>
+      <Menu.Item>
+        <QueryResultsLink
           fileType="xlsx"
           disabled={props.queryExecuting || !props.queryResult.getData || !props.queryResult.getData()}
           query={props.query}

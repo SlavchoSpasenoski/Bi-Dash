@@ -1,6 +1,6 @@
 # Bi-Dash shared project context
 
-Last updated: 2026-11-18.
+Last updated: 2026-11-20.
 
 ## Purpose and provenance
 
@@ -38,7 +38,9 @@ The frontend uses React/TypeScript with pnpm; the backend is Python/Flask with w
 
 ## Continuity agreement
 
-Contabo deployment verified (2026-11-16): release b5d360f is live at https://app.bi-dash.duckdns.org; the marketing website remains https://bi-dash.duckdns.org. Existing remote data/secrets and private local-Ollama tunnel are preserved. Active release uses copied customized local Compose plus a release image override; do not switch it to the generic Linux/public stack or use local DB backups. Operational paths are in ignored .tmp/contabo-target.json and detailed deployment validation/rollback boundaries in STATUS.md. Remote metadata revision e92c71b54a08; no automatic dashboard grants. On 2026-11-17 the real Ollama builder plus Editor/Reader RQ execution and direct/group grant/revoke flow passed using disposable Contabo fixtures; production audience inspection was read-only.
+HTML exports and navigation (2026-11-18): AI Assistant is in the left navigation/mobile menu. At the user's correction, HTML export is available only in Queries (including query visualization views), as an escaped standalone table under the normal download/result ACL. Dashboard-wide HTML export and the HTML option in dashboard widget menus were removed. See STATUS.md for current validation/deployment; initial full-dashboard verification below is historical.
+
+Contabo latest deployment verified (2026-11-18): release 20261118-ui-html (built from Git base 059e2e9 plus the verified UI/query-HTML changes; included in the 2026-11-20 GitHub synchronization) is active at https://app.bi-dash.duckdns.org; marketing website remains https://bi-dash.duckdns.org. Active link /root/bidash-current points to /root/bidash-releases/20261118-ui-html. Use the copied customized compose.local.yaml plus compose.release.yaml with project redash-ai-local; do not replace with generic deployment stacks or local DB backups. Remote .env bytes and metadata row hashes/settings/counts were preserved. Backup: /root/bidash-backups/20261118-ui-html; old b5d360f release/image retained. Revision remains e92c71b54a08 with no migration; private Ollama tunnel and gateway unchanged. Query HTML download/HTTPS/frontend labels passed remote smoke checks; no fresh business execution/inference was performed. See STATUS.md and ignored .tmp/contabo-target.json for operations. Earlier 2026-11-17 isolated real Ollama/Editor/Reader workflow validation remains recorded in STATUS.md.
 
 Group dashboard sharing (2026-11-15): Dashboard Access supports Users/Groups; Admin Groups > Dashboards manages the same dynamic group-view grants through server-paginated search. Owner Editors share their own dashboards; Readers cannot share. Source permissions and content ownership remain separate. Membership/removal/deletion are checked through the central dashboard visibility predicate and existing report/job/result guards. Direct user grants are preserved; no automatic group grants or collections. Additive migration e92c71b54a08 after d83b6a21f409. Effective access shows direct/group paths. See DASHBOARD_ACCESS.md and STATUS.md for activation/validation.
 

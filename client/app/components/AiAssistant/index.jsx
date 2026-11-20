@@ -8,8 +8,7 @@ import { axios } from "@/services/axios";
 import "./index.less";
 import DashboardBuilder from "./DashboardBuilder";
 
-export default function AiAssistant() {
-  const [open, setOpen] = useState(false);
+export default function AiAssistant({ open, onClose }) {
   const [messages, setMessages] = useState([]);
   const [prompt, setPrompt] = useState("");
   const [schema, setSchema] = useState("");
@@ -101,20 +100,17 @@ export default function AiAssistant() {
 
   return (
     <>
-      <Button className="redash-ai-launch" type="primary" onClick={() => setOpen(true)}>
-        ✦ AI Assistant
-      </Button>
       <Drawer
         className="redash-ai-drawer"
         title="✦ Bi-Dash AI Assistant"
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={onClose}
         width={880}
       >
         <div className="redash-ai-panel">
           <Radio.Group value={mode} disabled={busy} onChange={(event) => setMode(event.target.value)}
             optionType="button" options={[{ value: "chat", label: "Ask AI" }, { value: "dashboard", label: "Build dashboard" }]} />
-          {mode === "dashboard" ? <DashboardBuilder extraContext={scoped ? "" : schema} scopedAccess={scoped} onBusyChange={setBusy} onOpenDraft={() => setOpen(false)} /> : <>
+          {mode === "dashboard" ? <DashboardBuilder extraContext={scoped ? "" : schema} scopedAccess={scoped} onBusyChange={setBusy} onOpenDraft={onClose} /> : <>
           <Alert
             type="info"
             showIcon

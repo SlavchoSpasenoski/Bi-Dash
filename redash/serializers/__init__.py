@@ -16,6 +16,7 @@ from redash.permissions import has_access, view_only
 from redash.serializers.query_result import (
     serialize_query_result,
     serialize_query_result_to_dsv,
+    serialize_query_result_to_html,
     serialize_query_result_to_xlsx,
 )
 
