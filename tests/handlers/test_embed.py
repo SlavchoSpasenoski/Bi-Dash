@@ -29,7 +29,7 @@ class TestEmbedVisualization(BaseTestCase):
 
 # TODO: this should be applied to the new API endpoint
 class TestPublicDashboard(BaseTestCase):
-    def test_success(self):
+    def test_public_token_is_rejected(self):
         dashboard = self.factory.create_dashboard()
         api_key = self.factory.create_api_key(object=dashboard)
 
@@ -39,16 +39,14 @@ class TestPublicDashboard(BaseTestCase):
             user=False,
             is_json=False,
         )
-        self.assertEqual(res.status_code, 200)
-        self.assertIn("frame-ancestors *", res.headers["Content-Security-Policy"])
-        self.assertNotIn("X-Frame-Options", res.headers)
+        self.assertEqual(res.status_code, 403)
 
-    def test_works_for_logged_in_user(self):
+    def test_public_token_is_rejected_when_logged_in(self):
         dashboard = self.factory.create_dashboard()
         api_key = self.factory.create_api_key(object=dashboard)
 
         res = self.make_request("get", "/public/dashboards/{}".format(api_key.api_key), is_json=False)
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 403)
 
     def test_bad_token(self):
         res = self.make_request("get", "/public/dashboards/bad-token", user=False, is_json=False)
@@ -72,7 +70,7 @@ class TestPublicDashboard(BaseTestCase):
 
 
 class TestAPIPublicDashboard(BaseTestCase):
-    def test_success(self):
+    def test_public_token_is_rejected(self):
         dashboard = self.factory.create_dashboard()
         api_key = self.factory.create_api_key(object=dashboard)
 
@@ -82,16 +80,14 @@ class TestAPIPublicDashboard(BaseTestCase):
             user=False,
             is_json=False,
         )
-        self.assertEqual(res.status_code, 200)
-        self.assertIn("frame-ancestors *", res.headers["Content-Security-Policy"])
-        self.assertNotIn("X-Frame-Options", res.headers)
+        self.assertEqual(res.status_code, 403)
 
-    def test_works_for_logged_in_user(self):
+    def test_public_token_is_rejected_when_logged_in(self):
         dashboard = self.factory.create_dashboard()
         api_key = self.factory.create_api_key(object=dashboard)
 
         res = self.make_request("get", "/api/dashboards/public/{}".format(api_key.api_key), is_json=False)
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 403)
 
     def test_bad_token(self):
         res = self.make_request("get", "/api/dashboards/public/bad-token", user=False, is_json=False)

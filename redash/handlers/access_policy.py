@@ -6,7 +6,7 @@ from flask_restful import abort
 from redash.access_policy import ROLES, policy_for, validate_limits, validate_policy
 from redash.handlers.base import BaseResource, get_object_or_404
 from redash.models import Organization, User, db
-from redash.permissions import require_admin
+from redash.permissions import require_admin, require_instance_user_management
 from redash.security import csrf
 
 
@@ -66,6 +66,7 @@ class UserAccessResource(BaseResource):
         user = get_object_or_404(User.get_by_id_and_org, user_id, self.current_org)
         if user.id == self.current_user.id and role != "admin":
             abort(400, message="An administrator cannot demote their own account.")
+        require_instance_user_management(user, self.current_user)
         previous_role = user.role
         user.details = {**(user.details or {}), "role": role, "access_limits": limits}
         db.session.commit()

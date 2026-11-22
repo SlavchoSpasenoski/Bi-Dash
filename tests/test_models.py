@@ -610,6 +610,17 @@ class TestDashboardAll(BaseTestCase):
     def setUp(self):
         super(TestDashboardAll, self).setUp()
         _set_up_dashboard_test(self)
+        # Source groups alone do not share dashboards: these views have explicit grants.
+        for dashboard, group in ((self.w1.dashboard, self.g1), (self.w2.dashboard, self.g2),
+                                 (self.w4.dashboard, self.g1), (self.w4.dashboard, self.g2)):
+            db.session.add(models.DashboardGroupReadGrant(dashboard_id=dashboard.id, group_id=group.id))
+        db.session.commit()
+
+    def test_source_group_without_dashboard_grant_is_hidden(self):
+        unshared = self.factory.create_widget(visualization=self.v1).dashboard
+        unshared.is_draft = False
+        db.session.commit()
+        self.assertNotIn(unshared, list(models.Dashboard.all(self.u1.org, self.u1.group_ids, self.u1.id)))
 
     def test_requires_group_or_user_id(self):
         d1 = self.factory.create_dashboard()
@@ -620,29 +631,29 @@ class TestDashboardAll(BaseTestCase):
     def test_returns_dashboards_based_on_groups(self):
         self.assertIn(
             self.w1.dashboard,
-            list(models.Dashboard.all(self.u1.org, self.u1.group_ids, None)),
+            list(models.Dashboard.all(self.u1.org, self.u1.group_ids, self.u1.id)),
         )
         self.assertIn(
             self.w2.dashboard,
-            list(models.Dashboard.all(self.u2.org, self.u2.group_ids, None)),
+            list(models.Dashboard.all(self.u2.org, self.u2.group_ids, self.u2.id)),
         )
         self.assertNotIn(
             self.w1.dashboard,
-            list(models.Dashboard.all(self.u2.org, self.u2.group_ids, None)),
+            list(models.Dashboard.all(self.u2.org, self.u2.group_ids, self.u2.id)),
         )
         self.assertNotIn(
             self.w2.dashboard,
-            list(models.Dashboard.all(self.u1.org, self.u1.group_ids, None)),
+            list(models.Dashboard.all(self.u1.org, self.u1.group_ids, self.u1.id)),
         )
 
     def test_returns_each_dashboard_once(self):
-        dashboards = list(models.Dashboard.all(self.u2.org, self.u2.group_ids, None))
+        dashboards = list(models.Dashboard.all(self.u2.org, self.u2.group_ids, self.u2.id))
         self.assertEqual(len(dashboards), 2)
 
     def test_returns_dashboard_you_have_partial_access_to(self):
         self.assertIn(
             self.w5.dashboard,
-            models.Dashboard.all(self.u1.org, self.u1.group_ids, None),
+            models.Dashboard.all(self.u1.org, self.u1.group_ids, self.u1.id),
         )
 
     def test_returns_dashboards_created_by_user(self):
@@ -675,9 +686,11 @@ class TestDashboardAll(BaseTestCase):
         w1 = self.factory.create_widget()
 
         user = self.factory.create_user(org=self.factory.create_org())
+        db.session.add(models.DashboardGroupReadGrant(dashboard_id=w1.dashboard.id, group_id=self.factory.default_group.id))
+        db.session.commit()
 
         self.assertIn(
             w1.dashboard,
-            list(models.Dashboard.all(self.factory.user.org, self.factory.user.group_ids, None)),
+            list(models.Dashboard.all(self.factory.user.org, self.factory.user.group_ids, self.factory.user.id)),
         )
         self.assertNotIn(w1.dashboard, list(models.Dashboard.all(user.org, user.group_ids, user.id)))

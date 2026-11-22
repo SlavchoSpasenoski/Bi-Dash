@@ -10,6 +10,8 @@ Dashboard owners can share viewing through **Access → Users / Groups**. Admini
 
 Administrators can inspect a user’s effective permissions at **Settings → Users → user → Effective access**. The read-only report separates role/actions, source and table/column access, and dashboard/widget permissions, with reasons for denied access. Use **Reload permissions** after changing settings. See [Effective access](EFFECTIVE_ACCESS.md).
 
+Administrators can transfer selected content using **Settings → Migration**: export an encrypted package, inspect it in the destination and import after reviewing dependencies and ownership. Without Users, all imported Queries/Dashboards belong to the importing Admin. See [Selective migration](CONTENT_MIGRATION.md).
+
 ## Contents
 
 1. [Inherited features and Bi-Dash improvements](#comparison)
@@ -384,7 +386,7 @@ HTML download is available only from Queries (including query visualization view
 
 ### Internal sharing
 
-Open a published dashboard as Admin or its Editor owner, click **Access**, select accounts under **Users who can view**, and click **Save access**. Remove accounts and save to revoke access. Recipients sign in and still need source access; Editor table/column rules apply. A link alone grants nothing. Only the owner edits dashboard content; viewing never grants editing or resharing. Readers see only assigned published dashboards. See [Dashboard Access](DASHBOARD_ACCESS.md).
+Open a published dashboard as Admin or its Editor owner, click **Access**, select accounts under **Users who can view**, and click **Save access**. Remove accounts and save to revoke access. Recipients sign in and still need source access; Editor table/column rules apply. A link alone grants nothing. Organization Admins can edit any Query/Dashboard, including another Admin's content. Editors edit only their own Queries/Dashboards; viewing never grants editing or resharing. Editing preserves the original author. Saved query changes also apply to dashboards referencing that query. Readers see only assigned published dashboards. See [Dashboard Access](DASHBOARD_ACCESS.md).
 
 ### Public links and scheduling
 
@@ -464,3 +466,13 @@ For a fresh Windows, Linux or macOS installation, follow the [Installation Guide
 Technical `REDASH_*` environment variables and internal package names remain for compatibility. They do not indicate a different application is loaded. Historical upstream notices and third-party rights retain their actual names.
 
 Original Bi-Dash contributions: © 2026 Slavcho Spasenoski, to the extent protected by applicable law. Bi-Dash derives from upstream Redash; its license and required attributions are preserved.
+
+
+## System Status monitoring
+
+Organization Admins can open **System Status** from the profile/navigation menu to inspect user activity and queued/running/recent query jobs. Presence is approximate: fresh browser heartbeats distinguish Active/Idle from Stale/Unknown; last request activity alone does not mean a user is online. The view refreshes every 10 seconds while visible and marks incomplete or unavailable telemetry explicitly. Query rows show initiating actor, source, trigger, timing and potential worker delays, without SQL or result data. Recent jobs are a bounded one-hour RQ view, not a permanent audit history. See [System Status monitoring](SYSTEM_MONITORING.md) for permissions, instance scope and freshness limits.
+
+
+## Query version history
+
+Open a saved Query or its SQL editor, then choose **More actions -> Version history** in the upper-right menu. Inspect recorded SQL/definition changes and compare with the current saved definition or another permitted version. The panel is read-only and preserves unsaved editor text; it does not run SQL, restore older definitions or alter dashboards. Existing queries start with an activation baseline, not reconstructed earlier edits. Current source/table/column permissions also apply to historical versions; Reader/API-token access is unavailable. See [Query version history](QUERY_VERSIONING.md).

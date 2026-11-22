@@ -22,6 +22,9 @@ from redash.handlers.base import (
 from redash.handlers.base import order_results as _order_results
 from redash.permissions import (
     is_admin_or_owner,
+    require_instance_user_management,
+    require_instance_group_management,
+    can_read_user_secrets,
     require_admin,
     require_admin_or_owner,
     require_permission,
@@ -57,6 +60,8 @@ def invite_user(org, inviter, user, send_email=True):
 
 
 def require_allowed_email(email):
+    if not isinstance(email, str) or email.count("@") != 1 or not all(email.split("@")):
+        abort(400, message="Bad email address.")
     # `example.com` and `example.com.` are equal - last dot stands for DNS root but usually is omitted
     _, domain = email.lower().rstrip(".").split("@", 1)
 
@@ -132,8 +137,6 @@ class UserListResource(BaseResource):
         req = request.get_json(force=True)
         require_fields(req, ("name", "email"))
 
-        if "@" not in req["email"]:
-            abort(400, message="Bad email address.")
         require_allowed_email(req["email"])
         role = req.get("role", "reader")
         if not isinstance(role, str) or role not in ("admin", "editor", "reader"):
@@ -166,6 +169,7 @@ class UserInviteResource(BaseResource):
     @require_admin
     def post(self, user_id):
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
         return invite_user(self.current_org, self.current_user, user)
 
 
@@ -173,6 +177,7 @@ class UserResetPasswordResource(BaseResource):
     @require_admin
     def post(self, user_id):
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
         if user.is_disabled:
             abort(404, message="Not found")
         reset_link = send_password_reset_email(user)
@@ -183,6 +188,7 @@ class UserResetPasswordResource(BaseResource):
 class UserRegenerateApiKeyResource(BaseResource):
     def post(self, user_id):
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
         if user.is_disabled:
             abort(404, message="Not found")
         if not is_admin_or_owner(user_id):
@@ -205,11 +211,12 @@ class UserResource(BaseResource):
 
         self.record_event({"action": "view", "object_id": user_id, "object_type": "user"})
 
-        return user.to_dict(with_api_key=is_admin_or_owner(user_id))
+        return user.to_dict(with_api_key=can_read_user_secrets(user, self.current_user))
 
     def post(self, user_id):  # noqa: C901
         require_admin_or_owner(user_id)
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
 
         req = request.get_json(True)
 
@@ -230,12 +237,16 @@ class UserResource(BaseResource):
             lock_administrator(self.current_org, self.current_user)
             if not self.current_user.has_permission("admin"):
                 abort(403, message="Must be admin to change groups membership.")
+            if (not isinstance(params["group_ids"], list) or len(params["group_ids"]) > 1000
+                    or any(type(gid) is not int or gid < 1 for gid in params["group_ids"])):
+                abort(400, message="Choose valid group identifiers.")
             if user.id == self.current_user.id and set(params["group_ids"]) != set(user.group_ids):
                 abort(400, message="Ask another administrator to change your group membership.")
 
             for group_id in params["group_ids"]:
                 try:
-                    models.Group.get_by_id_and_org(group_id, self.current_org)
+                    group = models.Group.get_by_id_and_org(group_id, self.current_org)
+                    require_instance_group_management(group, self.current_user)
                 except NoResultFound:
                     abort(400, message="Group id {} is invalid.".format(group_id))
 
@@ -279,11 +290,12 @@ class UserResource(BaseResource):
             }
         )
 
-        return user.to_dict(with_api_key=is_admin_or_owner(user_id))
+        return user.to_dict(with_api_key=can_read_user_secrets(user, self.current_user))
 
     @require_admin
     def delete(self, user_id):
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
         # admin cannot delete self; current user is an admin (`@require_admin`)
         # so just check user id
         if user.id == current_user.id:
@@ -301,13 +313,14 @@ class UserResource(BaseResource):
         models.db.session.delete(user)
         models.db.session.commit()
 
-        return user.to_dict(with_api_key=is_admin_or_owner(user_id))
+        return user.to_dict(with_api_key=can_read_user_secrets(user, self.current_user))
 
 
 class UserDisableResource(BaseResource):
     @require_admin
     def post(self, user_id):
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
         # admin cannot disable self; current user is an admin (`@require_admin`)
         # so just check user id
         if user.id == current_user.id:
@@ -319,12 +332,13 @@ class UserDisableResource(BaseResource):
         user.disable()
         models.db.session.commit()
 
-        return user.to_dict(with_api_key=is_admin_or_owner(user_id))
+        return user.to_dict(with_api_key=can_read_user_secrets(user, self.current_user))
 
     @require_admin
     def delete(self, user_id):
         user = models.User.get_by_id_and_org(user_id, self.current_org)
+        require_instance_user_management(user, self.current_user)
         user.enable()
         models.db.session.commit()
 
-        return user.to_dict(with_api_key=is_admin_or_owner(user_id))
+        return user.to_dict(with_api_key=can_read_user_secrets(user, self.current_user))

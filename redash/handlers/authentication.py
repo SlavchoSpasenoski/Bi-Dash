@@ -361,3 +361,35 @@ def session(org_slug=None):
             "client_config": client_config(),
         }
     )
+
+
+@routes.route(org_scoped_rule("/api/session/presence"), methods=["POST"])
+@login_required
+@limiter.limit("60/minute")
+def session_presence(org_slug=None):
+    import uuid
+    from flask import session as user_session
+    from redis.exceptions import RedisError
+    from redash.security import csrf
+    from redash.operational_monitoring import record_presence
+    if (current_user.is_api_user() or current_user.is_disabled or current_user.org_id != current_org.id
+            or user_session.get('_user_id') != current_user.get_id()
+            or 'api_key' in request.args or request.headers.get('Authorization')):
+        abort(403)
+    csrf.protect()
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or set(body) != {'tab_id', 'active'} or not isinstance(body['active'], bool):
+        abort(400)
+    try:
+        tab_id = str(uuid.UUID(body['tab_id']))
+    except (ValueError, TypeError, AttributeError):
+        abort(400)
+    if 'monitor_session_id' not in user_session:
+        user_session['monitor_session_id'] = uuid.uuid4().hex
+    try:
+        record_presence(current_org, current_user, user_session['monitor_session_id'], tab_id, body['active'])
+    except RedisError:
+        return json_response({'message': 'Presence is temporarily unavailable.'}), 503
+    response = json_response({'ok': True, 'expires_in': 90})
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response

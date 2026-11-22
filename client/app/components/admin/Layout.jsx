@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import Menu from "antd/lib/menu";
 import PageHeader from "@/components/PageHeader";
 import Link from "@/components/Link";
+import { currentUser } from "@/services/auth";
 
 import "./layout.less";
 
@@ -13,15 +14,16 @@ export default function Layout({ activeTab, children }) {
         <PageHeader title="Admin" />
         <div className="bg-white tiled">
           <Menu selectedKeys={[activeTab]} selectable={false} mode="horizontal">
+            {currentUser.hasPermission("admin") && <Menu.Item key="migration"><Link href="admin/migration">Migration</Link></Menu.Item>}
             <Menu.Item key="system_status">
               <Link href="admin/status">System Status</Link>
             </Menu.Item>
-            <Menu.Item key="jobs">
+            {currentUser.hasPermission("super_admin") && <Menu.Item key="jobs">
               <Link href="admin/queries/jobs">RQ Status</Link>
-            </Menu.Item>
-            <Menu.Item key="outdated_queries">
+            </Menu.Item>}
+            {currentUser.hasPermission("super_admin") && <Menu.Item key="outdated_queries">
               <Link href="admin/queries/outdated">Outdated Queries</Link>
-            </Menu.Item>
+            </Menu.Item>}
           </Menu>
           {children}
         </div>

@@ -75,6 +75,9 @@ export const Auth = {
     logger("Logout.");
     window.location.href = "logout";
   },
+  reloadSession() {
+    window.location.reload();
+  },
   loadSession() {
     logger("Loading session");
     if (session.loaded && session.user.id) {

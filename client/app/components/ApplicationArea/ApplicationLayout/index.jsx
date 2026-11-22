@@ -4,10 +4,12 @@ import DynamicComponent from "@/components/DynamicComponent";
 import DesktopNavbar from "./DesktopNavbar";
 import MobileNavbar from "./MobileNavbar";
 import AiAssistant from "@/components/AiAssistant";
+import usePresence from "./usePresence";
 
 import "./index.less";
 
 export default function ApplicationLayout({ children }) {
+  usePresence();
   const [aiOpen, setAiOpen] = useState(false);
   const openAi = useCallback(() => setAiOpen(true), []);
   const mobileNavbarContainerRef = useRef();

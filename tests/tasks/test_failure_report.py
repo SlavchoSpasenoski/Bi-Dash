@@ -14,7 +14,7 @@ from tests import BaseTestCase
 class TestSendAggregatedErrorsTask(BaseTestCase):
     def setUp(self):
         super(TestSendAggregatedErrorsTask, self).setUp()
-        redis_connection.flushall()
+        redis_connection.flushdb()
         self.factory.org.set_setting("send_email_on_failed_scheduled_queries", True)
 
     def notify(self, message="Oh no, I failed!", query=None, **kwargs):

@@ -175,7 +175,7 @@ class TestQueryResourcePost(BaseTestCase):
         self.assertEqual(rv.status_code, 403)
 
     def test_prevents_association_with_non_existing_dropdown_queries(self):
-        my_data_source = self.factory.create_data_source(group=self.factory.create_group())
+        my_data_source = self.factory.create_data_source(group=self.factory.default_group)
         my_query = self.factory.create_query(data_source=my_data_source)
         db.session.add(my_query)
 
@@ -202,7 +202,7 @@ class TestQueryResourcePost(BaseTestCase):
         )
         self.assertEqual(rv.status_code, 200)
 
-    def test_works_for_non_owner_with_permission(self):
+    def test_modify_grant_does_not_bypass_editor_ownership(self):
         query = self.factory.create_query()
         user = self.factory.create_user()
 
@@ -222,9 +222,9 @@ class TestQueryResourcePost(BaseTestCase):
             data={"name": "Testing"},
             user=user,
         )
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.json["name"], "Testing")
-        self.assertEqual(rv.json["last_modified_by"]["id"], user.id)
+        self.assertEqual(rv.status_code, 403)
+        models.db.session.refresh(query)
+        self.assertNotEqual(query.name, "Testing")
 
 
 class TestQueryListResourceGet(BaseTestCase):
@@ -472,8 +472,8 @@ class TestQueryResourceGetWithDashboardApiKey(BaseTestCase):
 
         rv = self.make_request("get", "/api/queries/{}?api_key={}".format(query.id, api_key.api_key), user=False)
 
-        self.assertEqual(rv.status_code, 200)
-        self.assertIsNone(rv.json["api_key"])
+        self.assertEqual(rv.status_code, 403)
+        self.assertNotIn("api_key", rv.json)
 
 
 class TestQueryForkResourcePost(BaseTestCase):

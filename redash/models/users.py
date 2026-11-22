@@ -5,7 +5,7 @@ import time
 from functools import reduce
 from operator import or_
 
-from flask import current_app, request_started, url_for
+from flask import current_app, request, request_started, session, url_for
 from flask_login import AnonymousUserMixin, UserMixin, current_user
 from passlib.apps import custom_app_context as pwd_context
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -48,7 +48,12 @@ def update_user_active_at(sender, *args, **kwargs):
     Used as a Flask request_started signal callback that adds
     the current user's details to Redis
     """
-    if current_user.is_authenticated and not current_user.is_api_user():
+    if request.endpoint in {'redash.monitoring_status', 'redash.session_presence',
+                            'redash.status_api', 'redash.queries_rq_status'}:
+        return
+    if (current_user.is_authenticated and not current_user.is_api_user()
+            and session.get('_user_id') == current_user.get_id()
+            and 'api_key' not in request.args and not request.headers.get('Authorization')):
         redis_connection.hset(LAST_ACTIVE_KEY, current_user.id, int(time.time()))
 
 
@@ -174,7 +179,7 @@ class User(TimestampMixin, db.Model, BelongsToOrgMixin, UserMixin, PermissionsCh
     def permissions(self):
         from redash.access_policy import effective_permissions, policy_for
 
-        groups = list(itertools.chain(*[g.permissions for g in Group.query.filter(Group.id.in_(self.group_ids))]))
+        groups = list(itertools.chain(*[g.permissions for g in Group.query.filter(Group.org_id == self.org_id, Group.id.in_(self.group_ids or []))]))
         role = (self.details or {}).get("role") or ("admin" if "admin" in groups else "editor")
         return effective_permissions(role, groups, policy_for(self.org))
 
@@ -183,7 +188,7 @@ class User(TimestampMixin, db.Model, BelongsToOrgMixin, UserMixin, PermissionsCh
         role = (self.details or {}).get("role")
         if role in ("admin", "editor", "reader"):
             return role
-        groups = Group.query.filter(Group.id.in_(self.group_ids))
+        groups = Group.query.filter(Group.org_id == self.org_id, Group.id.in_(self.group_ids or []))
         return "admin" if any("admin" in g.permissions for g in groups) else "editor"
 
     @classmethod

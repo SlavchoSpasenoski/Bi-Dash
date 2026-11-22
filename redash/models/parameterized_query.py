@@ -17,7 +17,7 @@ def _pluck_name_and_value(default_column, row):
     return {"name": row[name_column], "value": str(row[value_column])}
 
 
-def _load_result(query_id, org):
+def _load_result(query_id, org, actor=None):
     from redash import models
 
     query = models.Query.get_by_id_and_org(query_id, org)
@@ -27,39 +27,38 @@ def _load_result(query_id, org):
     from redash.permissions import has_access, view_only
     from redash.data_access_runtime import result_access_allowed
     from redash.reader_reports import result_dashboard_allowed
-    if (not has_request_context() or not current_user.is_authenticated or current_user.is_api_user()
-            or not has_access(query, current_user, view_only)):
+    actor = actor if actor is not None else (current_user if has_request_context() else None)
+    if (actor is None or not actor.is_authenticated or actor.is_disabled or actor.is_api_user()
+            or actor.org_id != org.id or not has_access(query, actor, view_only)):
         raise InvalidParameterError("This dropdown query is outside your assigned report access.")
 
     from redash.data_access_runtime import is_protected, can_read_all_scopes
     if query.data_source is not None and is_protected(query.data_source):
-        from flask import has_request_context
-        from flask_login import current_user
-        if has_request_context() and can_read_all_scopes(current_user):
+        if can_read_all_scopes(actor):
             from redash.permissions import require_access, view_only
-            require_access(query.data_source, current_user, view_only)
+            require_access(query.data_source, actor, view_only)
             text = query.data_source.query_runner.apply_auto_limit(query.query_text, query.options.get("apply_auto_limit", False))
             result = models.QueryResult.get_latest(query.data_source, text, -1, any_policy_scope=True)
             if result is None:
                 raise InvalidParameterError("No saved dropdown result is available.")
-            if (not result_access_allowed(result, current_user)
-                    or not result_dashboard_allowed(result, current_user)):
+            if (not result_access_allowed(result, actor)
+                    or not result_dashboard_allowed(result, actor)):
                 raise InvalidParameterError("This dropdown result is outside your assigned report access.")
             return result.data
         raise InvalidParameterError("Protected sources do not support query dropdown dependencies.")
 
     if query.data_source:
         query_result = models.QueryResult.get_by_id_and_org(query.latest_query_data_id, org)
-        if (not result_access_allowed(query_result, current_user)
-                or not result_dashboard_allowed(query_result, current_user)):
+        if (not result_access_allowed(query_result, actor)
+                or not result_dashboard_allowed(query_result, actor)):
             raise InvalidParameterError("This dropdown result is outside your assigned report access.")
         return query_result.data
     else:
         raise QueryDetachedFromDataSourceError(query_id)
 
 
-def dropdown_values(query_id, org):
-    data = _load_result(query_id, org)
+def dropdown_values(query_id, org, actor=None):
+    data = _load_result(query_id, org, actor=actor)
     first_column = data["columns"][0]["name"]
     pluck = partial(_pluck_name_and_value, first_column)
     return list(map(pluck, data["rows"]))
@@ -147,9 +146,10 @@ def _is_value_within_options(value, dropdown_options, allow_list=False):
 
 
 class ParameterizedQuery:
-    def __init__(self, template, schema=None, org=None):
+    def __init__(self, template, schema=None, org=None, actor=None):
         self.schema = schema or []
         self.org = org
+        self.actor = actor
         self.template = template
         self.query = template
         self.parameters = {}
@@ -191,7 +191,7 @@ class ParameterizedQuery:
             "enum": lambda value: _is_value_within_options(value, enum_options, allow_multiple_values),
             "query": lambda value: _is_value_within_options(
                 value,
-                [v["value"] for v in dropdown_values(query_id, self.org)],
+                [v["value"] for v in dropdown_values(query_id, self.org, actor=self.actor)],
                 allow_multiple_values,
             ),
             "date": _is_date,

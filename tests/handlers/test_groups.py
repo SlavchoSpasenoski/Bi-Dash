@@ -45,9 +45,10 @@ class TestGroupResourceList(BaseTestCase):
         )
 
     def test_list(self):
-        group1 = self.factory.create_group(org=self.factory.create_org(), permissions=["view_dashboard"])
+        foreign_group = self.factory.create_group(org=self.factory.create_org(), permissions=["view_dashboard"])
+        group1 = self.factory.create_group(permissions=["view_dashboard"])
         db.session.flush()
-        u = self.factory.create_user(group_ids=[self.factory.default_group.id, group1.id])
+        u = self.factory.create_user(group_ids=[self.factory.default_group.id, group1.id, foreign_group.id])
         db.session.flush()
         response = self.make_request("get", "/api/groups", user=u)
         g_keys = ["type", "id", "name", "permissions"]

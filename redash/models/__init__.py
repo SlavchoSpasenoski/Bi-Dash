@@ -535,12 +535,24 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
 
     @classmethod
     def all_queries(cls, group_ids, user_id=None, include_drafts=False, include_archived=False):
-        query_ids = (
-            db.session.query(distinct(cls.id))
-            .join(DataSourceGroup, Query.data_source_id == DataSourceGroup.data_source_id)
-            .filter(Query.is_archived.is_(include_archived))
-            .filter(DataSourceGroup.group_id.in_(group_ids))
-        )
+        actor = db.session.get(User, user_id) if user_id is not None else None
+        org_admin = bool(actor is not None and not actor.is_disabled and actor.role == "admin")
+        if org_admin:
+            # Admin read/edit rights are organization-wide, including newly
+            # imported sources with intentionally empty group grants.
+            query_ids = db.session.query(distinct(cls.id)).filter(
+                Query.org_id == actor.org_id, Query.is_archived.is_(include_archived))
+            from redash.data_access_runtime import is_internal
+            retired = [source.id for source in DataSource.query.filter_by(org_id=actor.org_id) if is_internal(source)]
+            if retired:
+                query_ids = query_ids.filter(or_(Query.data_source_id.is_(None), ~Query.data_source_id.in_(retired)))
+        else:
+            query_ids = (
+                db.session.query(distinct(cls.id))
+                .join(DataSourceGroup, Query.data_source_id == DataSourceGroup.data_source_id)
+                .filter(Query.is_archived.is_(include_archived))
+                .filter(DataSourceGroup.group_id.in_(group_ids))
+            )
         queries = (
             cls.query.filter(cls.id.in_(query_ids))
             # Adding outer joins to be able to order by relationship
@@ -552,7 +564,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
             )
         )
 
-        if not include_drafts:
+        if not include_drafts and not org_admin:
             queries = queries.filter(or_(Query.is_draft.is_(False), Query.user_id == user_id))
         return queries
 
@@ -1557,3 +1569,11 @@ def init_db():
     # XXX remove after fixing User.group_ids
     db.session.commit()
     return default_org, admin_group, default_group
+
+
+# Install only after Query and all related model classes have been defined.
+from redash.models.query_revisions import QueryRevision  # noqa: E402,F401
+from redash.query_revisions import install_revision_tracking  # noqa: E402
+install_revision_tracking(Query, QueryRevision)
+
+from redash.models.migration_runs import MigrationRun  # noqa: E402,F401

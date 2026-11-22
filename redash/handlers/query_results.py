@@ -186,6 +186,8 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
                 metadata={
                     "user_id": current_user.get_actual_user() if current_user.is_api_user() else current_user.id,
                     "query_id": query_id,
+                    "saved_parameters": parameters,
+                    "saved_auto_limit": should_apply_auto_limit,
                     **({"dashboard_report": dashboard_report} if dashboard_report else {}),
                 },
             )

@@ -187,7 +187,7 @@ export default function DesktopNavbar({ onOpenAi }) {
           <Menu.Item key="profile">
             <Link href="users/me">Profile</Link>
           </Menu.Item>
-          {currentUser.hasPermission("super_admin") && (
+          {(currentUser.isAdmin || currentUser.hasPermission("super_admin")) && (
             <Menu.Item key="status">
               <Link href="admin/status">System Status</Link>
             </Menu.Item>

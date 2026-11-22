@@ -99,7 +99,7 @@ def user_effective_access(user):
         dashboards.append({"id": board.id, "name": board.name, "owner_id": board.user_id,
             "state": "archived" if board.is_archived else "draft" if board.is_draft else "published",
             "view": decision(visible, reason),
-            "edit": decision(can_edit_dashboard(board, user), "Only an active Editor/Admin owner with edit permission can change content; archived dashboards require restoration."),
+            "edit": decision(can_edit_dashboard(board, user), "Active organization administrators or the Editor owner with edit permission can change content; archived dashboards require restoration."),
             "share": decision(can_manage_dashboard_access(board, user), "Administrators manage all viewers; Editor owners manage their own. New grants require a published dashboard."),
             "widgets": widgets})
     limits = query_limits(user, user.org)

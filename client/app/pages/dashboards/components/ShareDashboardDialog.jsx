@@ -57,7 +57,7 @@ class ShareDashboardDialog extends React.Component {
     ]}>
       <p><strong>{this.props.dashboard.name}</strong></p>
       <Alert type="info" showIcon message="Choose who can view this dashboard"
-        description="Selected users and current members of selected groups must sign in. The owner and organization administrators retain access. Only the owner can edit dashboard content. Viewing does not grant access to additional data sources, tables or columns." />
+        description="Selected users and current members of selected groups must sign in. The owner and organization administrators retain access. Organization administrators and the owner can edit dashboard content. Viewing does not grant access to additional data sources, tables or columns." />
       <p style={{ marginTop: 12 }}>Public links are disabled. Assign viewing to users or groups. Removing one grant does not remove access granted by another user or group assignment.</p>
       {error && <Alert type="error" message={error} action={<Button size="small" disabled={saving} onClick={this.loadAccess}>Reload access</Button>} />}
       {saved && <Alert type="success" message="Dashboard access saved." />}

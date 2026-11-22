@@ -52,7 +52,7 @@ def can_view_dashboard(dashboard, user, include_archived=False):
 
 def can_edit_dashboard(dashboard, user):
     return bool(dashboard is not None and _active_user(user, dashboard.org_id)
-                and user.role in ("admin", "editor") and dashboard.user_id == user.id
+                and (user.role == "admin" or (user.role == "editor" and dashboard.user_id == user.id))
                 and user.has_permission("edit_dashboard"))
 
 
@@ -69,7 +69,7 @@ def require_dashboard_view(dashboard, user):
 
 def require_dashboard_edit(dashboard, user):
     if not can_edit_dashboard(dashboard, user):
-        abort(403, message="Only the dashboard owner can edit its content.")
+        abort(403, message="Only an administrator or the dashboard owner can edit its content.")
 
 
 def query_readable_clause(user):

@@ -1,13 +1,13 @@
 import { map } from "lodash";
 import React from "react";
 import Modal from "antd/lib/modal";
-import { Auth } from "@/services/auth";
+import { Auth, currentUser } from "@/services/auth";
 
 const SESSION_RESTORED_MESSAGE = "redash_session_restored";
 
 export function notifySessionRestored() {
   if (window.opener) {
-    window.opener.postMessage({ type: SESSION_RESTORED_MESSAGE }, window.location.origin);
+    window.opener.postMessage({ type: SESSION_RESTORED_MESSAGE, user_id: currentUser.id }, window.location.origin);
   }
 }
 
@@ -25,8 +25,9 @@ function getPopupPosition(width, height) {
   };
 }
 
-function showRestoreSessionPrompt(loginUrl, onSuccess) {
+function showRestoreSessionPrompt(loginUrl, onSuccess, onIdentityChanged) {
   let popup = null;
+  const originalUserId = currentUser.id;
 
   Modal.warning({
     content: "Your session has expired. Please login to continue.",
@@ -59,14 +60,23 @@ function showRestoreSessionPrompt(loginUrl, onSuccess) {
       popup = window.open(loginUrl, "Restore Session", map(popupOptions, (value, key) => `${key}=${value}`).join(","));
 
       const handlePostMessage = (event) => {
-        if (event.data.type === SESSION_RESTORED_MESSAGE) {
+        if (
+          popup &&
+          event.source === popup &&
+          event.origin === window.location.origin &&
+          event.data?.type === SESSION_RESTORED_MESSAGE
+        ) {
           if (popup) {
             popup.close();
           }
           popup = null;
           window.removeEventListener("message", handlePostMessage);
           closeModal();
-          onSuccess();
+          if (Number.isInteger(originalUserId) && originalUserId > 0 && event.data.user_id === originalUserId) {
+            onSuccess();
+          } else {
+            onIdentityChanged();
+          }
         }
       };
 
@@ -79,11 +89,19 @@ let restoreSessionPromise = null;
 
 export function restoreSession() {
   if (!restoreSessionPromise) {
-    restoreSessionPromise = new Promise((resolve) => {
-      showRestoreSessionPrompt(Auth.getLoginUrl(), () => {
-        restoreSessionPromise = null;
-        resolve();
-      });
+    restoreSessionPromise = new Promise((resolve, reject) => {
+      showRestoreSessionPrompt(
+        Auth.getLoginUrl(),
+        () => {
+          restoreSessionPromise = null;
+          resolve();
+        },
+        () => {
+          restoreSessionPromise = null;
+          reject(new Error("The authenticated account changed. Reloading the session."));
+          Auth.reloadSession();
+        }
+      );
     });
   }
 

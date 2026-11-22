@@ -220,14 +220,18 @@ class TestDashboardAccess(BaseTestCase):
             self.assertEqual(self.save_access(["reader"], dashboard=dashboard, user="admin").status_code, 400)
             self.assertEqual(self.save_access([], dashboard=dashboard, user="admin").status_code, 200)
 
-    def test_dashboard_content_owner_only_even_for_nonowner_admin(self):
-        for role in ("viewer", "admin", "reader"):
+    def test_dashboard_content_admin_or_owner_editor(self):
+        for role in ("viewer", "reader"):
             response = self.make_request("post", f"/api/dashboards/{self.ids['dashboard']}",
                 user=self.user(role), data={"name": "unauthorized content"})
             self.assertEqual(response.status_code, 403)
         response = self.make_request("post", f"/api/dashboards/{self.ids['dashboard']}",
             user=self.user("owner"), data={"name": "Owner content"})
         self.assertEqual(response.status_code, 200, response.json)
+        response = self.make_request("post", f"/api/dashboards/{self.ids['dashboard']}",
+            user=self.user("admin"), data={"name": "Admin content"})
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertTrue(self.dashboard_get(user="admin").json["can_edit"])
 
     def test_dashboard_options_do_not_forge_read_grants_or_transfer_owner(self):
         response = self.make_request("post", f"/api/dashboards/{self.ids['dashboard']}", user=self.user("owner"),
@@ -250,7 +254,7 @@ class TestDashboardAccess(BaseTestCase):
         models.AccessPermission.grant(query, "modify", self.user("viewer"), self.user("admin"))
         models.db.session.commit()
         vis_id = models.db.session.get(models.Widget, self.ids["widget"]).visualization_id
-        for role in ("viewer", "admin"):
+        for role in ("viewer",):
             for path, data in ((f"/api/visualizations/{vis_id}", {"name": "unauthorized chart"}),
                                (f"/api/queries/{query.id}", {"query": "SELECT 999"}),
                                (f"/api/widgets/{self.ids['widget']}", {"text": "unauthorized", "options": {}})):
@@ -442,3 +446,61 @@ class TestDashboardAccess(BaseTestCase):
         self.assertIn(polled.status_code, (200, 403))
         if polled.status_code == 200:
             self.assertEqual(polled.json["job"]["status"], 4)
+
+    def test_admin_edits_query_chart_widget_from_editor_without_transfer(self):
+        query = models.Query.get_by_id(self.ids['query'])
+        before = query.user_id
+        vis_id = models.db.session.get(models.Widget, self.ids['widget']).visualization_id
+        for path, data in ((f'/api/queries/{query.id}', {'query':'SELECT 44 AS amount'}),
+                           (f'/api/visualizations/{vis_id}', {'name':'Admin chart'}),
+                           (f'/api/widgets/{self.ids["widget"]}', {'text':'Admin note','options':{}})):
+            response = self.make_request('post', path, data=data, user=self.user('admin'))
+            self.assertEqual(response.status_code, 200, response.json)
+        models.db.session.refresh(query)
+        self.assertEqual(query.user_id, before)
+        revision = models.QueryRevision.query.filter_by(query_id=query.id).order_by(models.QueryRevision.revision.desc()).first()
+        self.assertEqual(revision.actor_user_id, self.ids['admin'])
+
+    def test_admin_edits_another_admin_query_and_dashboard(self):
+        other = self.factory.create_admin()
+        board = self.factory.create_dashboard(user=other, is_draft=True)
+        query = self.factory.create_query(user=other, data_source=self.source, is_draft=True)
+        self.add_widget(board, query); models.db.session.commit()
+        for path, data in ((f'/api/queries/{query.id}', {'query':'SELECT 55'}),
+                           (f'/api/dashboards/{board.id}', {'name':'Admin updated'})):
+            response = self.make_request('post', path, data=data, user=self.user('admin'))
+            self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(board.user_id, other.id); self.assertEqual(query.user_id, other.id)
+
+    def test_editor_modify_grant_does_not_allow_other_unattached_query(self):
+        query = self.factory.create_query(user=self.user('admin'), data_source=self.source)
+        models.AccessPermission.grant(query, 'modify', self.user('viewer'), self.user('admin'))
+        models.db.session.commit()
+        self.assertEqual(self.make_request('post', f'/api/queries/{query.id}', data={'query':'SELECT 99'}, user=self.user('viewer')).status_code, 403)
+
+    def test_query_owner_can_edit_when_linked_to_another_owners_dashboard(self):
+        board = self.factory.create_dashboard(user=self.user('admin'), is_draft=False)
+        self.add_widget(board, models.Query.get_by_id(self.ids['query'])); models.db.session.commit()
+        response = self.make_request('post', f'/api/queries/{self.ids["query"]}', data={'query':'SELECT 66'}, user=self.user('owner'))
+        self.assertEqual(response.status_code, 200, response.json)
+
+    def test_admin_can_add_other_users_query_to_dashboard(self):
+        vis_id = models.db.session.get(models.Widget, self.ids['widget']).visualization_id
+        response = self.make_request('post','/api/widgets', user=self.user('admin'),
+            data={'dashboard_id':self.ids['dashboard'],'visualization_id':vis_id,'width':1,'options':{}})
+        self.assertEqual(response.status_code, 200, response.json)
+
+    def test_foreign_and_disabled_admin_cannot_edit(self):
+        from redash.permissions import can_modify
+        from redash.dashboard_access import can_edit_dashboard
+        foreign = self.factory.create_admin(org=self.factory.create_org())
+        disabled = self.factory.create_admin(disabled_at=utcnow())
+        query = models.Query.get_by_id(self.ids['query']); board = models.Dashboard.query.get(self.ids['dashboard'])
+        models.db.session.commit()
+        for user in (foreign, disabled):
+            self.assertFalse(can_modify(query, user)); self.assertFalse(can_edit_dashboard(board, user))
+
+    def test_admin_can_duplicate_other_owners_dashboard(self):
+        response = self.make_request('post', f'/api/dashboards/{self.ids["dashboard"]}/fork', user=self.user('admin'))
+        self.assertEqual(response.status_code, 200, response.json)
+        self.assertEqual(response.json['user']['id'], self.ids['admin'])

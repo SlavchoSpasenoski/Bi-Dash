@@ -31,6 +31,31 @@ def _unlock(query_hash, data_source_id, scope=None):
     redis_connection.delete(_job_lock_id(query_hash, data_source_id, scope))
 
 
+def _can_execute_saved_view_only(source, user, sql, metadata):
+    """View-only execution is limited to a freshly validated saved definition."""
+    from redash.permissions import has_access, view_only
+    from redash.models.parameterized_query import ParameterizedQuery, InvalidParameterError, QueryDetachedFromDataSourceError
+    query_id = metadata.get("query_id")
+    if user is None or user.role != "editor" or type(query_id) is not int:
+        return False
+    saved = models.Query.query.filter_by(id=query_id, org_id=user.org_id,
+        data_source_id=source.id, is_archived=False).populate_existing().first()
+    if saved is None or not has_access(saved, user, view_only):
+        return False
+    try:
+        parameterized = ParameterizedQuery(saved.query_text, schema=saved.parameters, org=saved.org, actor=user)
+        if not parameterized.is_safe:
+            return False
+        parameterized.apply(metadata.get("saved_parameters", {}))
+        if parameterized.missing_params:
+            return False
+        expected = source.query_runner.apply_auto_limit(parameterized.text,
+            metadata.get("saved_auto_limit", saved.options.get("apply_auto_limit", False)))
+        return expected == sql
+    except (ValueError, TypeError, KeyError, InvalidParameterError, QueryDetachedFromDataSourceError):
+        return False
+
+
 def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query=None, metadata=None):
     from redash.access_policy import query_limits
     from redash.ai_dashboard import SUPPORTED_SOURCES, validate_readonly_sql
@@ -108,7 +133,8 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
     if not report:
         from redash.permissions import has_access, not_view_only
         if (user is None or user.org_id != data_source.org_id
-                or not has_access(data_source, user, not_view_only)):
+                or (not has_access(data_source, user, not_view_only)
+                    and not _can_execute_saved_view_only(data_source, user, query, metadata))):
             raise QueryExecutionError("Full access to this data source is required to execute queries.")
     if report:
         metadata["ai_read_only"] = True
@@ -169,6 +195,9 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
 
 def _enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query=None, metadata=None):
     metadata = dict(metadata or {})
+    from flask import has_request_context, request
+    monitoring_api = bool(is_api_key or (has_request_context() and
+                          ('api_key' in request.args or request.headers.get('Authorization'))))
     query_hash = gen_query_hash(query)
     lock_id = _job_lock_id(query_hash, data_source.id, metadata.get("access_scope"))
     logger.info("Inserting job for %s with metadata=%s", query_hash, metadata)
@@ -238,6 +267,8 @@ def _enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_quer
                         "scheduled": scheduled_query_id is not None,
                         "query_id": metadata.get("query_id"),
                         "user_id": user_id,
+                        "is_api_key": bool(is_api_key),
+                        "monitoring_api": monitoring_api,
                         "ai_read_only": metadata.get("ai_read_only", False),
                         "reader_report": metadata.get("reader_report"),
                         "dashboard_report": metadata.get("dashboard_report"),
@@ -267,6 +298,9 @@ def _enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_quer
     if not job:
         logger.error("[Manager][%s] Failed adding job for query.", query_hash)
 
+    if job:
+        from redash.operational_monitoring import register_job
+        register_job(data_source.org_id, job.id)
     return job
 
 
@@ -350,6 +384,7 @@ class QueryExecutor:
         from redash.data_access_runtime import DataAccessDenied, access_scope, is_protected, is_reader, resolve_source
         report = self.metadata.get("reader_report")
         dashboard_report = self.metadata.get("dashboard_report")
+        saved_view_only = False
         if self.user is not None and self.user.is_api_user():
             raise QueryExecutionError("Anonymous query execution is unavailable.")
         if self.data_source is None:
@@ -364,7 +399,9 @@ class QueryExecutor:
         if not report:
             from redash.permissions import has_access, not_view_only
             if not has_access(self.data_source, self.user, not_view_only):
-                raise QueryExecutionError("Full access to the data source was revoked while this query was queued.")
+                saved_view_only = _can_execute_saved_view_only(self.data_source, self.user, self.query, self.metadata)
+                if not saved_view_only:
+                    raise QueryExecutionError("Full access to the data source was revoked while this query was queued.")
         if self.query_id not in (None, "adhoc"):
             from redash.permissions import has_access, view_only
             self.user = (models.User.query.filter_by(id=self.user.id).populate_existing().first()
@@ -463,7 +500,14 @@ class QueryExecutor:
         annotated_query = self.query if (report or is_protected(self.data_source) or self.data_source.type == "mysql") else self._annotate_query(query_runner)
 
         try:
-            if report and self.data_source.type == "mysql":
+            if saved_view_only and is_protected(self.data_source):
+                from redash.data_access_runtime import resolved_policy
+                from redash.data_access_shared import run_shared_query
+                binding = resolved_policy(self.data_source, self.user)
+                if binding is None or binding['fingerprint'] != self.metadata.get('policy_scope'):
+                    raise QueryExecutionError("Group data access changed before saved query execution.")
+                data, error = run_shared_query(self.data_source, binding, self.query)
+            elif report and self.data_source.type == "mysql":
                 from redash.data_access_shared import run_shared_query
                 data, error = run_shared_query(self.data_source, {"unrestricted": True}, self.query)
             else:

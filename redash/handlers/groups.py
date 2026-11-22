@@ -3,7 +3,7 @@ from flask_restful import abort
 
 from redash import models
 from redash.handlers.base import BaseResource, get_object_or_404
-from redash.permissions import require_admin, require_permission
+from redash.permissions import require_admin, require_permission, require_instance_group_management, require_instance_user_management
 
 
 class GroupListResource(BaseResource):
@@ -22,7 +22,7 @@ class GroupListResource(BaseResource):
         if self.current_user.has_permission("admin"):
             groups = models.Group.all(self.current_org)
         else:
-            groups = models.Group.query.filter(models.Group.id.in_(self.current_user.group_ids))
+            groups = models.Group.query.filter(models.Group.org_id == self.current_org.id, models.Group.id.in_(self.current_user.group_ids))
 
         self.record_event({"action": "list", "object_id": "groups", "object_type": "group"})
 
@@ -33,6 +33,7 @@ class GroupResource(BaseResource):
     @require_admin
     def post(self, group_id):
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
+        require_instance_group_management(group, self.current_user)
 
         if group.type == models.Group.BUILTIN_GROUP:
             abort(400, message="Can't modify built-in groups.")
@@ -57,10 +58,11 @@ class GroupResource(BaseResource):
     @require_admin
     def delete(self, group_id):
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
+        require_instance_group_management(group, self.current_user)
         if group.type == models.Group.BUILTIN_GROUP:
             abort(400, message="Can't delete built-in groups.")
 
-        members = models.Group.members(group_id)
+        members = models.Group.members(group_id).filter(models.User.org_id == self.current_org.id)
         for member in members:
             member.group_ids.remove(int(group_id))
             models.db.session.add(member)
@@ -72,10 +74,17 @@ class GroupResource(BaseResource):
 class GroupMemberListResource(BaseResource):
     @require_admin
     def post(self, group_id):
+        from redash.handlers.access_policy import lock_administrator
+        lock_administrator(self.current_org, self.current_user)
+        if not isinstance(request.json, dict) or type(request.json.get("user_id")) is not int or request.json["user_id"] < 1:
+            abort(400, message="Choose a valid user identifier.")
         user_id = request.json["user_id"]
         user = models.User.get_by_id_and_org(user_id, self.current_org)
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
-        user.group_ids.append(group.id)
+        require_instance_group_management(group, self.current_user)
+        require_instance_user_management(user, self.current_user)
+        if group.id not in user.group_ids:
+            user.group_ids.append(group.id)
         models.db.session.commit()
 
         self.record_event(
@@ -93,7 +102,8 @@ class GroupMemberListResource(BaseResource):
         if not (self.current_user.has_permission("admin") or int(group_id) in self.current_user.group_ids):
             abort(403)
 
-        members = models.Group.members(group_id)
+        get_object_or_404(models.Group.get_by_id_and_org, group_id, self.current_org)
+        members = models.Group.members(group_id).filter(models.User.org_id == self.current_org.id)
         return [m.to_dict() for m in members]
 
 
@@ -105,7 +115,12 @@ class GroupMemberResource(BaseResource):
         if int(user_id) == self.current_user.id:
             abort(400, message="Ask another administrator to change your group membership.")
         user = models.User.get_by_id_and_org(user_id, self.current_org)
-        user.group_ids.remove(int(group_id))
+        group = get_object_or_404(models.Group.get_by_id_and_org, group_id, self.current_org)
+        require_instance_group_management(group, self.current_user)
+        require_instance_user_management(user, self.current_user)
+        if group.id not in user.group_ids:
+            abort(404)
+        user.group_ids.remove(group.id)
         models.db.session.commit()
 
         self.record_event(
@@ -133,6 +148,7 @@ class GroupDataSourceListResource(BaseResource):
         if is_internal(data_source):
             abort(403, message="Private data-access profiles cannot be assigned through source groups.")
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
+        require_instance_group_management(group, self.current_user)
 
         data_source_group = data_source.add_group(group)
         models.db.session.commit()
@@ -171,6 +187,7 @@ class GroupDataSourceResource(BaseResource):
         if is_internal(data_source):
             abort(403, message="Private data-access profiles cannot be changed through source groups.")
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
+        require_instance_group_management(group, self.current_user)
         view_only = request.json["view_only"]
 
         data_source_group = data_source.update_group_permission(group, view_only)
@@ -192,6 +209,7 @@ class GroupDataSourceResource(BaseResource):
     def delete(self, group_id, data_source_id):
         data_source = models.DataSource.get_by_id_and_org(data_source_id, self.current_org)
         group = models.Group.get_by_id_and_org(group_id, self.current_org)
+        require_instance_group_management(group, self.current_user)
 
         data_source.remove_group(group)
         models.db.session.commit()

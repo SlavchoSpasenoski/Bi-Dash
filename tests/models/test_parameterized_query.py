@@ -1,4 +1,5 @@
 from collections import namedtuple
+from types import SimpleNamespace
 from unittest import TestCase
 
 import pytest
@@ -372,5 +373,8 @@ class TestParameterizedQuery(TestCase):
         return_value=namedtuple("Query", "data_source")(None),
     )
     def test_dropdown_values_raises_when_query_is_detached_from_data_source(self, _):
-        with pytest.raises(QueryDetachedFromDataSourceError):
-            dropdown_values(1, None)
+        # Detached-source errors are visible only after the report access gate.
+        user = SimpleNamespace(is_authenticated=True, is_disabled=False, org_id=1, is_api_user=lambda: False)
+        with patch("redash.permissions.has_access", return_value=True):
+            with pytest.raises(QueryDetachedFromDataSourceError):
+                dropdown_values(1, SimpleNamespace(id=1), actor=user)

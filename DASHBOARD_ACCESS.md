@@ -1,11 +1,11 @@
 # Dashboard access for signed-in users
 
-Updated: 2026-11-15.
+Updated: 2026-11-22.
 
 ## Assign or revoke access
 
 1. Sign in as Admin or the Editor who owns the dashboard.
-2. Open the dashboard. Its owner must publish a draft before assigning viewers.
+2. Open the dashboard. An Admin or its Editor owner must publish a draft before assigning viewers.
 3. Click **Access** at the top right.
 4. In **Users**, select individual accounts; in **Groups**, select group audiences. Click **Save access**.
 5. Remove an account/group and save to revoke that grant. Another valid direct or group grant can still provide access.
@@ -16,14 +16,14 @@ Recipients must sign in and still need source access. Editor table/column rules 
 
 | User | Visibility | Manage viewers | Edit content |
 | --- | --- | --- | --- |
-| Admin | Same-organization non-archived dashboards, including drafts | All same-organization dashboards | Own dashboards only |
+| Admin | Same-organization non-archived dashboards, including drafts | All same-organization dashboards | All same-organization dashboards |
 | Editor owner | Own non-archived dashboards, including drafts | Own dashboards | Own dashboards |
 | Other Editor | Published dashboards assigned directly or through a group | No | No |
 | Reader | Published dashboards assigned directly or through a group | No | No |
 
-Former Editor owners demoted to Reader also require a direct or group published-dashboard grant. Drafts are visible to their Editor/Admin owner and organization Admins. Archived dashboards are excluded from direct reads/lists; an authorized owner can restore through the content-update path.
+Former Editor owners demoted to Reader also require a direct or group published-dashboard grant. Drafts are visible to their Editor/Admin owner and organization Admins. Archived dashboards are excluded from direct reads/lists; an organization Admin or authorized Editor owner can restore through the content-update path.
 
-Only owners publish, change content/layout/parameters, add/remove widgets or fork. Old generic modify grants do not override this. Editing SQL/visualizations that would change another owner's dashboard is denied, including for non-owner Admins. New widgets must use the actor's own query. Legacy cross-owner links are preserved with conservative edit restrictions; create owned query copies where necessary.
+Updated 2026-11-22: organization Admins can edit any same-organization Query or Dashboard, including content created by another Admin or Editor. Editors can edit only resources they created; generic modify grants do not bypass ownership. Query/visualization editing follows the query's owner, even when its saved definition is referenced by another owner's dashboard, so saving a query updates all linked dashboards. Admins may add accessible queries by any owner; Editors add their own queries. Editing does not transfer ownership or create new read grants. Existing source/column restrictions, organization boundaries, disabled-user checks and optimistic save conflicts remain authoritative.
 
 ## Results and upgrade
 

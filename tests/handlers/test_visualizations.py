@@ -40,7 +40,7 @@ class VisualizationResourceTest(BaseTestCase):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.json["name"], "After Update")
 
-    def test_only_owner_collaborator_or_admin_can_create_visualization(self):
+    def test_only_owner_or_admin_can_create_visualization(self):
         query = self.factory.create_query()
         other_user = self.factory.create_user()
         admin = self.factory.create_admin()
@@ -70,12 +70,12 @@ class VisualizationResourceTest(BaseTestCase):
             data={"access_type": "modify", "user_id": other_user.id},
         )
         rv = self.make_request("post", "/api/visualizations", data=data, user=other_user)
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 403)
 
         rv = self.make_request("post", "/api/visualizations", data=data, user=admin_from_diff_org)
         self.assertEqual(rv.status_code, 404)
 
-    def test_only_owner_collaborator_or_admin_can_edit_visualization(self):
+    def test_only_owner_or_admin_can_edit_visualization(self):
         vis = self.factory.create_visualization()
         models.db.session.flush()
         path = "/api/visualizations/{}".format(vis.id)
@@ -102,12 +102,12 @@ class VisualizationResourceTest(BaseTestCase):
             data={"access_type": "modify", "user_id": other_user.id},
         )
         rv = self.make_request("post", path, user=other_user, data=data)
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 403)
 
         rv = self.make_request("post", path, user=admin_from_diff_org, data=data)
         self.assertEqual(rv.status_code, 404)
 
-    def test_only_owner_collaborator_or_admin_can_delete_visualization(self):
+    def test_only_owner_or_admin_can_delete_visualization(self):
         vis = self.factory.create_visualization()
         models.db.session.flush()
         path = "/api/visualizations/{}".format(vis.id)
@@ -138,7 +138,7 @@ class VisualizationResourceTest(BaseTestCase):
         )
 
         rv = self.make_request("delete", path, user=other_user)
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 403)
 
         vis = self.factory.create_visualization()
         models.db.session.commit()

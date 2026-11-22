@@ -353,7 +353,7 @@ class DashboardAccessResource(BaseResource):
             "can_manage": True,
             "is_draft": dashboard.is_draft,
             "is_archived": dashboard.is_archived,
-            "owner_edit_only": True,
+            "owner_edit_only": False,
         }
 
     def get(self, dashboard_id):
@@ -474,7 +474,7 @@ class DashboardForkResource(BaseResource):
 
         for widget in dashboard.widgets:
             if widget.visualization is not None:
-                if widget.visualization.query_rel.user_id != self.current_user.id:
+                if self.current_user.role != "admin" and widget.visualization.query_rel.user_id != self.current_user.id:
                     abort(403, message="Create your own query copies before duplicating this dashboard.")
                 require_access(widget.visualization.query_rel, self.current_user, view_only)
 

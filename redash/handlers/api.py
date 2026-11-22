@@ -1,3 +1,4 @@
+from redash.handlers.query_versions import QueryVersionsResource, QueryVersionResource
 from flask import make_response
 from flask_restful import Api
 from werkzeug.wrappers import Response
@@ -225,6 +226,8 @@ api.add_org_resource(QueryListResource, "/api/queries", endpoint="queries")
 api.add_org_resource(MyQueriesResource, "/api/queries/my", endpoint="my_queries")
 api.add_org_resource(QueryRefreshResource, "/api/queries/<query_id>/refresh", endpoint="query_refresh")
 api.add_org_resource(QueryResource, "/api/queries/<query_id>", endpoint="query")
+api.add_org_resource(QueryVersionsResource, "/api/queries/<query_id>/versions", endpoint="query_versions")
+api.add_org_resource(QueryVersionResource, "/api/queries/<query_id>/versions/<revision_id>", endpoint="query_version")
 api.add_org_resource(QueryForkResource, "/api/queries/<query_id>/fork", endpoint="query_fork")
 api.add_org_resource(
     QueryRegenerateApiKeyResource,
@@ -303,3 +306,8 @@ api.add_org_resource(QuerySnippetResource, "/api/query_snippets/<snippet_id>", e
 api.add_org_resource(QuerySnippetListResource, "/api/query_snippets", endpoint="query_snippets")
 
 api.add_org_resource(OrganizationSettings, "/api/settings/organization", endpoint="organization_settings")
+
+from redash.handlers.content_migration import MigrationExportResource, MigrationInspectResource, MigrationImportResource
+api.add_org_resource(MigrationExportResource, '/api/admin/migration/export', endpoint='migration_export')
+api.add_org_resource(MigrationInspectResource, '/api/admin/migration/inspect', endpoint='migration_inspect')
+api.add_org_resource(MigrationImportResource, '/api/admin/migration/import', endpoint='migration_import')

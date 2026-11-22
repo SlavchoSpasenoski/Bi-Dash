@@ -110,8 +110,42 @@ def require_admin(fn):
     return require_permission("admin")(fn)
 
 
+def has_instance_admin_grant(user):
+    """Explicit, same-org instance capability; role Admin alone is insufficient."""
+    if user is None or getattr(user, "is_api_user", lambda: True)():
+        return False
+    from redash.models import Group
+    return any("super_admin" in (group.permissions or []) for group in Group.query.filter(
+        Group.org_id == user.org_id, Group.id.in_(user.group_ids or [])))
+
+
+def is_instance_admin(user):
+    return bool(user is not None and not getattr(user, "is_disabled", True)
+                and getattr(user, "role", None) == "admin" and has_instance_admin_grant(user))
+
+
+def require_instance_user_management(target, actor):
+    if target.id != actor.id and has_instance_admin_grant(target) and not is_instance_admin(actor):
+        abort(403, message="Only an instance administrator can manage this account.")
+
+
+def can_read_user_secrets(target, actor):
+    return bool(target.id == actor.id or actor.has_permission("admin") and
+                (not has_instance_admin_grant(target) or is_instance_admin(actor)))
+
+
+def require_instance_group_management(group, actor):
+    if "super_admin" in (group.permissions or []) and not is_instance_admin(actor):
+        abort(403, message="Only an instance administrator can manage this group.")
+
+
 def require_super_admin(fn):
-    return require_permission("super_admin")(fn)
+    @functools.wraps(fn)
+    def decorated(*args, **kwargs):
+        if not is_instance_admin(current_user):
+            abort(403)
+        return fn(*args, **kwargs)
+    return decorated
 
 
 def has_permission_or_owner(permission, object_owner_id):
@@ -139,24 +173,16 @@ def can_modify(obj, user):
     from redash.dashboard_access import can_edit_dashboard
     if isinstance(obj, models.Dashboard):
         return can_edit_dashboard(obj, user)
-    from redash.data_access_runtime import is_protected
     query = obj if isinstance(obj, models.Query) else getattr(obj, "query_rel", None)
-    if query is not None and not owns_query_dashboards(query, user):
-        return False
-    if query is not None and query.data_source is not None and is_protected(query.data_source):
-        if not has_access(query, user, not_view_only):
+    if query is not None:
+        if (user.is_api_user() or user.is_disabled or query.org_id != user.org_id
+                or user.role not in ("admin", "editor") or not user.has_permission("edit_query")
+                or (user.role != "admin" and query.user_id != user.id)):
             return False
+        if query.data_source is not None:
+            return has_access(query, user, not_view_only)
+        return True
     return is_admin_or_owner(obj.user_id) or user.has_access(obj, ACCESS_TYPE_MODIFY)
-
-
-def owns_query_dashboards(query, user):
-    """Editing shared SQL/visualizations also changes their dashboard content."""
-    from redash import models
-    if user is None or user.is_api_user() or getattr(user, "role", None) == "reader":
-        return False
-    dashboards = (models.Dashboard.query.join(models.Widget)
-                  .join(models.Visualization).filter(models.Visualization.query_id == query.id).all())
-    return all(dashboard.org_id == user.org_id and dashboard.user_id == user.id for dashboard in dashboards)
 
 
 def require_object_modify_permission(obj, user):

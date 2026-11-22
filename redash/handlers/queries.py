@@ -383,7 +383,9 @@ class QueryResource(BaseResource):
 
         Responds with the updated :ref:`query <query-response-label>` object.
         """
-        query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
+        query = models.Query.query.filter_by(id=query_id, org_id=self.current_org.id).with_for_update().first()
+        if query is None:
+            abort(404)
         query_def = request.get_json(force=True)
         from redash.data_access_runtime import is_protected
         if query.data_source and is_protected(query.data_source):
@@ -430,8 +432,13 @@ class QueryResource(BaseResource):
         if "version" in query_def and query_def["version"] != query.version:
             abort(409)
 
+        query_def.pop("version", None)
+        changed = any(getattr(query, key, None) != value for key, value in query_def.items()
+                      if key not in ("changed_by", "last_modified_by"))
         try:
             self.update_model(query, query_def)
+            if changed:
+                query.version += 1
             models.db.session.commit()
             query.update_latest_result_by_query_hash()
             models.db.session.commit()
@@ -569,6 +576,7 @@ class QueryFavoriteListResource(BaseResource):
             base_query = models.Query.search(
                 search_term,
                 self.current_user.group_ids,
+                self.current_user.id,
                 include_drafts=True,
                 limit=None,
                 multi_byte_search=current_org.get_setting("multi_byte_search_enabled"),

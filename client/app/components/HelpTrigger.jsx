@@ -1,4 +1,4 @@
-import { startsWith, get, some, mapValues } from "lodash";
+import { get, some, mapValues } from "lodash";
 import React from "react";
 import PropTypes from "prop-types";
 import cx from "classnames";
@@ -72,6 +72,17 @@ const HelpTriggerDefaultProps = {
 };
 
 export function helpTriggerWithTypes(types, allowedDomains = [], drawerClassName = null) {
+  const isTrustedUrl = (value) => {
+    try {
+      const url = new URL(value);
+      return (
+        ["https:", "http:"].includes(url.protocol) &&
+        some(allowedDomains, (domain) => url.origin === new URL(domain).origin)
+      );
+    } catch {
+      return false;
+    }
+  };
   return class HelpTrigger extends React.Component {
     static propTypes = {
       ...HelpTriggerPropTypes,
@@ -116,12 +127,16 @@ export function helpTriggerWithTypes(types, allowedDomains = [], drawerClassName
     };
 
     onPostMessageReceived = (event) => {
-      if (!some(allowedDomains, (domain) => startsWith(event.origin, domain))) {
+      if (
+        !this.iframeRef.current ||
+        event.source !== this.iframeRef.current.contentWindow ||
+        !isTrustedUrl(event.origin)
+      ) {
         return;
       }
 
       const { type, message: currentUrl } = event.data || {};
-      if (type !== IFRAME_URL_UPDATE_MESSAGE) {
+      if (type !== IFRAME_URL_UPDATE_MESSAGE || typeof currentUrl !== "string" || !isTrustedUrl(currentUrl)) {
         return;
       }
 
@@ -160,7 +175,7 @@ export function helpTriggerWithTypes(types, allowedDomains = [], drawerClassName
       const tooltip = get(types, `${this.props.type}[1]`, this.props.title);
       const className = cx("help-trigger", this.props.className);
       const url = this.state.currentUrl;
-      const isAllowedDomain = some(allowedDomains, (domain) => startsWith(url || targetUrl, domain));
+      const isAllowedDomain = isTrustedUrl(url || targetUrl);
       const shouldRenderAsLink = this.props.renderAsLink || !isAllowedDomain;
 
       return (

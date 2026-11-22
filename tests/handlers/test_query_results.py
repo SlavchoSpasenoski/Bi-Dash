@@ -80,6 +80,9 @@ class TestQueryResultListAPI(BaseTestCase):
         query_result = self.factory.create_query_result()
         query = self.factory.create_query()
 
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
+
         rv = self.make_request(
             "post",
             "/api/query_results",
@@ -128,6 +131,9 @@ class TestQueryResultListAPI(BaseTestCase):
         ds = self.factory.create_data_source(group=self.factory.org.default_group, type="prometheus")
         query = self.factory.create_query(query_text="SELECT 5", data_source=ds)
         query_result = self.factory.create_query_result(data_source=ds, query_hash=query.query_hash)
+
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
 
         rv = self.make_request(
             "post",
@@ -252,9 +258,7 @@ class TestQueryResultAPI(BaseTestCase):
             data={"max_age": 0},
             user=False,
         )
-        self.assertEqual(rv.status_code, 200)
-        metadata = Job.fetch(rv.json["job"]["id"], connection=rq_redis_connection).args[2]
-        self.assertEqual(metadata["user_id"], "<ApiKey: Query {}>".format(query.id))
+        self.assertEqual(rv.status_code, 403)
 
     def test_has_no_access_to_data_source(self):
         ds = self.factory.create_data_source(group=self.factory.create_group())
@@ -267,12 +271,18 @@ class TestQueryResultAPI(BaseTestCase):
         ds = self.factory.create_data_source(group=self.factory.org.default_group, view_only=True)
         query_result = self.factory.create_query_result(data_source=ds)
 
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
+
         rv = self.make_request("get", "/api/query_results/{}".format(query_result.id))
         self.assertEqual(rv.status_code, 200)
 
     def test_has_full_access_to_data_source(self):
         ds = self.factory.create_data_source(group=self.factory.org.default_group, view_only=False)
         query_result = self.factory.create_query_result(data_source=ds)
+
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
 
         rv = self.make_request("get", "/api/query_results/{}".format(query_result.id))
         self.assertEqual(rv.status_code, 200)
@@ -310,6 +320,9 @@ class TestQueryResultAPI(BaseTestCase):
             data_source=qr_ds,
             query_text="SELECT * FROM query_{}".format(underlying_query.id),
         )
+
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
 
         rv = self.make_request("get", "/api/query_results/{}".format(query_result.id))
         self.assertEqual(rv.status_code, 200)
@@ -393,9 +406,12 @@ class TestQueryResultAPI(BaseTestCase):
                                     "max_age": 0,
                                 },
                             )
-                    self.assertEqual(rv.status_code, 200)
-                    enqueue.assert_called_once()
-                    self.assertEqual(enqueue.call_args[0][0], "SELECT '2026-01-01', '2026-01-31'")
+                    self.assertEqual(rv.status_code, 403 if use_api_key else 200)
+                    if use_api_key:
+                        enqueue.assert_not_called()
+                    else:
+                        enqueue.assert_called_once()
+                        self.assertEqual(enqueue.call_args[0][0], "SELECT '2026-01-01', '2026-01-31'")
 
     def test_get_latest_query_result_with_apply_auto_limit(self):
         query = self.factory.create_query(
@@ -433,7 +449,7 @@ class TestQueryResultAPI(BaseTestCase):
             "/api/queries/{}/results/{}.json?api_key={}".format(query.id, query_result.id, query.api_key),
             user=False,
         )
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 403)
 
     def test_access_with_query_api_key_without_query_result_id(self):
         ds = self.factory.create_data_source(group=self.factory.org.default_group, view_only=False)
@@ -448,7 +464,7 @@ class TestQueryResultAPI(BaseTestCase):
             "/api/queries/{}/results.json?api_key={}".format(query.id, query.api_key),
             user=False,
         )
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 403)
 
     def test_query_api_key_and_different_query_result(self):
         ds = self.factory.create_data_source(group=self.factory.org.default_group, view_only=False)
@@ -460,7 +476,7 @@ class TestQueryResultAPI(BaseTestCase):
             "/api/queries/{}/results/{}.json?api_key={}".format(query.id, query_result2.id, query.api_key),
             user=False,
         )
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 403)
 
     def test_signed_in_user_and_different_query_result(self):
         ds2 = self.factory.create_data_source(group=self.factory.org.admin_group, view_only=False)
@@ -596,8 +612,7 @@ class TestQueryDropdownsResourceAPI(BaseTestCase):
 
         rv = self.get_dropdown(query, query)
 
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.json, [{"name": "restricted value", "value": "restricted value"}])
+        self.assertEqual(rv.status_code, 403)
 
     def test_query_key_can_read_configured_dropdown_without_shared_groups(self):
         target_source = self.factory.create_data_source(group=self.factory.org.admin_group)
@@ -608,8 +623,7 @@ class TestQueryDropdownsResourceAPI(BaseTestCase):
 
         rv = self.get_dropdown(query, dropdown_query)
 
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.json, [{"name": "restricted value", "value": "restricted value"}])
+        self.assertEqual(rv.status_code, 403)
 
     def test_query_key_cannot_authenticate_as_another_parent_query(self):
         query = self.factory.create_query()
@@ -662,8 +676,7 @@ class TestQueryDropdownsResourceAPI(BaseTestCase):
 
         rv = self.get_dropdown(query, dropdown_query, api_key=api_key.api_key)
 
-        self.assertEqual(rv.status_code, 200)
-        self.assertEqual(rv.json, [{"name": "restricted value", "value": "restricted value"}])
+        self.assertEqual(rv.status_code, 403)
 
     def test_dashboard_key_cannot_read_unrelated_query_outside_dashboard(self):
         query = self.factory.create_query()
@@ -695,6 +708,9 @@ class TestQueryResultExcelResponse(BaseTestCase):
         query = self.factory.create_query()
         query_result = self.factory.create_query_result()
 
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
+
         rv = self.make_request(
             "get",
             "/api/queries/{}/results/{}.xlsx".format(query.id, query_result.id),
@@ -709,6 +725,9 @@ class TestQueryResultExcelResponse(BaseTestCase):
             "columns": [{"name": "test"}, {"name": "test2"}],
         }
         query_result = self.factory.create_query_result(data=data)
+
+        query_result.report_context = {"kind": "adhoc", "user_id": self.factory.user.id}
+        db.session.flush()
 
         rv = self.make_request(
             "get",

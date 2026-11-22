@@ -1,5 +1,5 @@
 import { extend, map, filter, reduce } from "lodash";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import Button from "antd/lib/button";
 import Dropdown from "antd/lib/dropdown";
@@ -21,6 +21,8 @@ import useRenameQuery from "../hooks/useRenameQuery";
 import useDuplicateQuery from "../hooks/useDuplicateQuery";
 import useApiKeyDialog from "../hooks/useApiKeyDialog";
 import usePermissionsEditorDialog from "../hooks/usePermissionsEditorDialog";
+
+import QueryVersionHistory, { canShowQueryHistory } from "./QueryVersionHistory";
 
 import "./QueryPageHeader.less";
 
@@ -71,6 +73,7 @@ export default function QueryPageHeader({
   tagsExtra,
   onChange,
 }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
   const isDesktop = useMedia({ minWidth: 768 });
   const queryFlags = useQueryFlags(query, dataSource);
   const updateName = useRenameQuery(query, onChange);
@@ -98,6 +101,11 @@ export default function QueryPageHeader({
           },
         },
         {
+          versionHistory: {
+            isAvailable: canShowQueryHistory(queryFlags),
+            title: "Version history",
+            onClick: () => setHistoryOpen(true),
+          },
           archive: {
             isAvailable: !queryFlags.isNew && queryFlags.canEdit && !queryFlags.isArchived,
             title: "Archive",
@@ -132,6 +140,8 @@ export default function QueryPageHeader({
     [
       queryFlags.isNew,
       queryFlags.canFork,
+      queryFlags.canView,
+      queryFlags.canViewSource,
       queryFlags.canEdit,
       queryFlags.isArchived,
       queryFlags.isDraft,
@@ -148,6 +158,9 @@ export default function QueryPageHeader({
 
   return (
     <div className="query-page-header">
+      {historyOpen && canShowQueryHistory(queryFlags) && <QueryVersionHistory key={query.id} queryId={query.id}
+        onClose={() => setHistoryOpen(false)} />}
+
       <div className="title-with-tags">
         <div className="page-title">
           <div className="d-flex align-items-center">

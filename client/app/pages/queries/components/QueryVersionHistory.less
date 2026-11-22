@@ -1,0 +1,16 @@
+.query-version-history {
+  .ant-modal-body { max-height: 82vh; overflow-y: auto; }
+  .query-history-selected > td { background: #edf4ff; }
+  .query-history-comparison-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0; }
+  .query-history-comparison-controls .ant-select { min-width: 230px; }
+  .query-history-definitions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 20px; }
+  .query-history-definition { min-width: 0; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 450px; overflow-y: auto; padding: 12px; border: 1px solid #dfe5ed; background: #f8fafc; font: 13px/1.6 monospace; }
+  .query-history-diff pre > span { display: block; }
+  .query-history-diff-removed { background: #ffebe9; color: #8e2424; }
+  .query-history-diff-added { background: #daf5df; color: #185b2b; }
+  .query-history-legend-removed { color: #8e2424; }
+  .query-history-legend-added { color: #185b2b; }
+  .query-history-loading { padding: 30px; text-align: center; }
+  @media (max-width: 767px) { .query-history-definitions { grid-template-columns: minmax(0, 1fr); } }
+}

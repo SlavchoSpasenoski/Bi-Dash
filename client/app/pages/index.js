@@ -3,6 +3,7 @@ import "./home/Home";
 import "./admin/Jobs";
 import "./admin/OutdatedQueries";
 import "./admin/SystemStatus";
+import "./admin/ContentMigration";
 
 import "./alerts/AlertsList";
 import "./alert/Alert";

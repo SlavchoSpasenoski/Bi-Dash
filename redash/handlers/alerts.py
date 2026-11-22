@@ -9,6 +9,7 @@ from redash.handlers.base import (
     require_fields,
 )
 from redash.permissions import (
+    has_access,
     require_access,
     require_admin_or_owner,
     require_permission,
@@ -19,6 +20,14 @@ from redash.tasks.alerts import (
     notify_subscriptions,
     should_notify,
 )
+
+
+def readable_alerts(user, org):
+    alerts = models.Alert.all(group_ids=user.group_ids)
+    if user.has_permission("admin"):
+        alerts = models.Alert.query.join(models.Query)
+    alerts = alerts.filter(models.Query.org_id == org.id)
+    return [alert for alert in alerts if has_access(alert, user, view_only)]
 
 
 class AlertResource(BaseResource):
@@ -121,7 +130,7 @@ class AlertListResource(BaseResource):
     @require_permission("list_alerts")
     def get(self):
         self.record_event({"action": "list", "object_type": "alert"})
-        return [serialize_alert(alert) for alert in models.Alert.all(group_ids=self.current_user.group_ids)]
+        return [serialize_alert(alert) for alert in readable_alerts(self.current_user, self.current_org)]
 
 
 class AlertSubscriptionListResource(BaseResource):
@@ -162,7 +171,8 @@ class AlertSubscriptionListResource(BaseResource):
 
 class AlertSubscriptionResource(BaseResource):
     def delete(self, alert_id, subscriber_id):
-        subscription = models.AlertSubscription.query.get_or_404(subscriber_id)
+        alert = get_object_or_404(models.Alert.get_by_id_and_org, alert_id, self.current_org)
+        subscription = models.AlertSubscription.query.filter_by(id=subscriber_id, alert_id=alert.id).first_or_404()
         require_admin_or_owner(subscription.user.id)
         models.db.session.delete(subscription)
         models.db.session.commit()

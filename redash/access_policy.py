@@ -58,7 +58,7 @@ def validate_limits(body):
 def effective_permissions(role, group_permissions, policy):
     if role == "admin":
         return sorted(EDITOR_PERMISSIONS | READER_PERMISSIONS | set(group_permissions) |
-                      {"admin", "super_admin", "list_users", "schedule_query"})
+                      {"admin", "list_users", "schedule_query"})
     if role == "reader":
         permissions = set(READER_PERMISSIONS)
         if not policy["reader"]["allow_download"]:

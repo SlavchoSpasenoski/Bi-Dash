@@ -175,34 +175,36 @@ class TestEnqueueTask(BaseTestCase):
 class QueryExecutorTests(BaseTestCase):
     def setUp(self):
         super().setUp()
+        self.factory._user = self.factory.create_admin()
         self.factory.org.settings["access_policy"] = {"editor": {"allow_schedule": True}}
 
-    def test_legacy_api_job_uses_query_identity_label(self, _):
+    def test_legacy_object_api_job_is_rejected(self, _):
         query = self.factory.create_query(query_text="SELECT 1")
         api_key = query.api_key
         with patch.object(PostgreSQL, "run_query", return_value=({"columns": [], "rows": []}, None)) as runner:
-            execute_query(
+            result = execute_query(
                 query.query_text,
                 query.data_source.id,
                 {"query_id": query.id},
                 user_id=api_key,
                 is_api_key=True,
             )
-        sql = runner.call_args[0][0]
-        self.assertIn("user_id: <ApiKey: Query {}>".format(query.id), sql)
+        self.assertIsInstance(result, QueryExecutionError)
+        runner.assert_not_called()
 
-    def test_preserves_provided_api_identity_label(self, _):
+    def test_object_api_job_cannot_override_identity_with_metadata(self, _):
         query = self.factory.create_query(query_text="SELECT 1")
         identity = "<ApiKey: 9>"
         with patch.object(PostgreSQL, "run_query", return_value=({"columns": [], "rows": []}, None)) as runner:
-            execute_query(
+            result = execute_query(
                 query.query_text,
                 query.data_source.id,
                 {"query_id": query.id, "user_id": identity},
                 user_id=query.api_key,
                 is_api_key=True,
             )
-        self.assertIn("user_id: {}".format(identity), runner.call_args[0][0])
+        self.assertIsInstance(result, QueryExecutionError)
+        runner.assert_not_called()
 
     def test_success(self, _):
         """
@@ -211,7 +213,7 @@ class QueryExecutorTests(BaseTestCase):
         with patch.object(PostgreSQL, "run_query") as qr:
             query_result_data = {"columns": [], "rows": []}
             qr.return_value = (query_result_data, None)
-            result_id = execute_query("SELECT 1, 2", self.factory.data_source.id, {})
+            result_id = execute_query("SELECT 1, 2", self.factory.data_source.id, {}, user_id=self.factory.user.id)
             self.assertEqual(1, qr.call_count)
             result = models.QueryResult.query.get(result_id)
             self.assertEqual(result.data, query_result_data)
@@ -237,6 +239,7 @@ class QueryExecutorTests(BaseTestCase):
                 self.factory.data_source.id,
                 {"query_id": q.id},
                 scheduled_query_id=q.id,
+                user_id=q.user_id,
             )
             q = models.Query.get_by_id(q.id)
             self.assertEqual(q.schedule_failures, 0)
@@ -256,6 +259,7 @@ class QueryExecutorTests(BaseTestCase):
                 self.factory.data_source.id,
                 {"query_id": q.id},
                 scheduled_query_id=q.id,
+                user_id=q.user_id,
             )
             self.assertTrue(isinstance(result, QueryExecutionError))
             q = models.Query.get_by_id(q.id)
@@ -266,6 +270,7 @@ class QueryExecutorTests(BaseTestCase):
                 self.factory.data_source.id,
                 {"query_id": q.id},
                 scheduled_query_id=q.id,
+                user_id=q.user_id,
             )
             self.assertTrue(isinstance(result, QueryExecutionError))
             q = models.Query.get_by_id(q.id)
@@ -283,6 +288,7 @@ class QueryExecutorTests(BaseTestCase):
                 self.factory.data_source.id,
                 {"query_id": q.id},
                 scheduled_query_id=q.id,
+                user_id=q.user_id,
             )
             self.assertTrue(isinstance(result, QueryExecutionError))
             q = models.Query.get_by_id(q.id)
@@ -304,6 +310,7 @@ class QueryExecutorTests(BaseTestCase):
                 self.factory.data_source.id,
                 {"query_id": q.id},
                 scheduled_query_id=q.id,
+                user_id=q.user_id,
             )
             q = models.Query.get_by_id(q.id)
             self.assertEqual(q.schedule_failures, 0)

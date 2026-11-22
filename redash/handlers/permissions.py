@@ -44,7 +44,7 @@ class ObjectPermissionsListResource(BaseResource):
         obj = get_object_or_404(model.get_by_id_and_org, object_id, self.current_org)
 
         if object_type == "dashboards":
-            abort(403, message="Use dashboard user access to manage view grants. Dashboard editing is owner-only.")
+            abort(403, message="Use dashboard user access to manage view grants. Dashboard editing is restricted to administrators and the owner.")
 
         require_admin_or_owner(obj.user_id)
 

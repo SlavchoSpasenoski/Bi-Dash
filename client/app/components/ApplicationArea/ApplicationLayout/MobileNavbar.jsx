@@ -60,12 +60,12 @@ export default function MobileNavbar({ getPopupContainer, onOpenAi }) {
                   <Link href={firstSettingsTab.path}>Settings</Link>
                 </Menu.Item>
               )}
-              {currentUser.hasPermission("super_admin") && (
+              {(currentUser.isAdmin || currentUser.hasPermission("super_admin")) && (
                 <Menu.Item key="status">
                   <Link href="admin/status">System Status</Link>
                 </Menu.Item>
               )}
-              {currentUser.hasPermission("super_admin") && <Menu.Divider />}
+              {(currentUser.isAdmin || currentUser.hasPermission("super_admin")) && <Menu.Divider />}
               <Menu.Item key="help">
                 <Link href="https://redash.io/help" target="_blank" rel="noopener">
                   Help

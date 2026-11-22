@@ -111,4 +111,4 @@ class TestEffectiveAccess(BaseTestCase):
         board = self.report(user=other_admin).json["dashboards"][0]
         self.assertTrue(board["view"]["allowed"])
         self.assertTrue(board["share"]["allowed"])
-        self.assertFalse(board["edit"]["allowed"])
+        self.assertTrue(board["edit"]["allowed"])
