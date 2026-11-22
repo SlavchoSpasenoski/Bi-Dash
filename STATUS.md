@@ -2,9 +2,11 @@
 
 Last updated: 2026-11-22.
 
-## GitHub publication and Contabo rollout requested - 2026-11-22
+## GitHub published; Contabo awaits SSH credential - 2026-11-22
 
-User explicitly authorized publishing all current Bi-Dash changes to GitHub, followed by deployment of the same version to Contabo. Git origin/main independently remains 54261ce before publication. Release includes monitoring, Query history, selective migration, Admin report editing and completed QA repairs; rejected folders remain absent. Source/tests/docs are reviewed for secret patterns; .env, .tmp, backups, local data and credentials stay excluded. The local validated image and QA results below are the release evidence. Contabo requires its existing customized Compose project/files, remote secrets/volumes and an additive e92c71b54a08 -> f1a7c9e20b64 -> b3d9e1a42f86 upgrade with backup and rollback. SSH automatic authentication was unavailable in this session; credential input was requested while Git publication continues. No remote deployment success is claimed yet.
+User explicitly authorized publishing all current Bi-Dash changes to GitHub, followed by deployment of the same version to Contabo. Published all85 source/test/doc files as 2c43977dc14c4213cba7c00f3f898861947eb201 on origin/main; independent ls-remote confirmed the exact SHA after normal fast-forward push from54261ce. Release includes monitoring, Query history, selective migration, Admin report editing and completed QA repairs; rejected folders remain absent. Secret-pattern scan found no private keys/API token patterns; .env, .tmp, backups, local data and credentials stayed excluded. Staged diff check passed after trimming three trailing blank lines only; no functional changes after the completed QA. Created exact Git-commit archive .tmp/bidash-20261122-qa-2c43977.tar.gz, checked it excludes secrets/backups. The local validated image and QA results below remain release evidence.
+
+Contabo is not changed yet. Its deployment must preserve existing customized Compose project/files, remote secrets/volumes and perform the additive e92c71b54a08 -> f1a7c9e20b64 -> b3d9e1a42f86 upgrade with backup and rollback. Pinned-host SSH automatic authentication failed because no usable root credential/key was available in this session; user was asked to supply the password again or an SSH-key path. Previous reuse authorization remains valid; missing credential material, not a new permission requirement, blocks deployment. Continue after input with read-only remote preflight, source transfer/hash verification, build, quiesced backup/preservation checks, migration and health/authenticated smoke verification. No remote build/migration/activation was performed.
 
 
 ## QA repairs completed and activated locally - 2026-11-22
