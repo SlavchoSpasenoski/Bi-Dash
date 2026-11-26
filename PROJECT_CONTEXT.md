@@ -39,6 +39,8 @@ The frontend uses React/TypeScript with pnpm; the backend is Python/Flask with w
 
 ## Continuity agreement
 
+GitHub `main` includes the Datasets runtime release `fa62067` as of 2026-11-26. Contabo deployment and target-copy migration rehearsal are pending SSH connectivity. See STATUS.md for the verified local rehearsal.
+
 Datasets can be used from New Query in the local release (2026-11-26), including row tables and grouped measures. Direct MySQL/MariaDB Dataset bases accept one same-source INNER or LEFT JOIN with a unique right-side key. See STATUS.md and the user guide for verification and scope.
 
 Datasets first release is activated locally (2026-11-25). It supports direct MySQL/MariaDB saved SQL, row-level formulas, published versions, direct/group grants, chart creation and dashboard use under existing roles. Metadata head is 6d42ac190b37. See STATUS.md for test evidence and rollback assets.

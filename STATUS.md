@@ -4,11 +4,11 @@ Last updated: 2026-11-26.
 
 ## Datasets release preparation - 2026-11-26
 
-Prepared a local release candidate on `codex/datasets-release` from the tested workspace. The candidate covers Datasets, migrations, permissions and regression tests. Its runtime source matched the locally verified image in the preceding acceptance pass.
+Published the tested Datasets release on GitHub `main` as runtime commit `fa62067` on 2026-11-26. The push was a fast-forward. The candidate covers Datasets, migrations, permissions and regression tests. Its runtime source matched the locally verified image in the preceding acceptance pass.
 
 Restored the local pre-Datasets backup into disposable PostgreSQL 18 with isolated Redis. Using the accepted image, upgraded metadata from `b3d9e1a42f86` through `8e21d4ab67c0` to `6d42ac190b37`, downgraded to the baseline, and re-upgraded to the same head. The five Dataset tables existed after upgrade. Row counts and fingerprints for all 23 pre-existing metadata tables matched at every stage. This was a local backup on the same starting revision as the documented Contabo release. The Contabo metadata copy still needs its own rehearsal.
 
-The Contabo HTTPS health endpoint returned 200. Pinned SSH attempts timed out on TCP port 22 before authentication, including the IPv4 retry. No server backup, server migration, deployment or GitHub publication occurred. When SSH is reachable, verify the active release, take an on-server backup, rehearse on an isolated restore, and deploy and verify before publishing the candidate to GitHub.
+The Contabo HTTPS health endpoint returned 200. Pinned SSH attempts timed out on TCP port 22 before authentication, including the IPv4 retry. No server backup, server migration or Contabo deployment occurred. When SSH is reachable, verify the active release, take an on-server backup, rehearse on an isolated restore, then deploy and verify.
 
 ## Platform acceptance: defensive checks and full regression - 2026-11-26
 
