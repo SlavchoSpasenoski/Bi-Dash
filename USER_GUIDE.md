@@ -1,10 +1,10 @@
 # Bi-Dash — User Guide
 
-**For readers, editors and administrators · Updated November 8, 2026**
+**For readers, editors and administrators · Updated November 26, 2026**
 
 Bi-Dash is a workspace for connecting databases, writing queries, visualizing results and sharing reports. It extends the open-source Redash foundation with an AI assistant, automatic draft dashboards, configurable AI providers, persistent business context and explicit user roles with execution limits.
 
-This guide describes the implementation in this repository. Button names match the English interface. Available controls depend on your role, groups and administrator policies.
+[Упатство на македонски](USER_GUIDE.mk.md). This guide describes the implementation on GitHub. Check [release status](STATUS.md) for deployment availability. Button names match the English interface. Available controls depend on your role, groups and administrator policies.
 
 Dashboard owners can share viewing through **Access → Users / Groups**. Administrators can manage the same group assignments from **Settings → Groups → group → Dashboards**. Group sharing does not grant source access.
 
@@ -33,6 +33,10 @@ Administrators can transfer selected content using **Settings → Migration**: e
 17. [Recommended workflow](#workflow)
 18. [Installation and further documentation](#references)
 19. [Datasets and calculated fields](#datasets)
+20. [Alerts and schedules](#alerts-and-schedules)
+21. [System Status monitoring](#system-status-monitoring)
+22. [Query version history](#query-version-history)
+23. [Selective content migration](#selective-content-migration)
 
 <a id="comparison"></a>
 ## 1. Inherited features and Bi-Dash improvements
@@ -51,6 +55,8 @@ The comparison uses the upstream source snapshot imported on November 6, 2026, r
 | Editor controls | Existing jobs and deployment timeouts | Organization limits, stricter individual limits, running + queued job accounting and controls for AI, scheduling, sharing and archiving |
 | Export | Inherited download formats | Administrators can disable Reader downloads |
 | Row counts | Optional query editor auto-limit | No additional automatic row limit for AI queries; use the existing checkbox when needed |
+| Datasets | Saved queries as reusable reports | Published models with calculated fields and a query builder for tables and grouped measures |
+| History and administration | Existing administration and query operations | Query versions, System Status and selective encrypted migration |
 | Installation | Inherited server architecture | Local Docker configuration with PostgreSQL, Redis and Ollama |
 | Identity | Upstream branding and assets | Bi-Dash interface, Rising Signal logo and appropriate copyright/license notices |
 
@@ -63,6 +69,7 @@ Standard features such as parameters, favorites, tags, refreshing, alerts and AP
 | --- | --- |
 | **Data Source** | A connection to a database or another supported source, including its address, credentials, connector type and permitted groups |
 | **Query** | A saved request to a source, usually SQL, with a name and optional parameters |
+| **Dataset** | A published model with reusable fields derived from a saved Query |
 | **Result** | Data returned by a particular execution; saved results may be older than the current database contents |
 | **Visualization** | A table, chart, counter or another presentation of a result |
 | **Dashboard** | A page containing one or more widgets, visualizations and optional text |
@@ -387,11 +394,11 @@ HTML download is available only from Queries (including query visualization view
 
 ### Internal sharing
 
-Open a published dashboard as Admin or its Editor owner, click **Access**, select accounts under **Users who can view**, and click **Save access**. Remove accounts and save to revoke access. Recipients sign in and still need source access; Editor table/column rules apply. A link alone grants nothing. Organization Admins can edit any Query/Dashboard, including another Admin's content. Editors edit only their own Queries/Dashboards; viewing never grants editing or resharing. Editing preserves the original author. Saved query changes also apply to dashboards referencing that query. Readers see only assigned published dashboards. See [Dashboard Access](DASHBOARD_ACCESS.md).
+Open a published dashboard as Admin or its Editor owner, click **Access**, select users or groups, and click **Save access**. Remove the applicable user or group grant and save to revoke that access path. Recipients sign in and still need source access; Editor table/column rules apply. A link alone grants nothing. Organization Admins can edit any Query/Dashboard, including another Admin's content. Editors edit only their own Queries/Dashboards; viewing never grants editing or resharing. Editing preserves the original author. Saved query changes also apply to dashboards referencing that query. Readers see only assigned published dashboards. See [Dashboard Access](DASHBOARD_ACCESS.md).
 
 ### Public links and scheduling
 
-Anonymous public dashboard/query/report links are disabled. **Publish** makes a dashboard eligible for explicit user grants; it does not make it public or visible to every source-group member. Scheduling and archiving retain their role and ownership checks.
+Anonymous public dashboard/query/report links are disabled. **Publish** makes a dashboard eligible for explicit user and group grants; it does not make it public or visible to every source-group member. Scheduling and archiving retain their role and ownership checks.
 
 Scheduled refresh executes a query; it does not generate a new AI plan. The owner's continuing scheduling permission is checked. Alerts and destinations are configured separately and depend on installed integrations and permissions.
 
@@ -490,4 +497,18 @@ Open a saved Query or its SQL editor, then choose **More actions -> Version hist
 
 From **New Query**, choose **Use a Dataset** and select a published model. Select fields for a row-level table, or add measures to group by the selected fields. Add equality filters as needed. **Preview** shows up to 50 rows and hides the previous result when the selected fields, measures or filters change. **Save query** creates a report linked to the published Dataset. Automatically generated charts show each combination of grouping fields as its own category. Editors with View only source access can refresh an accessible saved Dataset Query from a dashboard.
 
-Publishing compatible changes updates dependent reports and makes previous cached results unavailable. Publication is blocked if it would break an active report. The first release supports row-level formulas on one table with numeric inputs that fit DECIMAL(38,10).
+Publishing compatible changes updates dependent reports and makes previous cached results unavailable. Publication is blocked if it would break an active report. Row-level formulas support addition, subtraction, multiplication and division with numeric inputs within `DECIMAL(38,10)`. Source fields can come from a single table or the supported same-source join. PostgreSQL Dataset sources, visual join modeling and joins across different sources are outside this release. On a self-managed installation, the feature requires the Dataset database migrations and `REDASH_DATASETS_ENABLED` enabled for the application services.
+
+### Worked example
+
+Start from a saved MySQL/MariaDB query such as `SELECT region, revenue, cost FROM sales`. In the Dataset draft add `region` and create `profit` as `revenue - cost`. Verify a few rows in **Preview**, then publish. In **New Query → Use a Dataset**, choose `region` as an output field and add **Sum** of `profit` as `total_profit`. Run **Preview** and compare the totals with the source before saving the Query and adding its chart to a dashboard.
+
+## Alerts and schedules
+
+For an eligible saved Query, open its schedule settings and choose a refresh interval. Scheduling depends on your permissions and the connector. To notify a team about a threshold, create an alert on a supported saved Query, set the value to monitor and choose a notification destination. Scheduled execution and alerts are unavailable for Dataset-backed Queries. Protected sources also have restrictions on unattended execution. See the [alerts guide](docs/user-guide/alerts/index.md) and [source access rules](DATA_ACCESS.md).
+
+## Selective content migration
+
+Open **Settings → Migration** as an organization Admin. Choose components, supply a package passphrase of at least 12 characters and download the encrypted `.bidash` file. On the receiving installation, upload it, enter its passphrase, map sources if needed and review the preview before importing. Without Users, the importing Admin owns the imported Queries and Dashboards. Imported users, when selected, start disabled.
+
+Dataset definitions are outside this format. A selected export that includes a Dataset-backed Query is rejected because its dependencies cannot be remapped. Cached results, schedules and business database contents are outside the package. Use an installation backup to recover a complete instance. [Migration guide](CONTENT_MIGRATION.md)

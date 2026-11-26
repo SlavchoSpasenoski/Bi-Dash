@@ -2,6 +2,10 @@
 
 Last updated: 2026-11-26.
 
+## GitHub documentation refresh - 2026-11-26
+
+Updated README, the English and Macedonian user guides, the contributor guide, and linked migration and guide pages. The guides now cover Dataset authoring and Query reuse, dashboard grants, roles, exports, AI, alerts and schedules, Query history, monitoring and migration limits. The contributor guide identifies setup, the code map, test fixtures and validation commands. Verified 121 repository links and Markdown fences in the six updated guides, bilingual website links and Git diff whitespace. This is a documentation-only update for GitHub main.
+
 ## Datasets release preparation - 2026-11-26
 
 Published the tested Datasets release on GitHub `main` as runtime commit `fa62067` on 2026-11-26. The push was a fast-forward. The candidate covers Datasets, migrations, permissions and regression tests. Its runtime source matched the locally verified image in the preceding acceptance pass.
