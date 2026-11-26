@@ -9,7 +9,7 @@ from sqlalchemy.engine import make_url
 from redash import models, redis_connection
 from redash.data_access_runtime import access_scope, ensure_execution, result_access_allowed
 from redash.data_access_shared import validate_shared_source
-from redash.tasks.general import test_connection
+from redash.tasks.general import test_connection as check_source_connection
 from redash.tasks.queries.execution import QueryExecutor, QueryExecutionError
 from redash.utils.configuration import ConfigurationContainer
 from tests import BaseTestCase
@@ -132,13 +132,13 @@ class TestProtectedSourceUpdates(BaseTestCase):
             queue.assert_called_once_with(self.source.id)
 
     def test_actual_connection_worker_validates_protected_source_without_protected_runner(self):
-        self.assertIs(test_connection(self.source.id), True)
+        self.assertIs(check_source_connection(self.source.id), True)
         self.validate.assert_called_once_with(self.source)
 
     def test_connection_worker_rechecks_retirement_before_connector(self):
         self.factory.org.settings["data_access_internal_sources"] = [self.source.id]
         models.db.session.commit()
-        result = test_connection(self.source.id)
+        result = check_source_connection(self.source.id)
         self.assertIsInstance(result, ValueError)
         self.assertIn("Retired", str(result))
         self.validate.assert_not_called()

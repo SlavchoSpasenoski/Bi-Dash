@@ -488,7 +488,7 @@ class TestHMACAuthentication(BaseTestCase):
 
 
 class TestSessionAuthentication(BaseTestCase):
-    def test_prefers_api_key_over_session_user_id(self):
+    def test_query_key_does_not_override_another_organization_session(self):
         user = self.factory.create_user()
         query = self.factory.create_query(user=user)
 
@@ -501,7 +501,7 @@ class TestSessionAuthentication(BaseTestCase):
             "/api/queries/{}?api_key={}".format(query.id, query.api_key),
             user=other_user,
         )
-        self.assertEqual(rv.status_code, 200)
+        self.assertIn(rv.status_code, (403, 404))
 
 
 class TestCreateAndLoginUserOIDC(BaseTestCase):

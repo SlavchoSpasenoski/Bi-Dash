@@ -37,9 +37,13 @@ export default function getChartData(data: any, options: any) {
       }
 
       if (type === "x") {
-        xValue = value;
+        const fields = options.datasetGrouping;
+        const composite = Array.isArray(fields) && fields.length > 1 && fields[0] === definition
+          && fields.every(field => Object.prototype.hasOwnProperty.call(row, field));
+        const x = composite ? JSON.stringify(fields.map(field => row[field])) : value;
+        xValue = x;
         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        point[type] = value;
+        point[type] = x;
       }
       if (type === "y") {
         // @ts-expect-error ts-migrate(7053) FIXME: Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

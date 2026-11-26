@@ -7,7 +7,7 @@ import Dropdown from "antd/lib/dropdown";
 import Menu from "antd/lib/menu";
 import PlainButton from "@/components/PlainButton";
 import Link from "@/components/Link";
-import { Auth, currentUser } from "@/services/auth";
+import { Auth, clientConfig, currentUser } from "@/services/auth";
 import settingsMenu from "@/services/settingsMenu";
 import logoUrl from "@/assets/images/bi-dash-mark-dark.svg";
 
@@ -39,6 +39,11 @@ export default function MobileNavbar({ getPopupContainer, onOpenAi }) {
               {currentUser.hasPermission("view_query") && (
                 <Menu.Item key="queries">
                   <Link href="queries">Queries</Link>
+                </Menu.Item>
+              )}
+              {clientConfig.datasetsEnabled && (
+                <Menu.Item key="datasets">
+                  <Link href="datasets">Datasets</Link>
                 </Menu.Item>
               )}
               {currentUser.hasPermission("use_ai") && (

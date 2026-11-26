@@ -133,6 +133,11 @@ def resolved_policy(source, user):
 def result_access_allowed(result, user):
     if result.data_source is None:
         return False
+    context = getattr(result, "report_context", None)
+    if isinstance(context, dict) and "dataset_report" in context:
+        from redash.dataset_report_runtime import dataset_result_allowed
+        if not dataset_result_allowed(result, user):
+            return False
     try:
         if can_read_all_scopes(user):
             from redash.permissions import has_access_to_groups

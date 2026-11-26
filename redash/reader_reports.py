@@ -75,7 +75,11 @@ def authorize_editor_report(user, report, expected_sql=None):
         raise DataAccessDenied("Your role cannot refresh this dashboard report.")
     source, sql, scope = _authorize(user, report, expected_sql)
     if not has_access(source, user, False):
-        raise DataAccessDenied("Full query access is required to refresh this dashboard report.")
+        from redash.dataset_report_runtime import is_dataset_report
+        query = models.Query.query.filter_by(id=report["query_id"], org_id=user.org_id, is_archived=False).first()
+        if (not is_dataset_report(query) or report["parameters"] != {}
+                or not query.parameterized.is_safe or sql != query.query_text):
+            raise DataAccessDenied("Full query access is required to refresh this dashboard report.")
     expected = report.get("authorization_scope")
     if expected is not None and expected != scope:
         raise DataAccessDenied("Dashboard report authorization changed.")
@@ -90,9 +94,12 @@ def result_dashboard_allowed(result, user):
     try:
         if user is None or user.is_disabled or user.org_id != result.org_id:
             return False
+        context = getattr(result, "report_context", None)
+        if isinstance(context, dict) and "dataset_report" in context:
+            from redash.dataset_report_runtime import dataset_result_allowed
+            return dataset_result_allowed(result, user)
         if not user.is_api_user() and user.has_permission("admin"):
             return True
-        context = getattr(result, "report_context", None)
         if context:
             if not isinstance(context, dict):
                 return False

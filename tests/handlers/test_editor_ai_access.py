@@ -115,8 +115,11 @@ class TestEditorAiAccess(BaseTestCase):
         self.assertEqual(response.status_code, 200, response.json)
         return models.Query.get_by_id(response.json["queries"][0]["id"])
 
-    def execute(self, query_id, user_id):
-        response = self.make_request("post", f"/api/queries/{query_id}/results", data={"max_age": 0}, user=self.user(user_id))
+    def execute(self, query_id, user_id, *, dashboard_id=None):
+        body = {"max_age": 0}
+        if dashboard_id is not None:
+            body["dashboard_id"] = dashboard_id
+        response = self.make_request("post", f"/api/queries/{query_id}/results", data=body, user=self.user(user_id))
         self.assertEqual(response.status_code, 200, response.json)
         job_id = response.json["job"]["id"]
         SimpleWorker([self.queue], connection=rq_redis_connection, job_class=self.queue.job_class).work(
@@ -327,7 +330,17 @@ class TestEditorAiAccess(BaseTestCase):
         narrow_result = self.execute(query_id, self.editor_id)
         narrow_id, narrow_scope = narrow_result.id, narrow_result.policy_scope
         self.assertEqual(narrow_result.data["rows"], [{"id": 1, "total": 42}])
-        wide_result = self.execute(query_id, self.wide_id)
+        denied = self.make_request("post", f"/api/queries/{query_id}/results",
+                                   data={"max_age": 0}, user=self.user(self.wide_id))
+        self.assertEqual(denied.status_code, 403)
+        dashboard = models.db.session.get(models.Dashboard, response.json["dashboard_id"])
+        dashboard.is_draft = False
+        models.db.session.add(models.DashboardReadGrant(
+            dashboard_id=dashboard.id, user_id=self.wide_id, grantor_id=self.editor_id,
+        ))
+        models.db.session.commit()
+        wide_result = self.execute(query_id, self.wide_id, dashboard_id=dashboard.id)
+        self.assertEqual(wide_result.data["rows"], [{"id": 1, "total": 42}])
         self.assertNotEqual(wide_result.policy_scope, narrow_scope)
         for user_id, result_id in ((self.editor_id, wide_result.id), (self.wide_id, narrow_id)):
             for suffix in ("", ".csv"):

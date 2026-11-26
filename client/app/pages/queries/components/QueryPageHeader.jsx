@@ -11,7 +11,7 @@ import EditInPlace from "@/components/EditInPlace";
 import FavoritesControl from "@/components/FavoritesControl";
 import { QueryTagsControl } from "@/components/tags-control/TagsControl";
 import getTags from "@/services/getTags";
-import { clientConfig } from "@/services/auth";
+import { clientConfig, currentUser } from "@/services/auth";
 import useQueryFlags from "../hooks/useQueryFlags";
 import useArchiveQuery from "../hooks/useArchiveQuery";
 import usePublishQuery from "../hooks/usePublishQuery";
@@ -184,6 +184,13 @@ export default function QueryPageHeader({
       </div>
       <div className="header-actions">
         {headerExtra}
+        {clientConfig.datasetsEnabled && queryFlags.isNew && currentUser.hasPermission("create_query") && (
+          <Link.Button className="m-r-5" href="queries/new/dataset">Use a Dataset</Link.Button>
+        )}
+        {clientConfig.datasetsEnabled && currentUser.hasPermission("create_query") && queryFlags.canViewSource &&
+          !queryFlags.isNew && !queryFlags.isArchived && !query.options?.dataset_report && dataSource?.type === "mysql" && (
+            <Link.Button className="m-r-5" href={`datasets/new/${query.id}`}>Create dataset</Link.Button>
+          )}
         {isDesktop && queryFlags.isDraft && !queryFlags.isArchived && !queryFlags.isNew && queryFlags.canEdit && (
           <Button className="m-r-5" onClick={publishQuery}>
             <i className="fa fa-paper-plane m-r-5" aria-hidden="true" /> Publish

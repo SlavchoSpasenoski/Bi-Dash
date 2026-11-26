@@ -32,6 +32,7 @@ Administrators can transfer selected content using **Settings → Migration**: e
 16. [Troubleshooting](#troubleshooting)
 17. [Recommended workflow](#workflow)
 18. [Installation and further documentation](#references)
+19. [Datasets and calculated fields](#datasets)
 
 <a id="comparison"></a>
 ## 1. Inherited features and Bi-Dash improvements
@@ -476,3 +477,17 @@ Organization Admins can open **System Status** from the profile/navigation menu 
 ## Query version history
 
 Open a saved Query or its SQL editor, then choose **More actions -> Version history** in the upper-right menu. Inspect recorded SQL/definition changes and compare with the current saved definition or another permitted version. The panel is read-only and preserves unsaved editor text; it does not run SQL, restore older definitions or alter dashboards. Existing queries start with an activation baseline, not reconstructed earlier edits. Current source/table/column permissions also apply to historical versions; Reader/API-token access is unavailable. See [Query version history](QUERY_VERSIONING.md).
+
+<a id="datasets"></a>
+
+## Datasets and calculated fields
+
+1. Open a saved Query on a direct MySQL or MariaDB source and choose **Create dataset**. For one table, use an explicit column list or a plain `SELECT *`. The list shows supported, visible columns permitted by the source policy. A base Query can also use one same-source INNER or LEFT JOIN with qualified output columns and one equality between matching key types and collations. The right-hand join key needs a full single-column unique index so the join cannot multiply left-hand rows. Simple filters and an integer `LIMIT` are supported.
+2. Add source fields using the searchable list, or choose **Formula**. The list includes the saved Query's selected columns and aliases. Pick fields for the left and right operands or enter decimal constants. A Dataset can define profit by subtracting cost from revenue. **Preview** runs up to 50 rows. **Publish** validates the saved Query revision and makes the Dataset reusable.
+3. Select **Manage access** to assign Editors or groups. Editors need current access to the base Query and source. Admins can manage same-organization Datasets. Editors with Full source access can edit their own models.
+4. Open the published Dataset, then select **Create chart**. Choose a grouping field, a measure, Sum, Average or Count and an optional equality filter. **Save chart** creates a saved Query and visualization. Open the chart and choose **Refresh** to run it. To use it in a dashboard, add the visualization through **Add Widget**.
+5. Give Readers access to the published dashboard. They can refresh or export its results under the existing dashboard, source and export policies. Dataset authoring requires Admin or Editor access.
+
+From **New Query**, choose **Use a Dataset** and select a published model. Select fields for a row-level table, or add measures to group by the selected fields. Add equality filters as needed. **Preview** shows up to 50 rows and hides the previous result when the selected fields, measures or filters change. **Save query** creates a report linked to the published Dataset. Automatically generated charts show each combination of grouping fields as its own category. Editors with View only source access can refresh an accessible saved Dataset Query from a dashboard.
+
+Publishing compatible changes updates dependent reports and makes previous cached results unavailable. Publication is blocked if it would break an active report. The first release supports row-level formulas on one table with numeric inputs that fit DECIMAL(38,10).

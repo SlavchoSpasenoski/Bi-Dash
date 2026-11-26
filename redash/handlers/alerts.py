@@ -48,6 +48,8 @@ class AlertResource(BaseResource):
         else:
             query = alert.query_rel
         require_access(query, self.current_user, view_only)
+        if (query.options or {}).get("dataset_report") is True:
+            abort(400, message="Alerts are unavailable for Dataset reports.")
         alert.query_rel = query
 
         self.update_model(alert, params)
@@ -110,6 +112,8 @@ class AlertListResource(BaseResource):
 
         query = models.Query.get_by_id_and_org(req["query_id"], self.current_org)
         require_access(query, self.current_user, view_only)
+        if (query.options or {}).get("dataset_report") is True:
+            abort(400, message="Alerts are unavailable for Dataset reports.")
 
         alert = models.Alert(
             name=req["name"],

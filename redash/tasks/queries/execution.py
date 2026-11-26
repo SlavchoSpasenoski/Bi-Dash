@@ -31,6 +31,25 @@ def _unlock(query_hash, data_source_id, scope=None):
     redis_connection.delete(_job_lock_id(query_hash, data_source_id, scope))
 
 
+def query_admission_key(org_id, user_id):
+    scope = hashlib.sha256(str(user_id).encode()).hexdigest()[:24]
+    return f"access:queries:{org_id}:{scope}"
+
+
+def active_query_jobs(key):
+    active = []
+    for job_id in redis_connection.smembers(key):
+        try:
+            job = Job.fetch(job_id, connection=rq_redis_connection)
+            if job.get_status() in (JobStatus.QUEUED, JobStatus.STARTED, JobStatus.DEFERRED, JobStatus.SCHEDULED):
+                active.append(job)
+                continue
+        except (NoSuchJobError, InvalidJobOperation):
+            pass
+        redis_connection.srem(key, job_id)
+    return active
+
+
 def _can_execute_saved_view_only(source, user, sql, metadata):
     """View-only execution is limited to a freshly validated saved definition."""
     from redash.permissions import has_access, view_only
@@ -61,6 +80,7 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
     from redash.ai_dashboard import SUPPORTED_SOURCES, validate_readonly_sql
 
     metadata = dict(metadata or {})
+    metadata.pop("dataset_report", None)
     if metadata.get("query_id") not in (None, "adhoc"):
         try:
             metadata["query_id"] = int(metadata["query_id"])
@@ -128,6 +148,16 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
         if (saved is None or saved.data_source_id != data_source.id or user is None
                 or not has_access(saved, user, view_only)):
             raise QueryExecutionError("This saved query is no longer accessible.")
+        if (saved.options or {}).get("dataset_report") is True:
+            from redash.dataset_report_runtime import dataset_report_context
+            if scheduled_query or query != saved.query_text:
+                raise QueryExecutionError("Refresh this Dataset report interactively from its saved definition.")
+            try:
+                metadata["dataset_report"] = dataset_report_context(
+                    saved, user, (report or dashboard_report or {}).get("dashboard_id"),
+                )
+            except ValueError as error:
+                raise QueryExecutionError(str(error)) from error
     if is_reader(user) and not report:
         raise QueryExecutionError("Readers cannot execute queries.")
     if not report:
@@ -157,29 +187,24 @@ def enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_query
     if limits is None:
         if dashboard_report:
             metadata["access_scope"] = (metadata.get("access_scope") or "dashboard") + ":" + dashboard_report["authorization_scope"]
+        if metadata.get("dataset_report"):
+            metadata["access_scope"] = (metadata.get("access_scope") or "") + ":dataset:" + metadata["dataset_report"]["scope"]
         return _enqueue_query(query, data_source, user_id, is_api_key, scheduled_query, metadata)
     actor_id = public_owner.id if public_owner is not None else user_id
     quota_scope = hashlib.sha256(str(actor_id).encode()).hexdigest()[:24]
     scope = (quota_scope + ":api:" + hashlib.sha256(str(user_id).encode()).hexdigest()[:24]) if is_api_key else quota_scope
-    key = f"access:queries:{data_source.org_id}:{quota_scope}"
+    key = query_admission_key(data_source.org_id, actor_id)
     metadata["access_scope"] = scope
     if metadata.get("policy_scope"):
         metadata["access_scope"] += ":" + metadata["policy_scope"]
     if dashboard_report:
         metadata["access_scope"] += ":dashboard:" + dashboard_report["authorization_scope"]
+    if metadata.get("dataset_report"):
+        metadata["access_scope"] += ":dataset:" + metadata["dataset_report"]["scope"]
     metadata["query_timeout_seconds"] = min(limits["query_timeout_seconds"], metadata.get("query_timeout_seconds", 3600))
     # The distributed lock makes simultaneous requests share the same admission limit.
     with redis_connection.lock(key + ":lock", timeout=15, blocking_timeout=5):
-        active = []
-        for job_id in redis_connection.smembers(key):
-            try:
-                existing = Job.fetch(job_id, connection=rq_redis_connection)
-                if existing.get_status() in (JobStatus.QUEUED, JobStatus.STARTED, JobStatus.DEFERRED, JobStatus.SCHEDULED):
-                    active.append(existing)
-                else:
-                    redis_connection.srem(key, job_id)
-            except (NoSuchJobError, InvalidJobOperation):
-                redis_connection.srem(key, job_id)
+        active = active_query_jobs(key)
         query_hash = gen_query_hash(query)
         shared_id = redis_connection.get(_job_lock_id(query_hash, data_source.id, metadata["access_scope"]))
         for existing in active:
@@ -272,6 +297,7 @@ def _enqueue_query(query, data_source, user_id, is_api_key=False, scheduled_quer
                         "ai_read_only": metadata.get("ai_read_only", False),
                         "reader_report": metadata.get("reader_report"),
                         "dashboard_report": metadata.get("dashboard_report"),
+                        "dataset_report": metadata.get("dataset_report"),
                         "policy_scope": metadata.get("policy_scope"),
                     },
                 }
@@ -384,6 +410,7 @@ class QueryExecutor:
         from redash.data_access_runtime import DataAccessDenied, access_scope, is_protected, is_reader, resolve_source
         report = self.metadata.get("reader_report")
         dashboard_report = self.metadata.get("dashboard_report")
+        dataset_report = self.metadata.get("dataset_report")
         saved_view_only = False
         if self.user is not None and self.user.is_api_user():
             raise QueryExecutionError("Anonymous query execution is unavailable.")
@@ -412,6 +439,16 @@ class QueryExecutor:
                     or self.query_model.data_source_id != self.data_source_id
                     or not has_access(self.query_model, self.user, view_only)):
                 raise QueryExecutionError("This saved query is no longer accessible.")
+            if (self.query_model.options or {}).get("dataset_report") is True:
+                from redash.dataset_report_runtime import dataset_report_context
+                try:
+                    if (not dataset_report or self.is_scheduled_query or self.query != self.query_model.query_text
+                            or dataset_report_context(self.query_model, self.user, dataset_report["dashboard_id"]) != dataset_report):
+                        raise ValueError("The Dataset report changed while execution was queued.")
+                except ValueError as error:
+                    raise QueryExecutionError(str(error)) from error
+            elif dataset_report:
+                raise QueryExecutionError("The Dataset report is no longer available.")
         if dashboard_report:
             from redash.reader_reports import authorize_editor_report
             try:
@@ -500,7 +537,15 @@ class QueryExecutor:
         annotated_query = self.query if (report or is_protected(self.data_source) or self.data_source.type == "mysql") else self._annotate_query(query_runner)
 
         try:
-            if saved_view_only and is_protected(self.data_source):
+            if dataset_report:
+                from redash.dataset_report_runtime import dataset_report_context, run_dataset_report
+                query = models.db.session.get(models.Query, self.query_id)
+                user = models.db.session.get(models.User, self.user.id)
+                data, error = run_dataset_report(query, user, dataset_report)
+                models.db.session.expire_all()
+                if dataset_report_context(query, user, dataset_report["dashboard_id"]) != dataset_report:
+                    raise QueryExecutionError("Dataset report access changed during execution.")
+            elif saved_view_only and is_protected(self.data_source):
                 from redash.data_access_runtime import resolved_policy
                 from redash.data_access_shared import run_shared_query
                 binding = resolved_policy(self.data_source, self.user)
@@ -555,14 +600,15 @@ class QueryExecutor:
                 run_time,
                 utcnow(),
                 policy_scope=self.metadata.get("policy_scope"),
-                report_context=({**report, "kind": "reader"} if report else
+                report_context=({"kind": "dataset", "dataset_report": dataset_report} if dataset_report else
+                                {**report, "kind": "reader"} if report else
                                 {**dashboard_report, "kind": "editor"} if dashboard_report else
                                 {"kind": "saved", "query_id": int(self.query_id)}
                                 if self.query_id not in (None, "adhoc") else
                                 {"kind": "adhoc", "user_id": self.user.id} if self.user is not None else None),
             )
 
-            updated_query_ids = [] if (report or is_protected(self.data_source)) else models.Query.update_latest_result(query_result)
+            updated_query_ids = [] if (report or dataset_report or is_protected(self.data_source)) else models.Query.update_latest_result(query_result)
 
             models.db.session.commit()  # make sure that alert sees the latest query result
             self._log_progress("checking_alerts")

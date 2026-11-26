@@ -278,6 +278,8 @@ class Python(BaseQueryRunner):
         except models.NoResultFound:
             raise Exception("Query id %s does not exist." % query_id)
 
+        if (query.options or {}).get("dataset_report") is True:
+            raise Exception("Dataset reports are unavailable through Python query helpers.")
         if query.data_source is None or not has_access(query, user, view_only):
             raise Exception("You do not have access to query id %s." % query_id)
 

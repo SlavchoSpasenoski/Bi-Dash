@@ -21,6 +21,22 @@ describe("Visualizations", () => {
         expect(data).toEqual(output.data);
       });
 
+      test("Dataset chart preserves distinct combinations of grouping fields", () => {
+        const rows = [
+          { region: "West", channel: "Online", total: 15 },
+          { region: "West", channel: "Store", total: 20 },
+        ];
+        const [series] = getChartData(rows, {
+          columnMapping: { region: "x", total: "y" },
+          datasetGrouping: ["region", "channel"],
+          seriesOptions: {},
+        }) as Array<{ data: Array<{ x: string; y: number }> }>;
+        expect(series.data.map(({ x, y }) => [JSON.parse(x), y])).toEqual([
+          [["West", "Online"], 15],
+          [["West", "Store"], 20],
+        ]);
+      });
+
       test("Multiple series: sorted", () => {
         const { input, output } = require("./fixtures/getChartData/multiple-series-sorted");
         const data = getChartData(input.data, input.options);

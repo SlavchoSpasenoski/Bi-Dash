@@ -8,12 +8,13 @@ import PlainButton from "@/components/PlainButton";
 import HelpTrigger from "@/components/HelpTrigger";
 import CreateDashboardDialog from "@/components/dashboards/CreateDashboardDialog";
 import { useCurrentRoute } from "@/components/ApplicationArea/Router";
-import { Auth, currentUser } from "@/services/auth";
+import { Auth, clientConfig, currentUser } from "@/services/auth";
 import settingsMenu from "@/services/settingsMenu";
 import logoUrl from "@/assets/images/bi-dash-mark-dark.svg";
 
 import DesktopOutlinedIcon from "@ant-design/icons/DesktopOutlined";
 import CodeOutlinedIcon from "@ant-design/icons/CodeOutlined";
+import DatabaseOutlinedIcon from "@ant-design/icons/DatabaseOutlined";
 import AlertOutlinedIcon from "@ant-design/icons/AlertOutlined";
 import PlusOutlinedIcon from "@ant-design/icons/PlusOutlined";
 import QuestionCircleOutlinedIcon from "@ant-design/icons/QuestionCircleOutlined";
@@ -58,6 +59,7 @@ function useNavbarActiveState() {
         currentRoute.id
       ),
       dataSources: includes(["DataSources.List"], currentRoute.id),
+      datasets: includes(["Datasets.List", "Datasets.New", "Datasets.Detail"], currentRoute.id),
       alerts: includes(["Alerts.List", "Alerts.New", "Alerts.View", "Alerts.Edit"], currentRoute.id),
     }),
     [currentRoute.id]
@@ -96,6 +98,14 @@ export default function DesktopNavbar({ onOpenAi }) {
             <Link href="queries">
               <CodeOutlinedIcon aria-label="Queries navigation button" />
               <span className="desktop-navbar-label">Queries</span>
+            </Link>
+          </Menu.Item>
+        )}
+        {clientConfig.datasetsEnabled && (
+          <Menu.Item key="datasets" className={activeState.datasets ? "navbar-active-item" : null}>
+            <Link href="datasets">
+              <DatabaseOutlinedIcon aria-label="Datasets navigation button" />
+              <span className="desktop-navbar-label">Datasets</span>
             </Link>
           </Menu.Item>
         )}

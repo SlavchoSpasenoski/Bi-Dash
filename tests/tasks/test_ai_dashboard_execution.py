@@ -19,7 +19,7 @@ class TestAiDashboardExecution(BaseTestCase):
         super().setUp()
         self.editor = self.factory.create_user(details={"role": "editor"})
         url = make_url(self.app.config["SQLALCHEMY_DATABASE_URI"])
-        self.source = self.factory.create_data_source(queue_name="ai_dashboard_test", options=ConfigurationContainer({
+        self.source = self.factory.create_data_source(group=self.factory.default_group, queue_name="ai_dashboard_test", options=ConfigurationContainer({
             "host": url.host, "port": url.port or 5432, "dbname": url.database,
             "user": url.username, "password": url.password,
         }))

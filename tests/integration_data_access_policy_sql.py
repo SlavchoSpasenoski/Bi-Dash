@@ -145,6 +145,49 @@ class ApplicationSQLIsolationTests(unittest.TestCase):
         self.assertEqual([column["name"] for column in data["columns"]], ["id", "amount"])
         self.assertEqual(data["rows"], [{"id": 1, "amount": 42}])
 
+    def test_dataset_warning_rejects_entire_result_after_policy_compilation(self):
+        from decimal import Decimal
+
+        from redash.data_access_runtime import DataAccessDenied
+        from redash.data_access_shared import run_shared_query
+        from redash.dataset_sql import DatasetSqlError, compile_dataset_from_catalog
+
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.orders VALUES(2,0,'unused')")
+        base = "SELECT id, amount FROM orders"
+
+        def query(increment, operator="+"):
+            with self.connection.cursor() as cursor:
+                return compile_dataset_from_catalog(cursor, base, "mysql", self.SALES, {
+                    "total": {
+                        "op": operator,
+                        "left": {"field": "amount"},
+                        "right": {"decimal": increment},
+                    },
+                })
+
+        data, error = run_shared_query(self.source, self.policy, query("0.1"), reject_warnings=True)
+        self.assertIsNone(error)
+        self.assertCountEqual(
+            [row["total"] for row in data["rows"]],
+            [Decimal("42.1"), Decimal("0.1")],
+        )
+        data, error = run_shared_query(self.source, self.policy, query("3", "/"), reject_warnings=True)
+        self.assertIsNone(error)
+        self.assertCountEqual([row["total"] for row in data["rows"]], [Decimal("14"), Decimal("0")])
+        with self.assertRaisesRegex(DataAccessDenied, "results were discarded"):
+            run_shared_query(
+                self.source,
+                self.policy,
+                query("9999999999999999999999999999"),
+                reject_warnings=True,
+            )
+        self.admin_sql(f"ALTER TABLE `{self.SALES}`.orders ADD COLUMN wide DECIMAL(30,11)")
+        with self.connection.cursor() as cursor, self.assertRaisesRegex(DatasetSqlError, "without rounding"):
+            compile_dataset_from_catalog(
+                cursor, "SELECT wide AS amount FROM orders", "mysql", self.SALES,
+                {"total": {"field": "amount"}},
+            )
+
     def test_shared_runner_rejects_table_replaced_by_definer_view(self):
         from redash.data_access_shared import run_shared_query
         self.admin_sql("DROP TABLE `" + self.SALES + "`.orders")
@@ -155,6 +198,108 @@ class ApplicationSQLIsolationTests(unittest.TestCase):
             self.assertEqual(cursor.fetchall(), ((999,),))
         with self.assertRaises(ValueError):
             run_shared_query(self.source, self.policy, "SELECT * FROM orders")
+
+    def test_dataset_preview_is_bounded_and_preserves_source_policy(self):
+        from redash.data_access_shared import run_shared_query
+
+        values = ",".join(f"({i},42,'fixture')" for i in range(2, 62))
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.orders VALUES {values}")
+        data, error = run_shared_query(
+            self.source, self.policy, "SELECT id, amount FROM orders",
+            dataset_preview_fields={"total": {"field": "amount"}},
+        )
+        self.assertIsNone(error)
+        self.assertEqual(data["rows"], [{"total": 42}] * 50)
+        with self.assertRaises(ValueError):
+            run_shared_query(
+                self.source, self.policy, "SELECT secret AS amount FROM orders",
+                dataset_preview_fields={"total": {"field": "amount"}},
+            )
+
+    def test_dataset_wildcard_picker_and_preview_use_scope_and_saved_limit(self):
+        from redash.data_access_shared import run_shared_query
+
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.orders VALUES (2,7,'fixture')")
+        base = "SELECT * FROM orders LIMIT 1"
+        data, _ = run_shared_query(self.source, self.policy, base, dataset_source_fields=True)
+        self.assertEqual(data, {"fields": ["id", "amount"]})
+        data, _ = run_shared_query(
+            self.source, self.policy, base, dataset_preview_fields={"total": {"field": "amount"}},
+        )
+        self.assertEqual(len(data["rows"]), 1)
+        with self.assertRaises(ValueError):
+            run_shared_query(self.source, self.policy, base, dataset_preview_fields={"private": {"field": "secret"}})
+
+    def test_dataset_report_aggregates_filtered_calculated_fields(self):
+        from decimal import Decimal
+
+        from redash.data_access_shared import run_shared_query
+        from redash.dataset_sql import compile_dataset_from_catalog
+
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.orders VALUES (2,1,'fixture'),(3,42,'fixture')")
+        with self.connection.cursor() as cursor:
+            sql = compile_dataset_from_catalog(
+                cursor, "SELECT amount FROM orders", "mysql", self.SALES,
+                {"amount": {"field": "amount"}, "adjusted": {
+                    "op": "+", "left": {"field": "amount"}, "right": {"decimal": "0.1"},
+                }},
+                report={
+                    "group_by": ["amount"],
+                    "metrics": {
+                        "total": {"field": "adjusted", "aggregation": "sum"},
+                        "mean": {"field": "adjusted", "aggregation": "avg"},
+                        "count": {"field": "adjusted", "aggregation": "count"},
+                    },
+                    "filters": [{"field": "amount", "value": "42"}],
+                },
+            )
+        data, error = run_shared_query(self.source, self.policy, sql, reject_warnings=True)
+        self.assertIsNone(error)
+        self.assertEqual(data["rows"], [{"amount": 42, "total": Decimal("84.2"),
+                                        "mean": Decimal("42.1"), "count": 2}])
+
+    def test_dataset_avg_accepts_wide_intermediate_sum_for_new_and_saved_reports(self):
+        from decimal import Decimal
+
+        from redash.data_access_shared import run_shared_query
+        from redash.dataset_sql import compile_dataset_from_catalog
+
+        amount = "9000000000000000000000000000.0000000000"
+        self.admin_sql(f"CREATE TABLE `{self.SALES}`.wide_amounts (amount DECIMAL(38,10))")
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.wide_amounts VALUES ({amount}),({amount})")
+        base = "SELECT amount FROM wide_amounts"
+        fields = {"amount": {"field": "amount"}}
+        spec = {"group_by": [], "metrics": {"mean": {"field": "amount", "aggregation": "avg"}}, "filters": []}
+        policy = {"unrestricted": True}
+        with self.connection.cursor() as cursor:
+            legacy = compile_dataset_from_catalog(
+                cursor, base, "mysql", self.SALES, fields, report=spec, policy=policy, legacy_avg=True,
+            )
+        for expected, preview in [(None, True), (legacy, False)]:
+            with self.subTest(preview=preview):
+                result, error = run_shared_query(
+                    self.source, policy, base, dataset_report=(fields, spec, expected), dataset_report_preview=preview,
+                )
+                self.assertIsNone(error)
+                self.assertEqual(result["rows"], [{"mean": Decimal(amount)}])
+
+    def test_dataset_join_requires_unique_dimension_and_preserves_projection_rows(self):
+        from redash.data_access_shared import run_shared_query
+
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.orders VALUES (2,42,'fixture')")
+        self.admin_sql(f"INSERT INTO `{self.SALES}`.depts VALUES (2,'Sales')")
+        base = "SELECT o.amount, d.label FROM orders o LEFT JOIN depts d ON o.id = d.id"
+        with self.assertRaisesRegex(ValueError, "unique index"):
+            run_shared_query(self.source, self.policy, base, dataset_source_fields=True)
+        self.admin_sql(f"ALTER TABLE `{self.SALES}`.depts ADD UNIQUE (id)")
+        fields, _ = run_shared_query(self.source, self.policy, base, dataset_source_fields=True)
+        self.assertEqual(fields, {"fields": ["amount", "label"]})
+        data, _ = run_shared_query(
+            self.source, self.policy, base,
+            dataset_report=({"amount": {"field": "amount"}}, {"group_by": ["amount"], "metrics": {}, "filters": []}, None),
+            dataset_report_preview=True,
+        )
+        self.assertEqual(data["rows"], [{"amount": 42}, {"amount": 42}])
 
     def test_unprotected_connector_and_admin_path_block_user_writes(self):
         from redash.data_access_shared import run_shared_query

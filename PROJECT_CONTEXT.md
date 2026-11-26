@@ -1,6 +1,6 @@
 # Bi-Dash shared project context
 
-Last updated: 2026-11-22.
+Last updated: 2026-11-26.
 
 ## Purpose and provenance
 
@@ -28,6 +28,7 @@ This context was reconstructed from repository documentation and Git history, pl
 | Product usage | `USER_GUIDE.md`, `USER_GUIDE.mk.md` |
 | AI | `AI_DASHBOARDS.md`, `redash/ai_assistant.py`, `redash/ai_dashboard.py`, `redash/ai_settings.py`, `tests_local/` |
 | Roles and access | `ACCESS_CONTROL.md`, `redash/access_policy.py`, `redash/permissions.py` |
+| Reusable Datasets and calculated fields | [User guide](USER_GUIDE.md#datasets), [Datasets roadmap](docs/roadmaps/DATASETS_2026-11-24.md) |
 | Backend / frontend / charts | `redash/`, `client/`, `viz-lib/` |
 | Branding and licensing | `BRANDING.md`, `branding/`, `LICENSE`, `NOTICE`, `COPYRIGHT.md` |
 | Deployment | `compose.local.yaml`, `compose.linux.yaml`, `compose.public.yaml`, `scripts/`, `LINUX_DEPLOYMENT.md`, `PUBLIC_DEPLOYMENT.md` |
@@ -37,6 +38,10 @@ This context was reconstructed from repository documentation and Git history, pl
 The frontend uses React/TypeScript with pnpm; the backend is Python/Flask with worker jobs. The documentation website uses Astro/Starlight alongside the standalone Bi-Dash landing-page sources. `website/MIGRATION_PLAN.md` contains inherited upstream planning and must not be assumed to describe current Bi-Dash priorities.
 
 ## Continuity agreement
+
+Datasets can be used from New Query in the local release (2026-11-26), including row tables and grouped measures. Direct MySQL/MariaDB Dataset bases accept one same-source INNER or LEFT JOIN with a unique right-side key. See STATUS.md and the user guide for verification and scope.
+
+Datasets first release is activated locally (2026-11-25). It supports direct MySQL/MariaDB saved SQL, row-level formulas, published versions, direct/group grants, chart creation and dashboard use under existing roles. Metadata head is 6d42ac190b37. See STATUS.md for test evidence and rollback assets.
 
 GitHub/Contabo release verified (2026-11-22): monitoring, Query history, selective migration, Admin report editing and QA hardening are published as runtime commit 2c43977dc14c4213cba7c00f3f898861947eb201, with subsequent documentation bookkeeping on origin/main. Contabo release /root/bidash-releases/20261122-qa-2c43977 is active via /root/bidash-current using redash-ai-local:20261122-qa-2c43977 and schema b3d9e1a42f86. All21 original table hashes/counts and remote .env were preserved across the additive upgrade; eight baseline revisions were added. Backup /root/bidash-backups/20261122-qa-2c43977 and previous image/release are retained. All103 local regressions passed on the remote image; authenticated Admin/Reader/history/monitoring/cached-HTML and public HTTPS checks passed. Use the existing customized compose.local.yaml plus compose.release.yaml with project redash-ai-local; preserve remote secrets, volumes, gateway and private AI tunnel. No business SQL/model inference or live content import was used. See STATUS.md and ignored .tmp/contabo-target.json for operational evidence.
 

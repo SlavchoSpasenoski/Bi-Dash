@@ -45,6 +45,8 @@ def extract_cached_query_ids(query):
 
 def _load_query(user, query_id):
     query = models.Query.get_by_id(query_id)
+    if (query.options or {}).get("dataset_report") is True:
+        raise PermissionError("Dataset reports are unavailable as Query Results dependencies.")
 
     from redash.data_access_runtime import is_protected
     if query.data_source is not None and is_protected(query.data_source):

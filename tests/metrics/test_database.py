@@ -12,7 +12,8 @@ from tests import BaseTestCase
 class TestDatabaseMetrics(BaseTestCase):
     def test_db_request_records_statsd_metrics(self, timing):
         self.factory.create_query()
-        timing.assert_called_with("db.changes.insert", ANY)
+        timing.assert_any_call("db.changes.insert", ANY)
+        timing.assert_any_call("db.query_revisions.insert", ANY)
 
     def test_select_records_table_name(self, timing):
         query = self.factory.create_query()

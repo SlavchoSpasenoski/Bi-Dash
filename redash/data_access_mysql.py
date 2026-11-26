@@ -45,16 +45,19 @@ def validate_mysql_sql(query):
         raise DataAccessDenied("Backslash escapes are unsupported in protected MySQL queries; use ordinary SQL literals.")
     if isinstance(query, str) and any(char.isspace() and char not in " \t\r\n\v\f" for char in query):
         raise DataAccessDenied("Non-ASCII whitespace is unsupported in protected MySQL queries.")
-    from redash.ai_dashboard import validate_readonly_sql
+    from redash.ai_dashboard import is_decimal_cast_type, validate_readonly_sql
     import sqlparse
     from sqlparse import tokens as T
     from sqlparse.sql import Function, Identifier
     query = validate_readonly_sql(query)
+    cast_parentheses = set()
 
     def visit(group):
         for token in group.tokens:
             if isinstance(token, Function):
-                if (not re.match(r"^[A-Za-z_][A-Za-z0-9_]*\(", token.value)
+                if is_decimal_cast_type(token):
+                    cast_parentheses.add(id(token.tokens[-1].tokens[0]))
+                elif (not re.match(r"^[A-Za-z_][A-Za-z0-9_]*\(", token.value)
                         or (token.get_name() or "").lower() not in NATIVE_FUNCTIONS
                         or isinstance(group, Identifier) and group.get_parent_name()):
                     raise DataAccessDenied("Only unqualified native MySQL reporting functions without whitespace before '(' are supported.")
@@ -77,7 +80,7 @@ def validate_mysql_sql(query):
             raise DataAccessDenied("Unrecognized SQL tokens are unsupported in protected MySQL queries.")
         if token.is_whitespace:
             continue
-        if token.value == "(" and significant:
+        if token.value == "(" and significant and id(token) not in cast_parentheses:
             previous_index, previous = significant[-1]
             dotted = len(significant) > 1 and significant[-2][1].value == "."
             if previous.ttype in T.Keyword and previous.normalized in syntax_parentheses and not dotted:

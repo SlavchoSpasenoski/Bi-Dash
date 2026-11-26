@@ -193,13 +193,29 @@ def serialize_query(
     return d
 
 
+def _dataset_chart_options(visualization):
+    options = visualization.options
+    query = visualization.query_rel
+    if (visualization.type != "CHART" or query is None
+            or (query.options or {}).get("dataset_report") is not True):
+        return options
+    report = models.db.session.get(models.DatasetReport, query.id)
+    if report is None or len(report.spec["group_by"]) <= 1:
+        return options
+    groups = report.spec["group_by"]
+    mapping = {groups[0]: "x", **{alias: "y" for alias in report.spec["metrics"]}}
+    if (options or {}).get("columnMapping") != mapping:
+        return options
+    return {**options, "datasetGrouping": groups, "xAxis": {**(options.get("xAxis") or {}), "type": "category"}}
+
+
 def serialize_visualization(object, with_query=True):
     d = {
         "id": object.id,
         "type": object.type,
         "name": object.name,
         "description": object.description,
-        "options": object.options,
+        "options": _dataset_chart_options(object),
         "updated_at": object.updated_at,
         "created_at": object.created_at,
     }

@@ -27,6 +27,7 @@ STATSD_HOST = os.environ.get("REDASH_STATSD_HOST", "127.0.0.1")
 STATSD_PORT = int(os.environ.get("REDASH_STATSD_PORT", "8125"))
 STATSD_PREFIX = os.environ.get("REDASH_STATSD_PREFIX", "redash")
 STATSD_USE_TAGS = parse_boolean(os.environ.get("REDASH_STATSD_USE_TAGS", "false"))
+DATASETS_ENABLED = parse_boolean(os.environ.get("REDASH_DATASETS_ENABLED", "false"))
 
 # Connection settings for Redash's own database (where we store the queries, results, etc)
 SQLALCHEMY_DATABASE_URI = os.environ.get(

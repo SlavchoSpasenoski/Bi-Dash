@@ -24,6 +24,8 @@ import "./groups/GroupDashboards";
 import "./groups/GroupMembers";
 
 import "./queries-list/QueriesList";
+import "./datasets/DatasetsPage";
+import "./datasets/DatasetQueryPage";
 import "./queries/QuerySource";
 import "./queries/QueryView";
 import "./queries/VisualizationEmbed";

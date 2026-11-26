@@ -22,6 +22,7 @@ class DashboardPlanTests(unittest.TestCase):
 
     def test_select_and_cte_with_exact_table_prefixes_are_allowed(self):
         for sql in ("SELECT COUNT(*) AS users FROM mdl_user;",
+                    "SELECT CAST(total AS DECIMAL(38,10)) FROM mdl_orders",
                     "WITH totals AS (SELECT SUM(total) AS amount FROM mdl_orders) SELECT amount FROM totals",
                     "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(total) AS revenue FROM mdl_orders GROUP BY month",
                     "SELECT * FROM (SELECT COUNT(*) AS users FROM mdl_user) AS bidash_ai_result LIMIT 1000"):
@@ -33,6 +34,7 @@ class DashboardPlanTests(unittest.TestCase):
                     "WITH changed AS (DELETE FROM orders RETURNING *) SELECT * FROM changed",
                     "SELECT pg_read_file('/etc/passwd')", "SELECT LOAD_FILE('/etc/passwd')", "SELECT SLEEP(60)",
                     "SELECT nextval('sequence')", "SELECT pg_notify('test','x')", "SELECT custom_function()",
+                    "SELECT DECIMAL(38,10)", "SELECT CAST(DECIMAL(38,10) AS CHAR)",
                     "SELECT * FROM orders FOR UPDATE", "SELECT * FROM orders FOR SHARE",
                     "SELECT 1 /*! INTO OUTFILE '/tmp/leak' */", "SELECT 1 -- comment", "SELECT @x := 1"):
             with self.subTest(sql=sql), self.assertRaises(ValueError):

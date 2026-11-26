@@ -351,7 +351,8 @@ class QueryResult(db.Model, BelongsToOrgMixin):
         )
 
     @classmethod
-    def get_latest(cls, data_source, query, max_age=0, policy_scope=None, any_policy_scope=False):
+    def get_latest(cls, data_source, query, max_age=0, policy_scope=None, any_policy_scope=False,
+                   dataset_context=None):
         query_hash = gen_query_hash(query)
 
         if max_age == -1 and settings.QUERY_RESULTS_EXPIRED_TTL_ENABLED:
@@ -371,6 +372,11 @@ class QueryResult(db.Model, BelongsToOrgMixin):
 
         if not any_policy_scope:
             query = query.filter(cls.policy_scope == policy_scope)
+        if dataset_context is None:
+            query = query.filter(db.or_(cls.report_context.is_(None),
+                                        ~cls.report_context.has_key("dataset_report")))
+        else:
+            query = query.filter(cls.report_context["dataset_report"] == dataset_context)
         return query.order_by(cls.retrieved_at.desc()).first()
 
     @classmethod
@@ -777,6 +783,8 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
         return db.session.execute(text(query), {"ids": tuple(query_ids)}).fetchall()
 
     def update_latest_result_by_query_hash(self):
+        if (self.options or {}).get("dataset_report") is True:
+            return
         query_hash = self.query_hash
         data_source_id = self.data_source_id
         query_result = (
@@ -784,6 +792,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
             .filter(
                 QueryResult.query_hash == query_hash,
                 QueryResult.data_source_id == data_source_id,
+                db.or_(QueryResult.report_context.is_(None), ~QueryResult.report_context.has_key("dataset_report")),
             )
             .order_by(QueryResult.retrieved_at.desc())
             .first()
@@ -800,6 +809,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
             Query.query_hash == query_result.query_hash,
             Query.data_source_id == query_result.data_source_id,
             Query.is_archived.is_(False),
+            db.or_(Query.options.is_(None), ~Query.options.contains({"dataset_report": True})),
         )
 
         for q in queries:
@@ -1577,3 +1587,5 @@ from redash.query_revisions import install_revision_tracking  # noqa: E402
 install_revision_tracking(Query, QueryRevision)
 
 from redash.models.migration_runs import MigrationRun  # noqa: E402,F401
+from redash.models.datasets import Dataset, DatasetGroupReadGrant, DatasetReadGrant, DatasetRevision  # noqa: E402,F401
+from redash.models.dataset_reports import DatasetReport  # noqa: E402,F401

@@ -165,6 +165,8 @@ def export_content(org, user, components, include_credentials=False):
         if len(query_map) > MAX_OBJECTS: _fail('Too many query dependencies.')
     queries = sorted(query_map.values(), key=lambda q: q.id)
     for query in queries:
+        if (query.options or {}).get("dataset_report") is True:
+            _fail('Dataset-backed Queries cannot be exported until their Dataset dependencies can be remapped.')
         row = _safe_query(query); row['owner_id'] = query.user_id if 'users' in selected else None
         package['queries'].append(row)
         for vis in query.visualizations:

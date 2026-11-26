@@ -21,6 +21,7 @@ from redash.handlers.query_results import run_query
 from redash.models.parameterized_query import ParameterizedQuery
 from redash.permissions import (
     can_modify,
+    has_access,
     not_view_only,
     require_access,
     require_admin_or_owner,
@@ -54,12 +55,16 @@ order_results = partial(_order_results, default_order="-created_at", allowed_ord
 
 def filter_readable_report_queries(queries, user):
     """Apply dashboard visibility and column access before pagination/counting."""
+    from sqlalchemy import or_
+    dataset_report = models.Query.options.contains({"dataset_report": True})
+    dataset_ids = ([query.id for query in queries.filter(dataset_report) if has_access(query, user, view_only)]
+                   if settings.DATASETS_ENABLED else [])
+    queries = queries.filter(or_(~dataset_report, models.Query.options.is_(None), models.Query.id.in_(dataset_ids)))
     if user.has_permission("admin"):
         return queries
     from redash.dashboard_access import query_readable_clause
     queries = queries.filter(query_readable_clause(user))
     from redash.data_access_runtime import is_protected
-    from redash.permissions import has_access
     # Source/group SQL filters still govern unprotected definitions. Only the
     # protected candidates need recipient-specific SQL dependency validation.
     protected_ids = [source.id for source in models.DataSource.query.filter_by(org_id=user.org_id)
@@ -68,7 +73,6 @@ def filter_readable_report_queries(queries, user):
         return queries
     allowed = [query.id for query in queries.filter(models.Query.data_source_id.in_(protected_ids))
                if has_access(query, user, view_only)]
-    from sqlalchemy import or_
     return queries.filter(or_(models.Query.data_source_id.is_(None),
                               ~models.Query.data_source_id.in_(protected_ids), models.Query.id.in_(allowed)))
 
@@ -152,7 +156,8 @@ class QueryRecentResource(BaseResource):
         Responds with a list of :ref:`query <query-response-label>` objects.
         """
 
-        results = models.Query.by_user(self.current_user).order_by(models.Query.updated_at.desc()).limit(10)
+        results = filter_readable_report_queries(models.Query.by_user(self.current_user), self.current_user)
+        results = results.order_by(models.Query.updated_at.desc()).limit(10)
         return QuerySerializer(results, with_last_modified_by=False, with_user=False).serialize()
 
 
@@ -291,6 +296,9 @@ class QueryListResource(BaseQueryListResource):
         query_def["data_source"] = data_source
         query_def["org"] = self.current_org
         query_def["is_draft"] = True
+        incoming_options = query_def.get("options")
+        if isinstance(incoming_options, dict) and incoming_options.get("dataset_report"):
+            abort(400, message="Create Dataset reports from a published Dataset.")
         query_def["options"] = scope_query_options(data_source, self.current_user,
                                                    query_def.get("options", {}), query_def.get("schedule"))
         query = models.Query.create(**query_def)
@@ -387,6 +395,13 @@ class QueryResource(BaseResource):
         if query is None:
             abort(404)
         query_def = request.get_json(force=True)
+        if (query.options or {}).get("dataset_report") is True:
+            if any(key in query_def and query_def[key] != value for key, value in (
+                ("query", query.query_text), ("data_source_id", query.data_source_id), ("options", query.options),
+            )) or query_def.get("schedule"):
+                abort(400, message="Dataset report definitions are managed through Datasets.")
+        elif isinstance(query_def.get("options"), dict) and query_def["options"].get("dataset_report"):
+            abort(400, message="Create Dataset reports from a published Dataset.")
         from redash.data_access_runtime import is_protected
         if query.data_source and is_protected(query.data_source):
             require_access(query, self.current_user, not_view_only)
@@ -514,6 +529,8 @@ class QueryForkResource(BaseResource):
         Responds with created :ref:`query <query-response-label>` object.
         """
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
+        if (query.options or {}).get("dataset_report") is True:
+            abort(400, message="Create a new report from the published Dataset.")
         require_access(query.data_source, self.current_user, not_view_only)
         require_access(query, self.current_user, not_view_only)
         forked_query = query.fork(self.current_user)
@@ -547,6 +564,9 @@ class QueryRefreshResource(BaseResource):
 
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
         require_access(query, self.current_user, not_view_only)
+        if (query.options or {}).get("dataset_report") is True:
+            from redash.handlers.query_results import _run_dataset_saved_report
+            return _run_dataset_saved_report(query, self.current_user, {}, 0, None)
 
         parameter_values = collect_parameters_from_request(request.args)
         parameterized_query = ParameterizedQuery(query.query_text, org=self.current_org)

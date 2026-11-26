@@ -15,6 +15,10 @@ from redash.handlers.base import org_scoped_rule
 from redash.handlers.ai import AssistantContextResource, AssistantResource, AssistantSettingsResource
 from redash.handlers.access_policy import AccessPolicyResource, UserAccessResource, UserEffectiveAccessResource
 from redash.handlers.data_access import DataAccessEffectiveResource, DataAccessMetadataResource, DataAccessResource
+from redash.handlers.datasets import (
+    DatasetAccessResource, DatasetDetailResource, DatasetJobResource, DatasetListResource,
+    DatasetReportResource, DatasetSourceFieldsResource,
+)
 from redash.handlers.ai_dashboards import AssistantDashboardResource
 from redash.handlers.dashboards import (
     DashboardAccessResource,
@@ -150,6 +154,13 @@ api.add_org_resource(
 api.add_org_resource(AlertListResource, "/api/alerts", endpoint="alerts")
 
 api.add_org_resource(DashboardListResource, "/api/dashboards", endpoint="dashboards")
+api.add_org_resource(DatasetListResource, "/api/datasets", endpoint="datasets")
+api.add_org_resource(DatasetSourceFieldsResource, "/api/datasets/source-fields/<int:query_id>", endpoint="dataset_source_fields")
+api.add_org_resource(DatasetDetailResource, "/api/datasets/<int:dataset_id>", endpoint="dataset")
+api.add_org_resource(DatasetAccessResource, "/api/datasets/<int:dataset_id>/access", endpoint="dataset_access")
+api.add_org_resource(DatasetReportResource, "/api/datasets/<int:dataset_id>/reports", endpoint="dataset_reports")
+api.add_org_resource(DatasetJobResource, "/api/datasets/<int:dataset_id>/jobs", endpoint="dataset_jobs", methods=["POST"])
+api.add_org_resource(DatasetJobResource, "/api/datasets/<int:dataset_id>/jobs/<job_id>", endpoint="dataset_job", methods=["GET"])
 api.add_org_resource(DashboardResource, "/api/dashboards/<dashboard_id>", endpoint="dashboard")
 api.add_org_resource(DashboardAccessResource, "/api/dashboards/<dashboard_id>/access", endpoint="dashboard_access")
 api.add_org_resource(

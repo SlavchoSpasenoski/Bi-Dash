@@ -210,7 +210,7 @@ class TestPythonQueryRunnerPermissions(BaseTestCase):
         query = self.factory.create_query(latest_query_data=query_result)
         self.db.session.flush()
 
-        with self.assertRaisesRegex(Exception, "You do not have access to query"):
+        with self.assertRaisesRegex(Exception, "Cached query results are outside your current report access"):
             self.python.get_query_result(query.id)
 
     def test_get_query_result_allows_view_only_data_source(self):

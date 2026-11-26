@@ -1,5 +1,7 @@
 # Bi-Dash roadmap: monitoring, query versions and selective migration
 
+The next proposed feature roadmap is [Datasets and calculated fields](docs/roadmaps/DATASETS_2026-11-24.md). See [STATUS.md](STATUS.md) for publication and deployment records for the milestones below.
+
 Created: 2026-11-20. Updated: 2026-11-22. Status: monitoring, Query version history and selective Admin content migration completed locally; folder task withdrawn at the user's request. Git publication and Contabo deployment pending.
 
 This replaces the completed delivery queue from 2026-11-14, preserved in [the historical roadmap](docs/roadmaps/ROADMAP_2026-11-14.md). Current published source baseline is 54261ce; Contabo runs the functionally equivalent 20261118-ui-html release. The original request covered roadmap preparation; the user subsequently requested starting implementation. Implementation completed one milestone at a time. No scheduler, Git publication or Contabo deployment is implied.

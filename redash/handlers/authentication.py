@@ -292,6 +292,7 @@ def client_config():
         client_config["showBeaconConsentMessage"] = True
 
     defaults = {
+        "datasetsEnabled": settings.DATASETS_ENABLED and current_user.has_permission("view_query"),
         "allowScriptsInUserInput": settings.ALLOW_SCRIPTS_IN_USER_INPUT,
         "showPermissionsControl": current_org.get_setting("feature_show_permissions_control"),
         "hidePlotlyModeBar": current_org.get_setting("hide_plotly_mode_bar"),

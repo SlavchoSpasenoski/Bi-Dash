@@ -8,7 +8,7 @@ import re
 
 import sqlparse
 from sqlparse import tokens as T
-from sqlparse.sql import Function
+from sqlparse.sql import Function, Identifier, Parenthesis
 
 SUPPORTED_SOURCES = {"pg", "mysql"}
 MAX_WIDGETS = 6
@@ -21,6 +21,19 @@ strftime julianday iif str_to_date timestampadd date_add date_sub adddate subdat
 FORBIDDEN = set("""insert update delete merge replace into outfile dumpfile copy create alter drop truncate grant
 revoke call execute exec do set reset begin start commit rollback savepoint release prepare deallocate
 vacuum analyze explain lock unlock attach detach pragma load handler for share recursive""".split())
+
+
+def is_decimal_cast_type(token):
+    if not re.fullmatch(r"DECIMAL\s*\(\s*[0-9]+\s*(?:,\s*[0-9]+\s*)?\)", token.value, re.IGNORECASE):
+        return False
+    identifier = token.parent
+    if not isinstance(identifier, Identifier) or not isinstance(identifier.parent, Parenthesis):
+        return False
+    cast = identifier.parent.parent
+    if not isinstance(cast, Function) or (cast.get_name() or "").lower() != "cast":
+        return False
+    _, previous = identifier.token_prev(identifier.token_index(token))
+    return previous is not None and previous.match(T.Keyword, "AS")
 
 
 def validate_readonly_sql(sql):
@@ -43,7 +56,7 @@ def validate_readonly_sql(sql):
         for token in group.tokens:
             if isinstance(token, Function):
                 name = (token.get_name() or "").strip('`"').lower()
-                if name not in SAFE_FUNCTIONS:
+                if name not in SAFE_FUNCTIONS and not (name == "decimal" and is_decimal_cast_type(token)):
                     raise ValueError(f"Function {name[:60]} is not supported for automatic AI reporting.")
             if token.is_group:
                 check_functions(token)

@@ -1,0 +1,30 @@
+.datasets-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+  display: grid;
+  gap: 16px;
+}
+
+.datasets-header, .dataset-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.datasets-header { justify-content: space-between; }
+.datasets-header h1 { margin: 0; }
+.dataset-name { display: grid; gap: 6px; max-width: 480px; margin-bottom: 12px; }
+.dataset-fields { display: grid; gap: 8px; padding-left: 0; list-style: none; }
+.dataset-fields code { margin-left: 12px; }
+.dataset-field-editor { display: grid; grid-template-columns: minmax(110px, 1fr) 125px minmax(200px, 2.5fr) auto; gap: 8px; }
+.dataset-formula { display: grid; grid-template-columns: 1fr minmax(105px, auto) 1fr; gap: 8px; }
+.dataset-access { display: grid; gap: 10px; justify-items: start; }
+.dataset-access label, .dataset-control { display: grid; gap: 4px; width: min(100%, 520px); }
+
+@media (max-width: 680px) {
+  .datasets-page { padding: 16px; }
+  .dataset-field-editor { grid-template-columns: 1fr; border-bottom: 1px solid #ddd; padding-bottom: 12px; }
+  .dataset-formula { grid-template-columns: 1fr; }
+}

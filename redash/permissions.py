@@ -23,6 +23,13 @@ def has_access(obj, user, need_view_only):
         source = getattr(query, "data_source", None)
     query = obj if isinstance(obj, Query) else getattr(obj, "query_rel", None)
     if query is not None:
+        options = getattr(query, "options", None)
+        if isinstance(options, dict) and options.get("dataset_report") is True:
+            from redash.dataset_report_runtime import dataset_report_context
+            try:
+                dataset_report_context(query, user)
+            except ValueError:
+                return False
         from redash.dashboard_access import user_can_view_query_dashboard
         if not user_can_view_query_dashboard(query, user):
             return False

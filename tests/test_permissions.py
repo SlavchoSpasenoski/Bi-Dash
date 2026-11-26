@@ -41,11 +41,11 @@ class TestHasAccess(BaseTestCase):
         self.assertFalse(has_access({2: view_only}, user, view_only))
         self.assertFalse(has_access({2: not view_only, 1: view_only}, user, not view_only))
 
-    def test_allows_access_to_query_by_query_api_key(self):
+    def test_denies_query_access_with_query_api_key(self):
         query = self.factory.create_query()
         user = models.ApiUser(query.api_key, None, [])
 
-        self.assertTrue(has_access(query, user, view_only))
+        self.assertFalse(has_access(query, user, view_only))
 
     def test_doesnt_allow_access_to_query_by_different_api_key(self):
         query = self.factory.create_query()
@@ -54,7 +54,7 @@ class TestHasAccess(BaseTestCase):
 
         self.assertFalse(has_access(query, user, view_only))
 
-    def test_allows_access_to_query_by_dashboard_api_key(self):
+    def test_denies_query_access_with_dashboard_api_key(self):
         dashboard = self.factory.create_dashboard()
         visualization = self.factory.create_visualization()
         self.factory.create_widget(dashboard=dashboard, visualization=visualization)
@@ -63,4 +63,4 @@ class TestHasAccess(BaseTestCase):
         api_key = self.factory.create_api_key(object=dashboard).api_key
         user = models.ApiUser(api_key, None, [])
 
-        self.assertTrue(has_access(query, user, view_only))
+        self.assertFalse(has_access(query, user, view_only))

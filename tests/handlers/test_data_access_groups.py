@@ -7,7 +7,7 @@ from sqlalchemy.engine import make_url
 import MySQLdb
 from tests import BaseTestCase
 from redash import models
-from redash.data_access_runtime import access_scope
+from redash.data_access_runtime import access_scope, can_access_source, is_protected
 from redash.tasks.queries.execution import enqueue_query, QueryExecutionError
 from redash.utils import gen_query_hash, utcnow
 from redash.utils.configuration import ConfigurationContainer
@@ -104,12 +104,13 @@ class TestGroupDataAccess(BaseTestCase):
         models.db.session.commit()
         self.save(); query=self.query(); result=self.result()
         self.assertEqual(query.options["data_access_scope"],access_scope(self.source,self.editor))
-        for user in (self.editor,self.reader):
-            for suffix in ("", ".csv", ".tsv", ".xlsx"):
-                response=self.make_request("get",f"/api/query_results/{result.id}{suffix}",user=user)
-                self.assertEqual(response.status_code,200,response.get_data()[:200])
-            response=self.make_request("get",f"/api/queries/{query.id}/results",user=user)
-            self.assertEqual(response.status_code,200,response.get_data()[:200])
+        query.latest_query_data = result
+        models.db.session.commit()
+        for suffix in ("", ".csv", ".tsv", ".xlsx"):
+            path = f"/api/query_results/{result.id}{suffix}"
+            self.assertEqual(self.make_request("get", path, user=self.editor).status_code, 200)
+            self.assertEqual(self.make_request("get", path, user=self.reader).status_code, 403)
+        self.assertEqual(self.make_request("get", f"/api/queries/{query.id}/results", user=self.editor).status_code, 200)
         self.assertEqual(self.make_request("get",f"/api/query_results/{result.id}",user=self.admin).status_code,200)
         for user in (self.other,):
             self.assertEqual(self.make_request("get",f"/api/query_results/{result.id}",user=user).status_code,403)
@@ -131,8 +132,11 @@ class TestGroupDataAccess(BaseTestCase):
         saved=self.result()
         self.editor.group_ids=[gid for gid in self.editor.group_ids if gid!=second.id]; models.db.session.commit()
         self.assertEqual(self.make_request("get",f"/api/query_results/{saved.id}",user=self.editor).status_code,403)
+        schema = f"/api/data_sources/{self.source.id}/schema"
+        self.save([extra])
+        self.assertEqual(self.make_request("get", schema, user=self.editor).status_code, 403)
         self.save([])
-        self.assertEqual(self.make_request("get",f"/api/data_sources/{self.source.id}/schema",user=self.editor).status_code,403)
+        self.assertEqual(self.make_request("get", schema, user=self.editor).status_code, 200)
 
     def test_admin_legacy_reports_remain_visible_and_refreshable(self):
         from rq import Queue,SimpleWorker
@@ -167,20 +171,32 @@ class TestGroupDataAccess(BaseTestCase):
         self.assertEqual(refreshed.policy_scope,access_scope(self.source,self.admin))
         self.assertEqual(self.make_request("get",f"/api/query_results/{refreshed.id}",user=self.editor).status_code,403)
 
-    def test_actual_worker_and_queued_rule_change(self):
+    def test_worker_rechecks_group_membership_after_enqueue(self):
         from rq import Queue, SimpleWorker
         from redash import rq_redis_connection
-        self.save(); query=self.query()
-        job=enqueue_query(self.sql,self.source,self.editor.id,metadata={"query_id":query.id})
-        queue=Queue(job.origin,connection=rq_redis_connection)
-        SimpleWorker([queue],connection=rq_redis_connection).work(burst=True,with_scheduler=False)
-        job.refresh(); self.assertTrue(job.is_finished,job.exc_info)
-        result=models.QueryResult.query.filter_by(id=job.result).one()
-        self.assertEqual({c["name"] for c in result.data["columns"]},{"id","amount"})
-        queued=enqueue_query(self.sql+" WHERE id=1",self.source,self.editor.id,metadata={"query_id":query.id})
-        self.save([])
-        SimpleWorker([queue],connection=rq_redis_connection).work(burst=True,with_scheduler=False)
-        queued.refresh(); self.assertIsInstance(queued.result,QueryExecutionError)
+
+        self.save()
+        query = self.query()
+        editor_id, group_id, source_id = self.editor.id, self.group.id, self.source.id
+        metadata = {"query_id": query.id}
+        job = enqueue_query(self.sql, self.source, editor_id, metadata=metadata)
+        queue = Queue(job.origin, connection=rq_redis_connection)
+        SimpleWorker([queue], connection=rq_redis_connection).work(burst=True, with_scheduler=False)
+        job.refresh()
+        self.assertTrue(job.is_finished, job.exc_info)
+        result = models.QueryResult.query.filter_by(id=job.result).one()
+        self.assertEqual({column["name"] for column in result.data["columns"]}, {"id", "amount"})
+
+        queued = enqueue_query(self.sql + " WHERE id=1", self.source, editor_id, metadata={"query_id": query.id})
+        editor = models.User.get_by_id(editor_id)
+        editor.group_ids = [assigned for assigned in editor.group_ids if assigned != group_id]
+        models.db.session.commit()
+        source = models.DataSource.get_by_id(source_id)
+        self.assertTrue(is_protected(source))
+        self.assertIs(can_access_source(source, editor), False)
+        SimpleWorker([queue], connection=rq_redis_connection).work(burst=True, with_scheduler=False)
+        queued.refresh()
+        self.assertIsInstance(queued.result, QueryExecutionError)
 
     def test_nonadmin_save_csrf_revision_and_removed_activation(self):
         response=self.make_request("post","/api/settings/data-access",user=self.editor,data={"revision":0,"policies":[self.policy]})
@@ -191,42 +207,41 @@ class TestGroupDataAccess(BaseTestCase):
         self.assertEqual(response.status_code,409)
         self.assertIn(self.make_request("post","/api/settings/data-access/activation",user=self.admin,data={}).status_code,(404,405))
 
-    def test_reader_keeps_legacy_and_broad_reports_without_editor_rules(self):
-        legacy=models.QueryResult.store_result(self.factory.org.id,self.source,gen_query_hash(self.sql),self.sql,
-            {"columns":[{"name":"secret","type":"string"}],"rows":[{"secret":"legacy"}]},0.1,utcnow())
-        models.db.session.commit()
+    def test_reader_requires_dashboard_grant_and_current_result_pointer(self):
+        orphan = self.result(self.admin)
         self.save()
-        admin_result=self.result(self.admin)
-        query=self.query()
-        self.assertEqual(len(admin_result.data["columns"]),3)
-        dashboard=self.factory.create_dashboard(user=self.admin)
-        visualization=self.factory.create_visualization(query_rel=query)
-        self.factory.create_widget(dashboard=dashboard,visualization=visualization)
+        result = self.result(self.admin)
+        query = self.query()
+        query.latest_query_data = result
+        dashboard = self.factory.create_dashboard(user=self.admin, is_draft=False)
+        visualization = self.factory.create_visualization(query_rel=query)
+        self.factory.create_widget(dashboard=dashboard, visualization=visualization)
         models.db.session.commit()
-        response=self.make_request("get",f"/api/dashboards/{dashboard.id}",user=self.reader)
-        self.assertEqual(response.status_code,200,response.get_data()[:200])
-        rendered_query=response.json["widgets"][0]["visualization"]["query"]
-        self.assertEqual(rendered_query["latest_query_data_id"],admin_result.id)
-        self.assertNotIn("query",rendered_query)
-        for result in (legacy,admin_result):
-            for suffix in ("", ".csv", ".tsv", ".xlsx"):
-                response=self.make_request("get",f"/api/query_results/{result.id}{suffix}",user=self.reader)
-                self.assertEqual(response.status_code,200,response.get_data()[:200])
-            self.assertEqual(self.make_request("get",f"/api/query_results/{result.id}",user=self.editor).status_code,403)
-        with patch("redash.handlers.query_results.enqueue_query") as enqueue:
-            response=self.make_request("post",f"/api/queries/{query.id}/results",user=self.reader,data={"max_age":0})
-        self.assertEqual(response.status_code,200,response.get_data()[:200])
-        enqueue.assert_not_called()
-        self.assertNotIn("query",response.json["query_result"])
-        preview=self.make_request("get",f"/api/settings/data-access/effective?data_source_id={self.source.id}&user_id={self.reader.id}",user=self.admin)
-        self.assertEqual(preview.status_code,200)
-        self.assertFalse(preview.json["assigned"])
-        with self.assertRaises(QueryExecutionError):
-            enqueue_query(self.sql,self.source,self.reader.id)
-        self.save([])
-        self.assertEqual(self.make_request("get",f"/api/query_results/{admin_result.id}",user=self.reader).status_code,200)
-        self.reader.group_ids=[]; models.db.session.commit()
-        self.assertEqual(self.make_request("get",f"/api/query_results/{admin_result.id}",user=self.reader).status_code,403)
+
+        dashboard_path = f"/api/dashboards/{dashboard.id}"
+        result_path = f"/api/query_results/{result.id}"
+        self.assertEqual(self.make_request("get", dashboard_path, user=self.reader).status_code, 403)
+        self.assertEqual(self.make_request("get", result_path, user=self.reader).status_code, 403)
+
+        grant = models.DashboardReadGrant(dashboard_id=dashboard.id, user_id=self.reader.id, grantor_id=self.admin.id)
+        models.db.session.add(grant)
+        models.db.session.commit()
+        response = self.make_request("get", dashboard_path, user=self.reader)
+        self.assertEqual(response.status_code, 200)
+        rendered_query = response.json["widgets"][0]["visualization"]["query"]
+        self.assertEqual(rendered_query["latest_query_data_id"], result.id)
+        self.assertNotIn("query", rendered_query)
+        for suffix in ("", ".csv", ".tsv", ".xlsx"):
+            self.assertEqual(self.make_request("get", result_path + suffix, user=self.reader).status_code, 200)
+            self.assertEqual(self.make_request("get", f"/api/query_results/{orphan.id}{suffix}",
+                                               user=self.reader).status_code, 403)
+        self.assertEqual(self.make_request("post", f"/api/queries/{query.id}/results",
+                                           user=self.reader, data={"max_age": 0}).status_code, 403)
+
+        models.db.session.delete(grant)
+        models.db.session.commit()
+        self.assertEqual(self.make_request("get", dashboard_path, user=self.reader).status_code, 403)
+        self.assertEqual(self.make_request("get", result_path + ".csv", user=self.reader).status_code, 403)
 
     def test_unprotected_full_privilege_connection_only_executes_select(self):
         with self.target.cursor() as cursor:

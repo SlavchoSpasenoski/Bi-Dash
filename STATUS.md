@@ -1,6 +1,147 @@
 # Bi-Dash current status
 
-Last updated: 2026-11-22.
+Last updated: 2026-11-26.
+
+## Datasets release preparation - 2026-11-26
+
+Prepared a local release candidate on `codex/datasets-release` from the tested workspace. The candidate covers Datasets, migrations, permissions and regression tests. Its runtime source matched the locally verified image in the preceding acceptance pass.
+
+Restored the local pre-Datasets backup into disposable PostgreSQL 18 with isolated Redis. Using the accepted image, upgraded metadata from `b3d9e1a42f86` through `8e21d4ab67c0` to `6d42ac190b37`, downgraded to the baseline, and re-upgraded to the same head. The five Dataset tables existed after upgrade. Row counts and fingerprints for all 23 pre-existing metadata tables matched at every stage. This was a local backup on the same starting revision as the documented Contabo release. The Contabo metadata copy still needs its own rehearsal.
+
+The Contabo HTTPS health endpoint returned 200. Pinned SSH attempts timed out on TCP port 22 before authentication, including the IPv4 retry. No server backup, server migration, deployment or GitHub publication occurred. When SSH is reachable, verify the active release, take an on-server backup, rehearse on an isolated restore, and deploy and verify before publishing the candidate to GitHub.
+
+## Platform acceptance: defensive checks and full regression - 2026-11-26
+
+The disposable security campaign passed 22 tests and eight subtests, including real PostgreSQL and MySQL workers for View only saved queries. Selective migration passed nine tests and ten subtests. SQL policy checks passed 16 tests on each of MySQL 8.4 and MariaDB 10.6. Independent decimal oracles passed on PostgreSQL, MySQL and MariaDB. Authenticated browser navigation and read-only API checks passed for Datasets, Queries and Dashboards. Compose and bilingual website checks passed.
+
+The full Python regression completed across eight shards on disposable PostgreSQL and Redis, using workspace tests and the active runtime image. The first run had 1,547 passes, six failures from missing compiled HTML in the read-only workspace mount, and four skips. All six failures passed on retest using the image templates. The three skipped decimal engine oracles passed separately on native engines, giving 1,556 passed cases and one remaining skip for email search unsupported by sqlalchemy-searchable. Normalized source hashes matched the image for redash, migrations, client/app and viz-lib/src. Both TypeScript checks and 358 Jest tests passed. Logs are in ignored .tmp/release-regression-*.log. The local image remains healthy. No deployment occurred. The next release step is a migration rehearsal on disposable metadata from the target version.
+
+## Platform acceptance: live Ollama - 2026-11-26
+
+Verified the active runtime image against the actual local Ollama `qwen2.5-coder:7b` model through authenticated Admin HTTP handlers with a real CSRF token. The fixture used a disposable PostgreSQL database, Redis/RQ, and three synthetic order rows. AI Chat returned a read-only SELECT that produced January 20.00 and February 3.25. Build Dashboard generated a single draft bar chart mapped from month to revenue. Its saved query ran through an RQ worker and matched both independently expected totals. Chat took 50.9 seconds and Builder took 83.7 seconds in this run, each including a model load. An initial fixture request omitted the CSRF token and received 400 before reaching the model. The verified run obtained the token from the authenticated session and used no provider mocks.
+
+The focused AI regression also passed 28 tests and 49 subtests covering Chat access, dashboard handlers and plan validation. Logs are in ignored `.tmp/live-ollama-acceptance.log` and `.tmp/live-ollama-regression.log`. The Admin run covers PostgreSQL API and worker behavior. The protected MariaDB Editor run also passed. Chat returned validated SQL for the assigned columns in 58.0 seconds. Build Dashboard created an Editor-owned draft table and the real RQ worker returned exactly the permitted order ID and total under the Editor policy. Both live runs used the application HTTP handlers and workers. Browser rendering was outside this pass. The Editor evidence is in ignored `.tmp/live-ollama-editor.log`. No runtime changes or deployment. The subsequent defensive checks and full regression are recorded above.
+
+## Platform acceptance second pass: role checks - 2026-11-26
+
+Closed the five role-test discrepancies from the first pass. Test fixtures now distinguish removing the last source rule (ordinary source grants resume) from revoking group eligibility while a source remains protected. The real worker rejects a queued protected query after the Editor's membership is removed and committed. The revocation fixture reloads the Editor in the current ORM session after the preceding worker run.
+
+In the Reader checks, the dashboard grant and a current matching result pointer allow the linked result and its CSV, TSV and XLSX exports. An unlinked result, a direct refresh without dashboard context, and access after grant revocation are denied. In the Editor AI check, the second Editor is denied before dashboard assignment, then executes the published shared report with their own source scope. The two Editors cannot read or export one another's scoped results.
+
+Both complete modules passed on the active runtime image using disposable PostgreSQL, Redis/RQ and MariaDB: 29 tests and 28 subtests. The AI provider response was mocked. Changes were limited to test fixtures and assertions. Live Ollama results are recorded above. The subsequent defensive checks and full regression are recorded above. No deployment occurred.
+
+## Dataset closeout and platform acceptance testing - 2026-11-26
+
+Dataset closeout passed for the current direct MySQL/MariaDB scope. On disposable PostgreSQL metadata, Redis/RQ and MySQL, 19 Dataset tests passed. The new end-to-end regression compares a saved dashboard Query to a native source aggregate for Admin, Editor and Reader before and after a compatible publication, then checks that the Editor loses access after group membership is removed. The first run exposed a stale ORM object in the test fixture after the worker ran. Reloading the actor in the active session corrected the fixture. The current workspace SQL suite passed 16 checks each on MySQL 8.4 and MariaDB 10.6, including same-source joins and wide AVG. Visual join modeling, PostgreSQL Dataset sources and cross-source joins remain deferred.
+
+Platform acceptance started using the active local image and disposable services. Client and visualization type checks, 196 client Jest tests, 162 visualization Jest tests, Compose validation and bilingual website link validation passed. The authenticated local browser smoke checked Datasets, Queries and Dashboards. A disposable browser fixture also verified selective migration (encrypted export, preview, import, source mapping, ownership and Reader denial) and Admin monitoring. Migration passed 38 baseline checks and nine additional campaign checks on its dedicated fixture. Seven Reader refresh tests passed with MariaDB enabled. The local Python suite ran 115 tests with three optional engine checks skipped.
+
+The broad backend suite against disposable PostgreSQL and Redis completed with 1,467 passed, 79 skipped, nine failures and one collection-induced error. Follow-up runs passed after changing tests only: the imported connection task no longer collects as a test, timing assertions tolerate Query history inserts, Python verifies the current cached-result denial, fixtures commit source grants before running a worker, and query-key assertions verify the current anonymous execution and visibility restrictions. Separate operations checks passed the alerts, scheduler, history and monitoring assertions. The combined workspace retest passed all 28 checks. The full original image suite was run once, with corrected tests verified separately against the same runtime image.
+
+The dedicated role suite passed 78 checks and had five failures. The same five reproduced on the image from before Datasets. They cover legacy assumptions about Reader access to results, cross-Editor execution of an AI-generated Query and the effect of removing all source rules. The documented policy restores ordinary source grants when the last table/column rule is removed, so a revocation check must retain source protection while removing a user's eligibility or a permitted column. The second-pass entry above records the aligned fixtures and subsequent verification. Platform acceptance remains open. Live model inference and the dedicated security campaign were not run in this pass. No Contabo rollout.
+
+## Dataset Query builder audit fixes - 2026-11-26
+
+Dataset chart serialization now gives automatic charts a categorical key containing every grouping dimension, including existing saved charts using the default mapping. AVG uses a wider intermediate sum and accepts the exact original SQL of existing Dataset reports before executing the corrected definition. View only Editors can refresh eligible saved Dataset Queries from dashboards under the existing Dataset and source access checks. Preview results are shown only for the Dataset revision, fields, measures and filters that produced them.
+
+Verified 112 local tests with three optional engine tests skipped, 18 Dataset authoring/resource/RQ tests against disposable PostgreSQL, Redis and MySQL, and 16 SQL integration tests each on MySQL 8.4 and MariaDB 10.6. The regression tests cover saved AVG definitions and View only dashboard refresh with fresh and cached results. TypeScript checks passed for the client and visualization package, as did 196 client Jest tests and five chart data tests. An isolated browser run exercised selection, preview invalidation, saving, execution and a rendered chart with distinct combinations of two grouping fields. The fix is active locally in `redash-ai-local:dataset-audit-fixes-local`. The activation health check and authenticated browser smoke passed for Datasets, Queries and Dashboards. The Alembic revision and installation environment hash matched the previous values.
+
+## New Query from Dataset and same-source joins active locally - 2026-11-26
+
+New Query now offers Use a Dataset. Admins and eligible Editors can choose a published Dataset, select fields for a row-level table or add measures and grouping, apply equality filters, preview up to 50 rows, and save a linked Query. Preview rechecks authorization and applies role/deployment timeout and admission limits. Existing Dataset-backed execution and result provenance apply to the saved Query.
+
+Direct MySQL/MariaDB base Queries can use one same-source INNER or LEFT JOIN with qualified output columns and one equality between keys of matching types and collations. The right-side key requires a full single-column unique index to prevent row multiplication. Cross-source joins are outside this release.
+
+All 15 shared SQL integration tests passed on each disposable MySQL 8.4 and MariaDB 10.6 engine. The join tests verified the missing-unique-index denial, catalog fields, and duplicate preservation for unaggregated output. The local suite passed 112 tests with three optional native-engine cases skipped. Isolated Edge verified New Query navigation, a published Dataset, multi-field selection, exact decimal preview, save, open and real RQ result execution. Production build and authenticated local navigation passed. Server, worker and scheduler now run `redash-ai-local:dataset-query-builder-local`. Schema 6d42ac190b37 and .env were preserved. The prior image is retained as `redash-ai-local:before-dataset-query-builder`. No business-source execution occurred during local smoke.
+
+
+## Dataset Query #6 field picker repaired locally - 2026-11-25
+
+Dataset now accepts a plain single-table `SELECT *` and a literal integer LIMIT on a direct MySQL/MariaDB source. It resolves supported visible columns through the authorized source catalog, narrows protected-source discovery to permitted columns, and preserves the saved LIMIT inside generated SQL. The local Query #6 definition was left intact.
+
+All 14 SQL integration checks passed on each disposable MySQL 8.4 and MariaDB 10.6 source, including restricted-column exclusion and preview honoring LIMIT. The local authenticated browser verified 13 source options on Query #6, with catalog-only access during the smoke. Build and local navigation passed. Local server/worker/scheduler use `redash-ai-local:dataset-wildcard-20261125`; no migration, schema head 6d42ac190b37. Retained `redash-ai-local:before-dataset-wildcard-20261125` for rollback.
+
+## Dataset source field picker active locally - 2026-11-25
+
+Drafts now use searchable source field selection and suggestions for formula operands. Options come from the authorized saved Query projection in SQL order, including aliases, without running the Query or opening its source. Decimal constants remain editable. The local saved MySQL Query #6 uses a wildcard and LIMIT, which are outside the current Dataset base-query grammar. Its definition was left intact.
+
+Nine compiler tests passed and three optional native-engine tests were skipped. A disposable browser fixture with an unreachable source confirmed alias ordering, field and operand selection, draft save, and Reader denial. The production build and authenticated local navigation passed. Local server, worker and scheduler now use `redash-ai-local:dataset-field-picker-20261125`. Schema 6d42ac190b37 and .env were preserved, no migration was needed, and the prior image is retained as `redash-ai-local:before-dataset-field-picker-20261125`.
+
+## Datasets first release active locally - 2026-11-25
+
+Local Bi-Dash runs `redash-ai-local:datasets-local-20261125` (c5304c35c8728e23dd3dd9d657e022316810d73a6281dbe4ccea24f010785fb6) with Dataset authoring and chart creation enabled. First release supports direct MySQL/MariaDB saved single-table Queries, row-level formulas, preview and publish, user/group grants, grouped charts and dashboard use. Compatible publications rebind dependent reports atomically. A breaking change leaves the last published versions intact. Dataset execution and results use actor, source and revision provenance, with Reader access through assigned dashboards. PostgreSQL formula/catalog checks were performed earlier, and PostgreSQL source authoring remains outside this rollout.
+
+Verified exact release browser authoring, rendered chart, Editor sharing and Reader dashboard refresh on disposable PostgreSQL metadata, Redis/RQ and MySQL. Two Editors created separate reports from the same Dataset; tested exact arithmetic, grouped filtering, warm cache, rebind, rejected breaking change and Reader CSV/TSV/HTML/XLSX. Five independent real-worker access tests passed. Also passed 111 local checks (three optional engine fixtures skipped), 12 focused authoring/resource/job checks, 13 shared SQL checks on each of MySQL and MariaDB, 107 legacy Query/QueryResult/dashboard grant tests across two runs, frontend type-check and 196 Jest tests. The first legacy run lacked the repository's test-only mock dependency for QueryResult tests. That module passed all 55 tests with the pinned dependency. Production frontend built with the inherited maplibre source-map warning. Compose and diff checks passed.
+
+Verified upgrade/downgrade/re-upgrade on disposable restored metadata. Local backup `.tmp/bidash-before-datasets-20261125.dump` was restored to a validated output stream before the additive migration. Existing metadata hashes and counts matched in all 23 original tables, and the .env hash matched. Current schema is 6d42ac190b37 and rollback image is `redash-ai-local:before-datasets-20261125`. The first readiness probe timed out and restored the old image. A retry used the verified migrated metadata and confirmed loopback /ping and authenticated Dataset, Query and Dashboard navigation in Edge. All original services are running. No business-source SQL executed during the live smoke. No Git publication or Contabo rollout.
+
+## Dataset authoring UI and report SQL compiler added - 2026-11-25
+
+Added flag-gated desktop/mobile Datasets navigation, Create dataset on saved MySQL Queries, and list, draft, source fields, arithmetic, preview, publish and access controls. Preview serialization preserves exact decimals and large integers as strings. Added an internal report SQL compiler with grouping, equality/NULL filters and exact-decimal SUM/AVG and COUNT, without yet exposing report creation.
+
+Verified authenticated draft, exact preview, publication, Editor grant/revocation and Reader denial through isolated Flask, PostgreSQL metadata, Redis/RQ and MySQL. Concurrent draft saves returned one success and one conflict. Generic job polling and outdated preview polling were denied. Thirteen SQL integration tests passed on each of MySQL 8.4.13 and MariaDB 10.6.28, including grouped, filtered calculated fields. The local regression suite passed 110 checks with three optional engine oracles skipped in that run. The normal local installation has not been migrated or activated. Remaining release work includes browser verification, saving Dataset-backed reports and dashboard integration with current Dataset/result provenance, Reader refresh, export and end-to-end rollout checks.
+
+## Dataset Preview and Publish queued through RQ - 2026-11-25
+
+Registered flag-gated Dataset authoring job submission and status endpoints. Jobs share the existing Query admission counter and time limits, bind to the submitted draft revision and current base Query/source policy, and recheck those constraints at execution and before returning preview results. Job polling is submitter-only and generic Query job endpoints reject Dataset jobs. Preview result payloads and Redis lifetimes are bounded.
+
+All 12 focused Dataset authoring, resource and job tests passed. An isolated Redis 7/RQ SimpleWorker smoke passed real queue admission, deduplication, execution and submitter polling with mocked app metadata and source results. Worker execution against real app metadata plus source, end-to-end authorization under concurrent revocation, UI and local activation remain pending. No local migration or deployment.
+
+## Dataset metadata API registered behind rollout flag - 2026-11-25
+
+Registered signed-session list, detail, draft create/save and access endpoints under `REDASH_DATASETS_ENABLED`, off by default. Writes require CSRF. Non-editors receive only currently authorized published snapshots, with a conservative deny on base Query revision drift. Disabled, Reader and API credentials are excluded from Dataset definitions. Responses use private/no-store caching. Preview and Publish remain internal until job admission and revalidation are wired.
+
+The nine focused resource and authoring tests passed in a network-disabled app container using mocked persistence. Covered disabled feature, Reader/mixed credentials, separation of draft and published fields, stale mutations and publication transaction contracts. Full authenticated database API, workers and UI remain pending. No local migration or activation.
+
+## Dataset preview and publication services added - 2026-11-25
+
+Preview verifies Full access and a matching saved Query revision, uses the current source policy, compiles against the same connection's live catalog and returns at most 50 rows. The shared MySQL runner checks both the base and composed query before execution and rejects warning-bearing results. Publish uses the same validation while holding the Dataset and base Query row locks, then records an immutable snapshot and pins the validated Query revision. Re-publishing an identical definition keeps the existing revision.
+
+All six authoring tests passed with mocked persistence and 12 shared SQL integration tests passed on each of disposable MySQL 8.4.13 and MariaDB 10.6.28, including the preview row cap and rejection of a restricted column under an alias. Publication concurrency with real metadata, PostgreSQL authoring execution, job quotas, API and UI remain pending. The services are not exposed via routes. No local app migration or deployment.
+
+## Dataset draft and grant transaction services added - 2026-11-25
+
+Added server services for creating and saving Dataset drafts with bounded structured formula validation and for replacing user/group grants. Mutations lock the same-org Dataset row and reject stale version tokens. Grant changes require a published revision and eligible same-org recipients. The callers control commit and rollback. No endpoints are registered yet.
+
+All four authoring contract tests passed using mocked persistence and authorization. Seven local compiler tests passed, with three optional database oracles skipped in this run. Diff whitespace checking passed. Next, implement preview and publication with authoritative source validation, pin the saved Query revision, and wire the API and UI. Actual concurrent database requests, pinned access checks and browser flows remain unverified. No local migration or deployment.
+
+## Dataset lifecycle schema and definition permissions started - 2026-11-25
+
+Added migration 8e21d4ab67c0 and ORM models for Dataset drafts, published snapshots linked to Query revisions, and direct/group grants. Added definition permission predicates for active same-org Admins and Editors, ownership, publication, current base-query access and Full-source authoring. Readers are excluded from definition access. Grant writes, draft save/publish transactions, pinned-definition execution authorization and browser routes are still pending.
+
+On disposable PostgreSQL 18, applied and reversed the migration, matched ORM column names to the created tables, inserted all four record types, and checked that the pre-existing fixture rows remained after downgrade. A role/ownership probe exercised Admin, owner and other Editor, View only, Reader, disabled, API and foreign-org checks with mocked base authorization. This is not end-to-end permission or migration validation against a copy of full app metadata. No migration was applied to the local installation.
+
+## Dataset source catalog prototype verified - 2026-11-25
+
+Added a server-side compiler entry point that reads projected fields from the source catalog, resolves aliases, binds the selected schema and checks native types, numeric precision and scale. It rejects missing and unsupported fields, including floating point, unbounded PostgreSQL numeric, and decimals outside DECIMAL(38,10). This is a prototype entry point that requires authorization before metadata discovery and revalidation of the composed SQL before execution. It is not exposed in the application.
+
+Validation: 110 network-disabled local checks passed, with three optional native rounding oracles skipped in that suite. Both disposable MySQL 8.4.13 and MariaDB 10.6.28 shared SQL integration suites passed 11 checks each using source-derived metadata. A disposable PostgreSQL 18 DB-API probe confirmed quoted name resolution, exact arithmetic and rejection of scale 11. Next milestone is Dataset lifecycle and permissions, including authorization before catalog access, revalidation on execution, draft/publish and chart creation. No app migration or deployment occurred.
+
+## Dataset overflow guard verified through shared SQL execution - 2026-11-25
+
+Added a server-side opt-in to discard MySQL/MariaDB results whenever the statement reports a warning, before result serialization. Existing callers retain their default behavior. SQL validation now recognizes numeric DECIMAL parameters only in CAST type position. Generated arithmetic stays subject to existing table/column authorization. Disposable MySQL 8.4.13 and MariaDB 10.6.28 application SQL suites each passed 11 checks, including valid Dataset addition/division and rejection of an entire mixed-row result after one decimal overflow. The containerized local regression suite passed 108 checks with the three separately run native-engine comparisons skipped in that suite. Dataset source metadata, lifecycle, permission endpoints and production wiring remain pending. No migration or deployment occurred.
+
+## Dataset division accuracy verified - 2026-11-25
+
+Replaced guard-digit division with exact decimal remainder rounding before division. Verified cases immediately below, at and above a rounding midpoint, both operand signs, NULL, zero, and the largest DECIMAL(38,10) value. All eight prototype tests passed on disposable PostgreSQL 18, MySQL 8.4 and MariaDB 10.6, including boundaries with MySQL/MariaDB div_precision_increment set to zero.
+
+A separate overflow probe confirmed PostgreSQL raises an error and MySQL/MariaDB return a saturated decimal with warning 1264. Before wiring production execution, prevent out-of-range formula results or fail execution explicitly on overflow, and validate source-derived precision/scale. Dataset lifecycle, permission enforcement and application integration remain pending.
+
+## Dataset SQL prototype started with team - 2026-11-25
+
+Added an offline SQL compiler for a single-table explicit saved SELECT and typed row-level arithmetic, with independent QA fixtures and a defensive authorization review. It is disconnected from application routes and workers. The prototype explicitly takes declared field types. Product use requires source-derived metadata, policy validation of composed SQL and Dataset-specific job and result provenance, including the dashboard-bound Reader path.
+
+The initial combined suite passed five compiler tests and three reference SQL comparisons on disposable PostgreSQL 18, MySQL 8.4 and MariaDB 10.6 containers. The MySQL fixture needed startup time before the successful rerun. Verified cases include duplicate preservation, filtering, large exact decimals, NULL, negative values and division by zero. Full numerical parity near rounding midpoints and overflow, protected-source integration, lifecycle and the permission matrix remain release gates. No application migration, deployment or production data access was performed.
+
+## Reusable Datasets roadmap prepared - 2026-11-24
+
+Documented phased delivery, Query-style ownership and source rules, Dashboard-style user/group grants, and numerical, authorization, worker/cache and rollout acceptance criteria in [the Datasets roadmap](docs/roadmaps/DATASETS_2026-11-24.md). The first release plan includes a simple chart builder and row-level formulas. The next implementation step is a disposable-source execution prototype. This chat reviewed current access documentation and source paths and ran documentation diff/link checks. Runtime validation and implementation remain pending.
+
+## Calculated fields and reusable datasets feasibility - 2026-11-24
+
+Reviewed the main worktree at 96204e4 and AWS Quick documentation. Saved queries, typed parameter handling, visualization bindings, Query revisions and scoped query results provide building blocks. Query Results supports SQL over fresh or cached saved-query outputs via in-memory SQLite and explicitly rejects protected upstream sources. No dedicated reusable Dataset or calculated-field editor was identified in the inspected paths.
+
+Proposed first milestone, pending approval: one previously saved query on a supported SQL source per Dataset, with deliberately limited typed row-level formulas and reuse by multiple reports. Reuse source execution policies and validate compiled SQL, transitive field access, aggregate grain, revisions and cache provenance. Validate formula semantics and role/refresh/export boundaries on disposable fixtures before expanding to reusable aggregate measures or joins. This was static review only. No feature, runtime checks or deployment in this chat.
 
 ## GitHub and Contabo release completed and verified - 2026-11-22
 

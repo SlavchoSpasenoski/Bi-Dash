@@ -72,6 +72,18 @@ def _require_result_access(result, user):
 
 
 def _require_job_access(job, user):
+    if job.meta.get("dataset_authoring"):
+        abort(404)
+    if job.meta.get("dataset_report"):
+        from redash.dataset_report_runtime import dataset_report_context
+        expected = job.meta["dataset_report"]
+        query = models.Query.query.filter_by(id=expected["query_id"], org_id=user.org_id).first()
+        try:
+            if dataset_report_context(query, user, expected["dashboard_id"]) != expected:
+                abort(403, message="Dataset report access changed.")
+        except ValueError:
+            abort(403, message="Dataset report access changed.")
+        return
     if job.meta.get("dashboard_report"):
         from redash.reader_reports import authorize_editor_report
         try:
@@ -195,6 +207,43 @@ def run_query(query, parameters, data_source, query_id, should_apply_auto_limit,
             return error_response(str(error) if isinstance(error, QueryExecutionError)
                                   else "Another query request is being processed. Please retry.", 429)
         return serialize_job(job)
+
+
+def _run_dataset_saved_report(query, user, parameters, max_age, dashboard_id):
+    from redash.data_access_runtime import DataAccessDenied, access_scope, is_reader
+    from redash.dataset_report_runtime import dataset_report_context
+    from redash.reader_reports import authorize_editor_report, authorize_report
+
+    if parameters != {}:
+        abort(400, message="Dataset report filters are set in the report definition.")
+    metadata = {"query_id": query.id, "saved_parameters": {}, "saved_auto_limit": False}
+    try:
+        if user.is_api_user() or (is_reader(user) and dashboard_id is None):
+            raise DataAccessDenied("Open this Dataset report from an assigned dashboard.")
+        source = query.data_source
+        if source is None:
+            raise DataAccessDenied("This Dataset report's source is unavailable.")
+        policy_scope = access_scope(source, user)
+        if dashboard_id is not None:
+            report = {"dashboard_id": dashboard_id, "query_id": query.id, "parameters": {}}
+            if is_reader(user):
+                source, _, policy_scope = authorize_report(user, report, expected_sql=query.query_text)
+                metadata["reader_report"] = report
+            else:
+                authorize_editor_report(user, report, expected_sql=query.query_text)
+                metadata["dashboard_report"] = report
+        context = dataset_report_context(query, user, dashboard_id)
+        if max_age != 0:
+            cached = models.QueryResult.get_latest(source, query.query_text, max_age,
+                                                   policy_scope=policy_scope, dataset_context=context)
+            if cached:
+                _require_result_access(cached, user)
+                return {"query_result": serialize_query_result(cached, False)}
+        return serialize_job(enqueue_query(query.query_text, source, user.id, metadata=metadata))
+    except DataAccessDenied as error:
+        abort(403, message=str(error))
+    except (QueryExecutionError, LockError) as error:
+        return error_response(str(error), 429)
 
 
 def get_download_filename(query_result, query, filetype):
@@ -381,6 +430,9 @@ class QueryResultResource(BaseResource):
         query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
 
         from redash.data_access_runtime import is_reader
+        if (query.options or {}).get("dataset_report") is True:
+            return _run_dataset_saved_report(query, self.current_user, parameter_values, max_age,
+                                             params.get("dashboard_id"))
         if is_reader(self.current_user) and params.get("dashboard_id") is not None:
             from redash.reader_reports import authorize_report
             from redash.data_access_runtime import DataAccessDenied
@@ -473,6 +525,10 @@ class QueryResultResource(BaseResource):
         if query_id is not None:
             query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
             require_access(query, self.current_user, view_only)
+            if (query.options or {}).get("dataset_report") is True:
+                context = getattr(query_result, "report_context", None) or {}
+                if (context.get("dataset_report") or {}).get("query_id") != query.id:
+                    abort(404)
 
             from redash.data_access_runtime import can_read_all_scopes, DataAccessDenied, access_scope, is_protected, is_reader, resolve_source
             if query_result is None and query is not None and is_protected(query.data_source):
